@@ -60,11 +60,6 @@ class ID1WithPace extends ID1 implements TokenWithPace, ApduEncryptor {
     private final byte[] ssc;
 
     /**
-     * Flag to signify an established keys
-     */
-    boolean established = false;
-
-    /**
      * NfcSmartCardReader to provide the encryption/decryption for
      */
     private NfcSmartCardReader nfcReader;
@@ -89,39 +84,12 @@ class ID1WithPace extends ID1 implements TokenWithPace, ApduEncryptor {
             byte[][] keys = establishPace(can.getBytes(StandardCharsets.UTF_8));
             keyEnc = keys[0];
             keyMAC = keys[1];
-            established = true;
             // In case we were successful we notify the card that from now on
             // everythin is encrypted
             nfcReader.setApduEncryptor(this);
         } catch (Exception ex) {
             throw new SmartCardReaderException(ex);
         }
-    }
-
-    /**
-     * Select main AID
-     *
-     * We have to override the MainAid selection, since once the PACE has agreed the
-     * keys this selection must not take place any more
-     *
-     * @throws SmartCardReaderException
-     */
-    protected void selectMainAid() throws SmartCardReaderException {
-        if (!established) {
-            reader.transmit(0x00, 0xA4, 0x04, 0x00, new byte[]{(byte) 0xA0, 0x00, 0x00, 0x00, 0x77, 0x01, 0x08, 0x00, 0x07, 0x00, 0x00, (byte) 0xFE, 0x00, 0x00, 0x01, 0x00}, null);
-        }
-    }
-
-    /**
-     * Select Master File by explicitly pointing to DF in data
-     *
-     * We have to create and override MasterFile selection, since out of both
-     * supported methods, the one that works over wired interface does not work over
-     * NFC.
-     * @throws SmartCardReaderException
-     */
-    protected void selectMasterFile() throws SmartCardReaderException {
-        reader.transmit(0x00, 0xA4, 0x00, 0x0C, new byte[] {(byte) 0x3F, 0x00}, null);
     }
 
     /**
