@@ -8,6 +8,8 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 
+import org.bouncycastle.util.encoders.Hex;
+
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 
@@ -91,6 +93,7 @@ public class NfcSmartCardReader extends SmartCardReader {
      */
     protected byte[] transmit(byte[] apdu) throws SmartCardReaderException {
         try {
+            Timber.log(Log.DEBUG, Hex.toHexString(apdu));
             return card.transceive(apdu);
         } catch (IOException ex) {
             throw new SmartCardReaderException(ex);
