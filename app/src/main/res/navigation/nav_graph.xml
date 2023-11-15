@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    app:startDestination="@id/homeFragment">
+    <fragment
+        android:id="@+id/homeFragment"
+        android:name="ee.ria.DigiDoc.smartcardreader.nfc.example.HomeFragment"
+        android:label="fragment_home"
+        tools:layout="@layout/fragment_home" >
+        <action
+            android:id="@+id/action_homeFragment_to_containerFragment"
+            app:destination="@id/containerFragment" />
+        <action
+            android:id="@+id/action_homeFragment_to_canFragment"
+            app:destination="@id/canFragment"
+            app:popUpTo="@id/homeFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/containerFragment"
+        android:name="ee.ria.DigiDoc.smartcardreader.nfc.example.sign.ContainerFragment"
+        android:label="fragment_container"
+        tools:layout="@layout/fragment_container" >
+        <action
+            android:id="@+id/action_containerFragment_to_homeFragment"
+            app:destination="@id/homeFragment" />
+        <action
+            android:id="@+id/action_containerFragment_to_canFragment"
+            app:destination="@id/canFragment" />
+        <action
+            android:id="@+id/action_containerFragment_to_pin2Fragment"
+            app:destination="@id/pin2Fragment" />
+        <action
+            android:id="@+id/action_containerFragment_to_cardReaderFragment"
+            app:destination="@id/cardReaderFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/canFragment"
+        android:name="ee.ria.DigiDoc.smartcardreader.nfc.example.card.CanFragment"
+        android:label="fragment_can"
+        tools:layout="@layout/fragment_can" >
+        <action
+            android:id="@+id/action_canFragment_to_containerFragment"
+            app:destination="@id/containerFragment" />
+        <action
+            android:id="@+id/action_canFragment_to_cardReaderFragment"
+            app:destination="@id/cardReaderFragment" />
+        <action
+            android:id="@+id/action_canFragment_to_pin2Fragment"
+            app:destination="@id/pin2Fragment" />
+        <action
+            android:id="@+id/action_canFragment_to_pin1Fragment"
+            app:destination="@id/pin1Fragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/pin1Fragment"
+        android:name="ee.ria.DigiDoc.smartcardreader.nfc.example.auth.Pin1Fragment"
+        android:label="fragment_pin1"
+        tools:layout="@layout/fragment_pin1" />
+    <fragment
+        android:id="@+id/pin2Fragment"
+        android:name="ee.ria.DigiDoc.smartcardreader.nfc.example.sign.Pin2Fragment"
+        android:label="fragment_pin2"
+        tools:layout="@layout/fragment_pin2" >
+        <action
+            android:id="@+id/action_pin2Fragment_to_containerFragment"
+            app:destination="@id/containerFragment" />
+        <action
+            android:id="@+id/action_pin2Fragment_to_cardReaderFragment"
+            app:destination="@id/cardReaderFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/cardReaderFragment"
+        android:name="ee.ria.DigiDoc.smartcardreader.nfc.example.card.CardReaderFragment"
+        android:label="fragment_card_reader"
+        tools:layout="@layout/fragment_card_reader" >
+        <action
+            android:id="@+id/action_cardReaderFragment_to_cardInfoFragment"
+            app:destination="@id/cardInfoFragment" />
+        <action
+            android:id="@+id/action_cardReaderFragment_to_containerFragment"
+            app:destination="@id/containerFragment" />
+        <action
+            android:id="@+id/action_cardReaderFragment_to_pin1Fragment"
+            app:destination="@id/pin1Fragment" />
+        <action
+            android:id="@+id/action_cardReaderFragment_to_canFragment"
+            app:destination="@id/canFragment"
+            app:popUpTo="@id/cardReaderFragment" />
+        <action
+            android:id="@+id/action_cardReaderFragment_to_pin2Fragment"
+            app:destination="@id/pin2Fragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/cardInfoFragment"
+        android:name="ee.ria.DigiDoc.smartcardreader.nfc.example.card.CardInfoFragment"
+        android:label="fragment_card_info"
+        tools:layout="@layout/fragment_card_info" >
+        <action
+            android:id="@+id/action_cardInfoFragment_to_canFragment"
+            app:destination="@id/canFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/authFragment"
+        android:name="ee.ria.DigiDoc.smartcardreader.nfc.example.auth.AuthFragment"
+        android:label="fragment_auth"
+        tools:layout="@layout/fragment_auth" />
+</navigation>

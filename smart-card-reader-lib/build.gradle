@@ -1,0 +1,42 @@
+apply plugin: 'com.android.library'
+
+android {
+    namespace 'ee.ria.DigiDoc.smartcardreader'
+    compileSdk 34
+
+    defaultConfig {
+        minSdkVersion minSdk
+        targetSdkVersion targetSdk
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    lint {
+        lintConfig file('../lint.xml')
+    }
+
+    buildFeatures {
+        buildConfig = true
+    }
+}
+
+dependencies {
+    implementation "androidx.annotation:annotation:${androidxVersion}"
+    api "org.bouncycastle:bcpkix-jdk15on:${bouncycastleVersion}"
+
+    api "com.google.guava:guava:${guavaVersion}"
+    implementation "com.jakewharton.timber:timber:${timberVersion}"
+    api "io.reactivex.rxjava3:rxjava:${rxJavaVersion}"
+
+    implementation files(
+            'libs/acssmc-1.1.4.jar', // ACS
+            'libs/androidSCardV1.2.jar' // Identiv
+    )
+
+    testImplementation "org.junit.jupiter:junit-jupiter-api:${junitVersion}"
+    testImplementation "com.google.truth:truth:${truthVersion}"
+    testImplementation "org.mockito:mockito-core:${mockitoVersion}"
+}

@@ -1,0 +1,38 @@
+<resources>
+    <string name="app_name">NFC app</string>
+    <string name="nfc_not_supported">NFC is not supported on this device</string>
+    <string name="nfc_not_turned_on">NFC is not turned on</string>
+    <string name="card_detect_info">Put the ID card against your phone to detect it</string>
+    <string name="card_removed_early">ID card was removed too early</string>
+    <string name="card_detected">Card detected.\nHold it against the phone while processing</string>
+    <string name="first_name">First name: %1$s</string>
+    <string name="last_name">Last name: %1$s</string>
+    <string name="personal_code">Personal code: %1$s</string>
+    <string name="citizenship">Citizenship: %1$s</string>
+    <string name="expiration">Date of expiry: %1$s</string>
+    <string name="cancel">Cancel</string>
+    <string name="next">Next</string>
+    <string name="back">Back</string>
+    <string name="check_connection">Check connection</string>
+    <string name="add_can">Add CAN</string>
+    <string name="can_hint">123456</string>
+    <string name="can_info">6 digit number, can be found on the ID card under the card holder\'s picture</string>
+    <string name="optional">OPTIONAL:</string>
+    <string name="container_name">Container name</string>
+    <string name="container_files">Container files</string>
+    <string name="add_file">Add file</string>
+    <string name="get_signer_cert">Get signer cert</string>
+    <string name="get_signature">Get signature</string>
+    <string name="share">Share container</string>
+    <string name="auth">Auth</string>
+    <string name="signature">Signature</string>
+    <string name="card">Card</string>
+    <string name="add_pin1">Add PIN 1</string>
+    <string name="pin1_info">4–12 digits</string>
+    <string name="pin1_hint">1234</string>
+    <string name="add_pin2">Add PIN 2</string>
+    <string name="pin2_info">5–12 digits</string>
+    <string name="pin2_hint">12345</string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+</resources>
