@@ -59,6 +59,8 @@ class ID1WithPace extends ID1 implements TokenWithPace, ApduEncryptor {
      */
     private final byte[] ssc;
 
+    private final int BLOCK_SIZE = 16;
+
     /**
      * NfcSmartCardReader to provide the encryption/decryption for
      */
@@ -71,7 +73,7 @@ class ID1WithPace extends ID1 implements TokenWithPace, ApduEncryptor {
     ID1WithPace(NfcSmartCardReader reader) {
         super(reader);
         nfcReader = reader;
-        ssc = new byte[16];
+        ssc = new byte[BLOCK_SIZE];
     }
 
     /**
@@ -182,7 +184,7 @@ class ID1WithPace extends ID1 implements TokenWithPace, ApduEncryptor {
     private byte[] decryptNonce(byte[] encryptedNonce, byte[] CAN) throws NoSuchPaddingException, InvalidKeyException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException {
         byte[] decryptionKey = createKey(CAN, (byte) 3);
         Cipher cipher = Cipher.getInstance("AES/CBC/NoPadding");
-        cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(decryptionKey, "AES"), new IvParameterSpec(new byte[16]));
+        cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(decryptionKey, "AES"), new IvParameterSpec(new byte[BLOCK_SIZE]));
         return cipher.doFinal(encryptedNonce);
     }
 
@@ -284,7 +286,7 @@ class ID1WithPace extends ID1 implements TokenWithPace, ApduEncryptor {
         SecretKeySpec secretKeySpec = new SecretKeySpec(keyEnc, "AES");
         @SuppressLint("GetInstance") Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
         cipher.init(Cipher.ENCRYPT_MODE, secretKeySpec);
-        byte[] iv = Arrays.copyOf(cipher.doFinal(ssc), 16);
+        byte[] iv = Arrays.copyOf(cipher.doFinal(ssc), BLOCK_SIZE);
         cipher = Cipher.getInstance("AES/CBC/NoPadding");
         cipher.init(mode, secretKeySpec, new IvParameterSpec(iv));
         return cipher.doFinal(data);
@@ -298,7 +300,8 @@ class ID1WithPace extends ID1 implements TokenWithPace, ApduEncryptor {
      * @return
      */
     private byte[] pad(byte[] data, int blockSize) {
-        byte[] result = new byte[data.length + (blockSize - data.length % blockSize)];
+        int padLen = (blockSize - data.length % blockSize);
+        byte[] result = new byte[data.length + padLen];
         System.arraycopy(data, 0, result, 0, data.length);
         result[data.length] = (byte) 0x80;
         return result;
@@ -357,7 +360,7 @@ class ID1WithPace extends ID1 implements TokenWithPace, ApduEncryptor {
 
         if (data != null && data.length > 0) {
             byte[] paddedData;
-            paddedData = pad(data, 16);
+            paddedData = pad(data, BLOCK_SIZE);
             byte[] dataEncrypted = encryptDecryptData(paddedData, Cipher.ENCRYPT_MODE);
             if (ins % 2 == 0) {
                 do8587 = concat(new byte[]{(byte) 0x87, (byte) (dataEncrypted.length + 1), 0x01}, dataEncrypted);
@@ -371,7 +374,7 @@ class ID1WithPace extends ID1 implements TokenWithPace, ApduEncryptor {
             do97 = new byte[]{(byte)0x97, 0x01, le.byteValue()};
         }
 
-        byte[] paddedMaskedHeader = pad(maskedHeader, 16);
+        byte[] paddedMaskedHeader = pad(maskedHeader, BLOCK_SIZE);
         byte[] macData = concat(ssc, paddedMaskedHeader, do8587, do97);
         byte[] paddedMacData = pad(macData, 16);
         byte[] do8e = concat(new byte[] {(byte)0x8E, 0x08}, getMAC(paddedMacData, keyMAC));
@@ -464,7 +467,7 @@ class ID1WithPace extends ID1 implements TokenWithPace, ApduEncryptor {
         currentByte += 8;
 
         byte[] rdata = Arrays.copyOfRange(response, 0, macStart);
-        byte[] macData = pad(concat(ssc, rdata), 16);
+        byte[] macData = pad(concat(ssc, rdata), BLOCK_SIZE);
         byte[] ourMac = getMAC(macData, keyMAC);
         Timber.log(Log.DEBUG, "Card MAC: %s, our MAC: %s", Hex.toHexString(cardMac), Hex.toHexString(ourMac));
 
