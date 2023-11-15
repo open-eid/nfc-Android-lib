@@ -376,7 +376,10 @@ class ID1WithPace extends ID1 implements TokenWithPace, ApduEncryptor {
 
         byte[] paddedMaskedHeader = pad(maskedHeader, BLOCK_SIZE);
         byte[] macData = concat(ssc, paddedMaskedHeader, do8587, do97);
-        byte[] paddedMacData = pad(macData, 16);
+        byte[] paddedMacData = macData;
+        if (macData.length % BLOCK_SIZE != 0) {
+            paddedMacData = pad(macData, BLOCK_SIZE);
+        }
         byte[] do8e = concat(new byte[] {(byte)0x8E, 0x08}, getMAC(paddedMacData, keyMAC));
 
         byte newLength = 0;
