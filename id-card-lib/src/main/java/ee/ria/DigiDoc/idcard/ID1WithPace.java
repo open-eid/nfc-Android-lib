@@ -92,6 +92,10 @@ class ID1WithPace extends ID1 implements TokenWithPace, ApduEncryptor {
         }
     }
 
+    protected void selectMainAid() throws SmartCardReaderException {
+        reader.transmit(0x00, 0xA4, 0x04, 0x0C, new byte[] {(byte) 0xA0, 0x00, 0x00, 0x00, 0x77, 0x01, 0x08, 0x00, 0x07, 0x00, 0x00, (byte) 0xFE, 0x00, 0x00, 0x01, 0x00}, null);
+    }
+
     /**
      * Set MSE Authentication Template
      *
