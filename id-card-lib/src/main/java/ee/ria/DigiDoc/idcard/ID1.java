@@ -127,6 +127,14 @@ class ID1 implements Token {
     }
 
     @Override
+    public byte[] authenticate(byte[] pin1, byte[] token) throws SmartCardReaderException {
+        verifyCode(CodeType.PIN1, pin1);
+        selectOberthurAid();
+        reader.transmit(0x00, 0x22, 0x41, 0xA4, new byte[] {(byte) 0x80, 0x04, (byte) 0xFF, 0x20, 0x08, 0x00, (byte) 0x84, 0x01, (byte) 0x81}, null);
+        return reader.transmit(0x00, 0x88, 0x00, 0x00, token, 0x00);
+    }
+
+    @Override
     public byte[] decrypt(byte[] pin1, byte[] data, boolean ecc) throws SmartCardReaderException {
         byte[] prefix = new byte[] {0x00};
         verifyCode(CodeType.PIN1, pin1);

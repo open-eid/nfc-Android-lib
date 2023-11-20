@@ -56,7 +56,11 @@
         android:id="@+id/pin1Fragment"
         android:name="ee.ria.DigiDoc.smartcardreader.nfc.example.auth.Pin1Fragment"
         android:label="fragment_pin1"
-        tools:layout="@layout/fragment_pin1" />
+        tools:layout="@layout/fragment_pin1" >
+        <action
+            android:id="@+id/action_pin1Fragment_to_cardReaderFragment"
+            app:destination="@id/cardReaderFragment" />
+    </fragment>
     <fragment
         android:id="@+id/pin2Fragment"
         android:name="ee.ria.DigiDoc.smartcardreader.nfc.example.sign.Pin2Fragment"
@@ -90,6 +94,9 @@
         <action
             android:id="@+id/action_cardReaderFragment_to_pin2Fragment"
             app:destination="@id/pin2Fragment" />
+        <action
+            android:id="@+id/action_cardReaderFragment_to_authFragment"
+            app:destination="@id/authFragment" />
     </fragment>
     <fragment
         android:id="@+id/cardInfoFragment"

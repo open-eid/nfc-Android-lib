@@ -97,6 +97,18 @@ public interface Token {
             throws SmartCardReaderException;
 
     /**
+     * Signs the authentication token hash
+     *
+     * @param pin1 PIN1 code
+     * @param token Authentication token
+     * @return authentication token hash signature
+     * @throws SmartCardReaderException When signing the token failed
+     * @throws CodeVerificationException When PIN1 code is wrong
+     */
+    byte[] authenticate(byte[] pin1, byte[] token)
+        throws SmartCardReaderException;
+
+    /**
      * Decrypt data.
      *
      * @param pin1 PIN1 code.

@@ -45,4 +45,9 @@ class EstEIDv3d5 extends EstEIDToken {
     void selectSecurityEnvironment(byte operation) throws SmartCardReaderException {
         reader.transmit(0x00, 0x22, 0xF3, operation, null, 0x00);
     }
+
+    @Override
+    public byte[] authenticate(byte[] pin1, byte[] token) throws SmartCardReaderException {
+        return new byte[0];
+    }
 }

@@ -43,7 +43,7 @@ class CanFragment : Fragment() {
             if (get.equals("cert")) {
                 findNavController().popBackStack(R.id.containerFragment, false)
             } else if (get.equals("auth")) {
-                // TODO
+                findNavController().popBackStack(R.id.homeFragment,false)
             } else {
                 findNavController().popBackStack()
             }

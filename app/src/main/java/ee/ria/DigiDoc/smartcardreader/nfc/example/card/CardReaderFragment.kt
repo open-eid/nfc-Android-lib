@@ -38,6 +38,10 @@ import ee.ria.DigiDoc.smartcardreader.nfc.example.viewmodel.DataViewModel
 import org.bouncycastle.util.encoders.Base64
 import org.bouncycastle.util.encoders.Hex
 import timber.log.Timber
+import java.io.ByteArrayInputStream
+import java.security.MessageDigest
+import java.security.cert.CertificateFactory
+import java.security.cert.X509Certificate
 
 class CardReaderFragment : Fragment() {
 
@@ -98,9 +102,59 @@ class CardReaderFragment : Fragment() {
         })
     }
 
-    @Suppress("EmptyMethod")
-    private fun auth() {}
+    private fun auth() {
+        checkNfcStatus(nfcSmartCardReaderManager.startDiscovery(requireActivity()) { nfcReader, exc ->
+            requireActivity().runOnUiThread {
+                progressBar.visibility = View.VISIBLE
+                communicationTextView.text = getString(R.string.card_detected)
+            }
+            try {
+                val card = TokenWithPace.create(nfcReader)
+                card.tunnel(dataViewModel.getCan())
+                val authCert = card.certificate(CertificateType.AUTHENTICATION)
+                Timber.log(Log.DEBUG, Base64.toBase64String(authCert))
+                val pin1 = arguments?.getByteArray("pin1")
 
+                // NB! This is mock authentication, we are only interested in the correct
+                // behaviour of ID1 PIN1 API
+                val nonce = Base64.decode(
+                    "Tldaa01EZ3hZV0kwWmpkallXUXpaalV3TkdKbVpUZ3lOamhqWVRZMVlqVUsK")
+
+                val nonceHash = MessageDigest.getInstance("SHA-512").digest(nonce)
+                Timber.log(Log.DEBUG, "NONCE %s, %s", Hex.toHexString(nonce), Hex.toHexString(nonceHash))
+
+                val origin = "https://" + Utils.origin
+                val originHash = MessageDigest.getInstance("SHA-512").digest(origin.toByteArray())
+                Timber.log(Log.DEBUG, "ORIGIN %s, %s", origin, Hex.toHexString(originHash))
+
+                val tbsData = originHash + nonceHash
+                val tbsHash = MessageDigest.getInstance("SHA-384").digest(tbsData)
+                val signedHash = card.authenticate(pin1, tbsHash)
+                Timber.log(Log.DEBUG, "TBSDATA %s", Hex.toHexString(tbsData))
+                Timber.log(Log.DEBUG, "TBSHASH %s", Hex.toHexString(tbsHash))
+                Timber.log(Log.DEBUG, "SIGNEDHASH %s", Hex.toHexString(signedHash))
+
+                val inps = ByteArrayInputStream(authCert)
+                val cf: CertificateFactory = CertificateFactory.getInstance("X.509")
+                val cert: X509Certificate = cf.generateCertificate(inps) as X509Certificate
+
+                setReaderResult(R.drawable.success)
+                requireActivity().runOnUiThread {
+                    val bundle = Bundle()
+                    bundle.putString("user", cert.subjectDN.toString())
+                    findNavController()
+                        .navigate(R.id.action_cardReaderFragment_to_authFragment, bundle)
+                }
+            } catch (ex: SmartCardReaderException) {
+                setReaderResult(R.drawable.error)
+                requireActivity().runOnUiThread {
+                    exceptionToast(ex)
+                    findNavController().popBackStack(R.id.pin1Fragment, false)
+                }
+                Timber.log(Log.ERROR, ex, ex.message)
+            }
+        })
+    }
 
     private fun getSignature() {
         checkNfcStatus(nfcSmartCardReaderManager.startDiscovery(requireActivity()) { nfcReader, exc ->
