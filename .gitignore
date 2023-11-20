@@ -1,0 +1,6 @@
+.gradle/
+.idea/
+local.properties
+
+id-card-lib/build/
+smart-card-reader-lib/build/
