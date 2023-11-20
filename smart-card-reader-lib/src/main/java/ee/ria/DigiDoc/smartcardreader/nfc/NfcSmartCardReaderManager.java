@@ -6,6 +6,8 @@ import android.nfc.Tag;
 
 import androidx.annotation.Nullable;
 
+import ee.ria.DigiDoc.smartcardreader.SmartCardReaderException;
+
 public final class NfcSmartCardReaderManager implements NfcAdapter.ReaderCallback {
 
     /**
@@ -64,12 +66,17 @@ public final class NfcSmartCardReaderManager implements NfcAdapter.ReaderCallbac
      * @param tag
      */
     public void onTagDiscovered(Tag tag) {
-        NfcSmartCardReader reader = new NfcSmartCardReader(tag);
-        if (clientCallback != null) {
-            clientCallback.onNfcReader(reader);
+        NfcSmartCardReader reader = null;
+        SmartCardReaderException ex = null;
+        try {
+            reader = new NfcSmartCardReader(tag);
+        } catch (SmartCardReaderException e) {
+            ex = e;
         }
-        // TODO - error handling, decide when to close the connection and when
-        // to keep it active, potentially with a timeout
+        if (clientCallback != null) {
+            clientCallback.onNfcReader(reader, ex);
+        }
+
         reader.close();
         this.nfcAdapter.disableReaderMode(this.currentActivity);
         this.nfcAdapter = null;
@@ -92,8 +99,12 @@ public final class NfcSmartCardReaderManager implements NfcAdapter.ReaderCallbac
 
         /**
          * The callback that the client must implement upon creation of the reader
-         * @param reader
+         * @param reader - reader that was created
+         * @param ex - exception that happened during reader creation
+         *
+         * The implementer must first ensure that the exception did not take place and
+         * only then the reader can be used
          */
-        void onNfcReader(NfcSmartCardReader reader);
+        void onNfcReader(NfcSmartCardReader reader, SmartCardReaderException ex);
     }
 }
