@@ -6,7 +6,7 @@ import ee.ria.DigiDoc.smartcardreader.SmartCardReaderException;
 
 /**
  * ApduEncryptor interface is used by NfcSmartCardReader to encrypt C-APDUs
- * and decrypting R-APDUs
+ * and decrypting R-APDUs in the context of Secure Messaging
  */
 public interface ApduEncryptor {
 
@@ -21,7 +21,7 @@ public interface ApduEncryptor {
      * @param p2 - parameter P2
      * @param data - optional data
      * @param le - optional LE
-     * @return - encrypted C-APDU according to PACE specification
+     * @return - encrypted C-APDU according to Secure Messaging specification
      * @throws GeneralSecurityException
      */
     byte[] encryptAndMac(int cla, int ins, int p1, int p2, byte[] data, Integer le) throws GeneralSecurityException;
