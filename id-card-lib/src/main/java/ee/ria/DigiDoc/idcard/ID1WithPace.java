@@ -31,6 +31,7 @@ import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
+import ee.ria.DigiDoc.smartcardreader.ApduResponseException;
 import ee.ria.DigiDoc.smartcardreader.SmartCardReaderException;
 import ee.ria.DigiDoc.smartcardreader.nfc.ApduEncryptor;
 import ee.ria.DigiDoc.smartcardreader.nfc.NfcSmartCardReader;
@@ -89,8 +90,16 @@ class ID1WithPace extends ID1 implements TokenWithPace, ApduEncryptor {
             // In case we were successful we notify the card that from now on
             // everythin is encrypted
             nfcReader.setApduEncryptor(this);
+        } catch (SmartCardReaderException ex) {
+            if (ex instanceof ApduResponseException) {
+                ApduResponseException aex = (ApduResponseException)ex;
+                if ((aex.sw1 == (byte) 0x63) && (aex.sw2 == 0x00)) {
+                    throw new PaceTunnelException(ex);
+                }
+            }
+            throw ex;
         } catch (Exception ex) {
-            throw new SmartCardReaderException(ex);
+            throw new SmartCardReaderException("Could not establish tunnel", ex);
         }
     }
 
