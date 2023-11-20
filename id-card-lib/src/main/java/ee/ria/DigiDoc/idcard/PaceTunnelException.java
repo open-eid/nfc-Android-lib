@@ -19,24 +19,15 @@
 
 package ee.ria.DigiDoc.idcard;
 
+import ee.ria.DigiDoc.smartcardreader.SmartCardReaderException;
+
 /**
  * PIN1/PIN2/PUK code verification failed.
  */
-public class CodeVerificationException extends IdCardException {
+public class PaceTunnelException extends SmartCardReaderException {
 
-    private CodeType type;
-    private int retries;
-
-    CodeVerificationException(CodeType type, int retries) {
-        super(type + " verification failed. Retries left: " + retries);
-        this.type = type;
-        this.retries = retries;
+    public PaceTunnelException(Throwable cause) {
+        super(cause);
     }
-
-    public CodeType getType() {
-        return type;
-    }
-
-    public int getRetries() { return retries; }
 
 }

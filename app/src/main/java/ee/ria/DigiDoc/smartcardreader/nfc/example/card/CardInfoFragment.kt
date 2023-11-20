@@ -23,6 +23,9 @@ class CardInfoFragment : Fragment() {
     private lateinit var personalCodeTextView: TextView
     private lateinit var citizenshipTextView: TextView
     private lateinit var dateOfExpiryTextView: TextView
+    private lateinit var pin1TextView: TextView
+    private lateinit var pin2TextView: TextView
+
     private lateinit var closeButton: Button
 
     override fun onCreateView(
@@ -40,6 +43,9 @@ class CardInfoFragment : Fragment() {
         personalCodeTextView = binding.textViewPersonalCode
         citizenshipTextView = binding.textViewCitizenship
         dateOfExpiryTextView = binding.textViewExpirationDate
+        pin1TextView = binding.textViewPin1
+        pin2TextView = binding.textViewPin2
+
         closeButton = binding.buttonClose
 
         closeButton.setOnClickListener {
@@ -62,5 +68,9 @@ class CardInfoFragment : Fragment() {
         citizenshipTextView.text = getString(R.string.citizenship, dataViewModel.getCitizenship())
         dateOfExpiryTextView.text =
             getString(R.string.expiration, dataViewModel.getExpiryDate())
+
+        pin1TextView.text = getString(R.string.pin1_counter, dataViewModel.getPin1Counter())
+        pin2TextView.text = getString(R.string.pin2_counter, dataViewModel.getPin2Counter())
+
     }
 }

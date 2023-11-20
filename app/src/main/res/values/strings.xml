@@ -33,6 +33,8 @@
     <string name="add_pin2">Add PIN 2</string>
     <string name="pin2_info">5–12 digits</string>
     <string name="pin2_hint">12345</string>
+    <string name="pin1_counter">PIN1 tries left: %1$d</string>
+    <string name="pin2_counter">PIN2 tries left: %1$d</string>
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
 </resources>

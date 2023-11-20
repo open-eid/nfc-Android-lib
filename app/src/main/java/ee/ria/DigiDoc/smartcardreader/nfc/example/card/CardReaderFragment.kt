@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.nfc.NfcAdapter
+import android.nfc.TagLostException
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -19,7 +20,11 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.navigation.fragment.findNavController
 import ee.ria.DigiDoc.idcard.CertificateType
+import ee.ria.DigiDoc.idcard.CodeType
+import ee.ria.DigiDoc.idcard.CodeVerificationException
+import ee.ria.DigiDoc.idcard.PaceTunnelException
 import ee.ria.DigiDoc.idcard.TokenWithPace
+import ee.ria.DigiDoc.smartcardreader.ApduResponseException
 import ee.ria.DigiDoc.smartcardreader.SmartCardReaderException
 import ee.ria.DigiDoc.smartcardreader.nfc.NfcSmartCardReaderManager
 import ee.ria.DigiDoc.smartcardreader.nfc.NfcSmartCardReaderManager.NfcStatus
@@ -96,40 +101,37 @@ class CardReaderFragment : Fragment() {
     @Suppress("EmptyMethod")
     private fun auth() {}
 
+
     private fun getSignature() {
-        checkNfcStatus(nfcSmartCardReaderManager.startDiscovery(requireActivity()) { nfcReader ->
+        checkNfcStatus(nfcSmartCardReaderManager.startDiscovery(requireActivity()) { nfcReader, exc ->
             requireActivity().runOnUiThread {
                 progressBar.visibility = View.VISIBLE
                 communicationTextView.text = getString(R.string.card_detected)
             }
 
-            try {
-                val card = TokenWithPace.create(nfcReader)
-                card.tunnel(dataViewModel.getCan())
-                val signerCert = card.certificate(CertificateType.SIGNING)
-                Timber.log(Log.DEBUG, Base64.toBase64String(signerCert))
-                signature = container.prepareWebSignature(signerCert, Utils.signatureProfile)
-                val dataToSign = signature.dataToSign()
-                val pin2 = arguments?.getByteArray("pin2")
-                val signatureArray = card.calculateSignature(pin2!!, dataToSign!!, true)
-                Timber.log(Log.DEBUG, "PIN1: %s", Hex.toHexString(signatureArray))
-                addSignature(signatureArray)
-                setReaderResult(R.drawable.success)
-            } catch (ex: SmartCardReaderException) {
-                setReaderResult(R.drawable.error)
-                requireActivity().runOnUiThread {
-                    exceptionToast(ex)
+            if ((nfcReader != null) && (exc == null)) {
+                try {
+                    val card = TokenWithPace.create(nfcReader)
+                    card.tunnel(dataViewModel.getCan())
+                    val signerCert = card.certificate(CertificateType.SIGNING)
+                    Timber.log(Log.DEBUG, Base64.toBase64String(signerCert))
+                    signature = container.prepareWebSignature(signerCert, Utils.signatureProfile)
+                    val dataToSign = signature.dataToSign()
+                    val pin2 = arguments?.getByteArray("pin2")
+                    val signatureArray = card.calculateSignature(pin2!!, dataToSign!!, true)
+                    Timber.log(Log.DEBUG, "%s", Hex.toHexString(signatureArray))
+                    addSignature(signatureArray)
+                    setReaderResult(R.drawable.success)
+                } catch (ex: SmartCardReaderException) {
+                    setReaderResult(R.drawable.error)
+                    requireActivity().runOnUiThread {
+                        exceptionToast(ex)
+                    }
+                    Timber.log(Log.ERROR, ex, ex.message)
                 }
-                Timber.log(Log.ERROR, ex, ex.message)
-            } catch (ex: RuntimeException) {
-                setReaderResult(R.drawable.error)
                 requireActivity().runOnUiThread {
-                    Toast.makeText(requireContext(), ex.message, Toast.LENGTH_SHORT).show()
+                    findNavController().navigate(R.id.action_cardReaderFragment_to_containerFragment)
                 }
-                Timber.log(Log.ERROR, ex, ex.message)
-            }
-            requireActivity().runOnUiThread {
-                findNavController().navigate(R.id.action_cardReaderFragment_to_containerFragment)
             }
         })
     }
@@ -142,28 +144,37 @@ class CardReaderFragment : Fragment() {
     }
 
     private fun readCardData() {
-        checkNfcStatus(nfcSmartCardReaderManager.startDiscovery(requireActivity()) { nfcReader ->
+        checkNfcStatus(nfcSmartCardReaderManager.startDiscovery(requireActivity()) { nfcReader, exc ->
             requireActivity().runOnUiThread {
                 progressBar.visibility = View.VISIBLE
                 communicationTextView.text = getString(R.string.card_detected)
             }
-            try {
-                val card = TokenWithPace.create(nfcReader)
-                card.tunnel(dataViewModel.getCan())
-                val cardData = card.personalData()
-                Timber.log(Log.DEBUG, cardData.toString())
-                dataViewModel.setUserValues(cardData)
-                setReaderResult(R.drawable.success)
-                requireActivity().runOnUiThread {
-                    findNavController().navigate(R.id.action_cardReaderFragment_to_cardInfoFragment)
+            if ((nfcReader != null) && (exc == null)) {
+                try {
+                    val card = TokenWithPace.create(nfcReader)
+                    card.tunnel(dataViewModel.getCan())
+                    val cardData = card.personalData()
+                    Timber.log(Log.DEBUG, cardData.toString())
+                    dataViewModel.setUserValues(cardData)
+
+                    val pin1counter = card.codeRetryCounter(CodeType.PIN1)
+                    dataViewModel.setPin1Counter(pin1counter)
+
+                    val pin2counter = card.codeRetryCounter(CodeType.PIN2)
+                    dataViewModel.setPin2Counter(pin2counter)
+
+                    setReaderResult(R.drawable.success)
+                    requireActivity().runOnUiThread {
+                        findNavController().navigate(R.id.action_cardReaderFragment_to_cardInfoFragment)
+                    }
+                } catch (ex: SmartCardReaderException) {
+                    setReaderResult(R.drawable.error)
+                    requireActivity().runOnUiThread {
+                        findNavController().popBackStack(R.id.canFragment, false)
+                        exceptionToast(ex)
+                    }
+                    Timber.log(Log.ERROR, ex, ex.message)
                 }
-            } catch (ex: SmartCardReaderException) {
-                setReaderResult(R.drawable.error)
-                requireActivity().runOnUiThread {
-                    findNavController().popBackStack(R.id.canFragment, false)
-                    exceptionToast(ex)
-                }
-                Timber.log(Log.ERROR, ex, ex.message)
             }
         })
     }
@@ -186,14 +197,19 @@ class CardReaderFragment : Fragment() {
     }
 
     private fun exceptionToast(ex: SmartCardReaderException) {
-        if (ex.message!!.contains("TagLostException")) {
-            Toast.makeText(requireContext(), "Tag was lost", Toast.LENGTH_SHORT).show()
-        } else if (ex.message!!.contains("verification failed")) {
-            Toast.makeText(requireContext(), "PIN verification failed", Toast.LENGTH_SHORT).show()
-        } else if (ex.message!!.contains("ApduResponseException")) {
-            Toast.makeText(requireContext(), "Wrong CAN", Toast.LENGTH_SHORT).show()
-        } else {
+        if (ex is CodeVerificationException) {
             Toast.makeText(requireContext(), ex.message!!, Toast.LENGTH_SHORT).show()
+        } else if (ex is PaceTunnelException) {
+            Toast.makeText(requireContext(), "Wrong CAN", Toast.LENGTH_SHORT).show()
+        } else if (ex is ApduResponseException) {
+            Toast.makeText(requireContext(), "Error communicating with card", Toast.LENGTH_SHORT).show()
+        }
+        else {
+            if (ex.cause is TagLostException) {
+                Toast.makeText(requireContext(), "Tag was lost", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(requireContext(), ex.message!!, Toast.LENGTH_SHORT).show()
+            }
         }
     }
 }

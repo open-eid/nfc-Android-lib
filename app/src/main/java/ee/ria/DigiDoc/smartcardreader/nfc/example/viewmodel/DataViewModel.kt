@@ -12,6 +12,9 @@ class DataViewModel : ViewModel() {
     private lateinit var expiryDate: String
     private var containerName: String = ""
 
+    private var pin1Counter: Int = 0
+    private var pin2Counter: Int = 0
+
     fun setContainerName(containerName: String) {
         this.containerName = containerName
     }
@@ -59,4 +62,21 @@ class DataViewModel : ViewModel() {
     fun getExpiryDate(): String {
         return expiryDate
     }
+
+    fun setPin1Counter(p1: Int) {
+        pin1Counter = p1
+    }
+
+    fun setPin2Counter(p2: Int) {
+        pin2Counter = p2
+    }
+
+    fun getPin1Counter(): Int {
+        return pin1Counter
+    }
+
+    fun getPin2Counter(): Int {
+        return pin2Counter
+    }
+
 }
