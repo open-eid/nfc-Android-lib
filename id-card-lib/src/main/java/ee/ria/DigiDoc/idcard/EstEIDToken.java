@@ -189,7 +189,12 @@ abstract class EstEIDToken implements Token {
             reader.transmit(0x00, 0x20, 0x00, type.value, code, null);
         } catch (ApduResponseException e) {
             if (e.sw1 == 0x63 || (e.sw1 == 0x69 && e.sw2 == (byte) 0x83)) {
-                throw new CodeVerificationException(type);
+                if (e.sw2 == 0xC2) {
+                    throw new CodeVerificationException(type, 2);
+                } else if (e.sw2 == 0xC1) {
+                    throw new CodeVerificationException(type, 1);
+                }
+                throw new CodeVerificationException(type, 0);
             }
             throw e;
         }
