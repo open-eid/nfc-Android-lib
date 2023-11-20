@@ -33,7 +33,7 @@ class ID1 implements Token {
         PIN_MAP.put(CodeType.PUK, (byte) 0x02);
     }
 
-    private static final Map<CodeType, Byte> VERIFY_PIN_MAP = new HashMap<>();
+    protected static final Map<CodeType, Byte> VERIFY_PIN_MAP = new HashMap<>();
     static {
         VERIFY_PIN_MAP.put(CodeType.PIN1, (byte) 0x01);
         VERIFY_PIN_MAP.put(CodeType.PIN2, (byte) 0x85);
