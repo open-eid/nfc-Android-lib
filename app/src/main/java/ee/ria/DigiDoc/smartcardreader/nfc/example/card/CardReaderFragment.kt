@@ -152,6 +152,8 @@ class CardReaderFragment : Fragment() {
                     findNavController().popBackStack(R.id.pin1Fragment, false)
                 }
                 Timber.log(Log.ERROR, ex, ex.message)
+            } finally {
+                nfcSmartCardReaderManager.disableNfcReaderMode()
             }
         })
     }
@@ -182,6 +184,8 @@ class CardReaderFragment : Fragment() {
                         exceptionToast(ex)
                     }
                     Timber.log(Log.ERROR, ex, ex.message)
+                } finally {
+                    nfcSmartCardReaderManager.disableNfcReaderMode()
                 }
                 requireActivity().runOnUiThread {
                     findNavController().navigate(R.id.action_cardReaderFragment_to_containerFragment)
@@ -228,6 +232,8 @@ class CardReaderFragment : Fragment() {
                         exceptionToast(ex)
                     }
                     Timber.log(Log.ERROR, ex, ex.message)
+                } finally {
+                    nfcSmartCardReaderManager.disableNfcReaderMode()
                 }
             }
         })
