@@ -38,10 +38,10 @@ public class NfcSmartCardReader extends SmartCardReader {
     public NfcSmartCardReader(Tag tag) throws SmartCardReaderException {
         card = IsoDep.get(tag); // recognized tag to create the tunnel with
 
-        // maximum amount of time to process the data, 10000 == 10 seconds
+        // maximum amount of time to process the data, 5000 == 5 seconds
         // this applies to trancieve calls and since we do cryptography, we
         // allow it to be long
-        card.setTimeout(10000);
+        card.setTimeout(5000);
 
         try {
             card.connect();
