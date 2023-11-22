@@ -20,6 +20,8 @@ import java.io.OutputStream
 
 object Utils {
 
+    val origin = "ivxv.valimised.ee:443"
+
     const val SIGNATURE_CONTAINER_EXTENSION = "asice"
     private val containerFiles: MutableList<FileData> = mutableListOf()
     lateinit var container: Container
@@ -30,7 +32,6 @@ object Utils {
     fun addFileContent(
         fileName: String,
         intent: Intent,
-        fileSize: Long,
         contentResolver: ContentResolver
     ) {
         val fileData = FileData(fileName, intent, contentResolver)

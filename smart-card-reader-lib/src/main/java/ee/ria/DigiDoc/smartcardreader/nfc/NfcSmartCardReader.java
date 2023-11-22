@@ -8,6 +8,8 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 
+import org.bouncycastle.util.encoders.Hex;
+
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 
@@ -33,14 +35,18 @@ public class NfcSmartCardReader extends SmartCardReader {
      *
      * @param tag
      */
-    public NfcSmartCardReader(Tag tag) {
+    public NfcSmartCardReader(Tag tag) throws SmartCardReaderException {
         card = IsoDep.get(tag); // recognized tag to create the tunnel with
-        card.setTimeout(10000); // maximum amount of time to process the data, 10000 == 10 seconds
+
+        // maximum amount of time to process the data, 5000 == 5 seconds
+        // this applies to trancieve calls and since we do cryptography, we
+        // allow it to be long
+        card.setTimeout(5000);
 
         try {
             card.connect();
         } catch (IOException ex) {
-            // TODO
+            throw new SmartCardReaderException(ex);
         }
     }
 
@@ -52,7 +58,7 @@ public class NfcSmartCardReader extends SmartCardReader {
         try {
             card.close();
         } catch (IOException ex) {
-            // TODO
+            Timber.log(Log.ERROR, ex);
         }
     }
 
@@ -91,6 +97,7 @@ public class NfcSmartCardReader extends SmartCardReader {
      */
     protected byte[] transmit(byte[] apdu) throws SmartCardReaderException {
         try {
+            Timber.log(Log.DEBUG, Hex.toHexString(apdu));
             return card.transceive(apdu);
         } catch (IOException ex) {
             throw new SmartCardReaderException(ex);

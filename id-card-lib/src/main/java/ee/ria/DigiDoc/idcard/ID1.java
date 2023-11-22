@@ -1,5 +1,7 @@
 package ee.ria.DigiDoc.idcard;
 
+import static com.google.common.primitives.Bytes.concat;
+
 import android.util.Pair;
 import android.util.SparseArray;
 
@@ -16,8 +18,6 @@ import ee.ria.DigiDoc.smartcardreader.ApduResponseException;
 import ee.ria.DigiDoc.smartcardreader.SmartCardReader;
 import ee.ria.DigiDoc.smartcardreader.SmartCardReaderException;
 
-import static com.google.common.primitives.Bytes.concat;
-
 class ID1 implements Token {
 
     private static final Map<CertificateType, Pair<Byte, Byte>> CERT_MAP = new HashMap<>();
@@ -33,7 +33,7 @@ class ID1 implements Token {
         PIN_MAP.put(CodeType.PUK, (byte) 0x02);
     }
 
-    private static final Map<CodeType, Byte> VERIFY_PIN_MAP = new HashMap<>();
+    protected static final Map<CodeType, Byte> VERIFY_PIN_MAP = new HashMap<>();
     static {
         VERIFY_PIN_MAP.put(CodeType.PIN1, (byte) 0x01);
         VERIFY_PIN_MAP.put(CodeType.PIN2, (byte) 0x85);
@@ -127,6 +127,14 @@ class ID1 implements Token {
     }
 
     @Override
+    public byte[] authenticate(byte[] pin1, byte[] token) throws SmartCardReaderException {
+        verifyCode(CodeType.PIN1, pin1);
+        selectOberthurAid();
+        reader.transmit(0x00, 0x22, 0x41, 0xA4, new byte[] {(byte) 0x80, 0x04, (byte) 0xFF, 0x20, 0x08, 0x00, (byte) 0x84, 0x01, (byte) 0x81}, null);
+        return reader.transmit(0x00, 0x88, 0x00, 0x00, token, 0x00);
+    }
+
+    @Override
     public byte[] decrypt(byte[] pin1, byte[] data, boolean ecc) throws SmartCardReaderException {
         byte[] prefix = new byte[] {0x00};
         verifyCode(CodeType.PIN1, pin1);
@@ -145,7 +153,12 @@ class ID1 implements Token {
             reader.transmit(0x00, 0x20, 0x00, VERIFY_PIN_MAP.get(type), code(code), null);
         } catch (ApduResponseException e) {
             if (e.sw1 == 0x63 || (e.sw1 == 0x69 && e.sw2 == (byte) 0x83)) {
-                throw new CodeVerificationException(type);
+                if (e.sw2 == (byte)0xC2) {
+                    throw new CodeVerificationException(type, 2);
+                } else if (e.sw2 == (byte)0xC1) {
+                    throw new CodeVerificationException(type, 1);
+                }
+                throw new CodeVerificationException(type, 0);
             }
             throw e;
         }

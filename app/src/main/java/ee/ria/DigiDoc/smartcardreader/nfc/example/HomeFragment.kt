@@ -1,18 +1,20 @@
 package ee.ria.DigiDoc.smartcardreader.nfc.example
 
 import android.os.Bundle
-import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
-import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.activityViewModels
 import androidx.navigation.fragment.findNavController
 import ee.ria.DigiDoc.smartcardreader.nfc.example.databinding.FragmentHomeBinding
+import ee.ria.DigiDoc.smartcardreader.nfc.example.viewmodel.DataViewModel
 
 class HomeFragment : Fragment() {
 
+    private val dataViewModel: DataViewModel by activityViewModels()
     private lateinit var binding: FragmentHomeBinding
     private lateinit var authButton: Button
     private lateinit var signatureButton: Button
@@ -41,7 +43,9 @@ class HomeFragment : Fragment() {
         }
 
         authButton.setOnClickListener {
-            Toast.makeText(requireContext(), "Not implemented!", Toast.LENGTH_SHORT).show()
+            val bundle = Bundle()
+            bundle.putString("get", "auth")
+            findNavController().navigate(R.id.action_homeFragment_to_canFragment, bundle)
         }
         handleOnBackPressed()
     }

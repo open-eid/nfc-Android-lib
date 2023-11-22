@@ -19,30 +19,24 @@
 
 package ee.ria.DigiDoc.idcard;
 
-import android.content.Context;
-
-
 /**
  * PIN1/PIN2/PUK code verification failed.
  */
 public class CodeVerificationException extends IdCardException {
 
     private CodeType type;
-    private String message;
+    private int retries;
 
-    CodeVerificationException(CodeType type) {
-        super(type + " verification failed");
-    }
-
-    public CodeVerificationException(CodeType type, String message) {
-        super(type + " verification failed");
+    CodeVerificationException(CodeType type, int retries) {
+        super(type + " verification failed. Retries left: " + retries);
         this.type = type;
-        this.message = message;
+        this.retries = retries;
     }
 
     public CodeType getType() {
         return type;
     }
 
+    public int getRetries() { return retries; }
 
 }

@@ -150,14 +150,13 @@ class ContainerFragment : Fragment() {
             data.action = Intent.ACTION_OPEN_DOCUMENT
             val nameSize = Utils.getFileNameAndSize(data.data!!, requireContext())
             val fileName = nameSize.first
-            val fileSize = nameSize.second
 
             for (file in containerFiles) {
                 if (file.getFileName() == fileName) {
                     return
                 }
             }
-            addFileContent(fileName, data, fileSize, requireActivity().contentResolver)
+            addFileContent(fileName, data, requireActivity().contentResolver)
 
             if (containerNameEditText.text.toString() == "") {
                 val name = String.format(
