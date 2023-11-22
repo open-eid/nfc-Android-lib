@@ -16,6 +16,14 @@ public final class NfcSmartCardReaderManager implements NfcAdapter.ReaderCallbac
     @Nullable
     private NfcAdapter nfcAdapter;
 
+    public void disableNfcReaderMode() {
+        if ((this.currentActivity != null) && (this.nfcAdapter != null)) {
+            this.nfcAdapter.disableReaderMode(this.currentActivity);
+        }
+        this.nfcAdapter = null;
+        this.currentActivity = null;
+    }
+
     /**
      * Android NFC API is Activity bound
      */
@@ -78,9 +86,7 @@ public final class NfcSmartCardReaderManager implements NfcAdapter.ReaderCallbac
         }
 
         reader.close();
-        this.nfcAdapter.disableReaderMode(this.currentActivity);
-        this.nfcAdapter = null;
-        this.currentActivity = null;
+        disableNfcReaderMode();
     }
 
     /**
