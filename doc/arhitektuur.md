@@ -18,9 +18,11 @@ ID-kaart on juba kasutatav Android ja iOS nutiseadmetel, hetkel nõuab see nutis
 
 Eesti ID-kaardi kasutamiseks üle NFC liidese on tehtud teostatavusuuring, mille põhjal ei ole takistusi NFC lubamiseks. - [Analysis of the Possibility to Use ID1 Card's NFC Interface for Authentication and Electronic Signing](https://www.ria.ee/media/1350/download). Uuring kirjeldab ka võimalikku arhitektuuri NFC toe loomiseks, mis tähendab eraldi eID rakenduse loomist vältimaks olukorda, kus kolmandad osapooled lõppkasutajalt PIN koode küsima hakkavad.
 
-\
-IMAGE(id_card_over_nfc_eidapp)
-\
+
+
+![](./model/id_card_over_nfc_eidapp.png)
+
+
 
 m-valimiste projejkti raames on eesmärk luua tarkvarateek, mis võimaldab kasutada ID-kaardi funktsionaalsust nutiseadmes üle NFC liidese, süüvimata seejuures seadme ja kaardi suhtlusprotokollidesse (NFC, PACE, ID-kaardi APDUd). Selline teek on pikemas plaanis eelduseks eraldiseisva eID rakenduse loomiseks nutiplatvormidele ning annab lühemas plaanis võimaluse ID-kaarti valitud rakendustes kasutusele võtta.
 
@@ -75,7 +77,7 @@ Android platvormil tuleb arvestada, et teegi klientrakendused võivad olla arend
 NFC-ID teek on vahesamm teel eraldiseisva eID rakenduse suunas. Teegi kasutamine eeldab selle kompileerimist ja levitamist klientrakenduse osana.
 
 
-IMAGE(id_card_over_nfc_embedded_api)
+![](./model/id_card_over_nfc_embedded_api.png)
 
 
 ### Lahtiütlused
@@ -125,7 +127,7 @@ Seega tuleb NFC-ID teegis esmajärjekorras realiseerida võimekus Web-eID vastus
 
 Kirjeldame NFC-ID teegi kasutamist hääletamisprotokollis EHSiga eeldusel, et autentimine toimub Web-eID protokolliga.
 
-IMAGE(id_card_over_nfc_sequence)
+![](./model/id_card_over_nfc_sequence.png)
 
 ## Viited
 
