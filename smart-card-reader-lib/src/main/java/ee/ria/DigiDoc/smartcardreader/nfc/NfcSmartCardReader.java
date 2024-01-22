@@ -38,10 +38,16 @@ public class NfcSmartCardReader extends SmartCardReader {
     public NfcSmartCardReader(Tag tag) throws SmartCardReaderException {
         card = IsoDep.get(tag); // recognized tag to create the tunnel with
 
-        // maximum amount of time to process the data, 5000 == 5 seconds
+        // maximum amount of time to process the data, 50000 == 50 seconds
         // this applies to trancieve calls and since we do cryptography, we
-        // allow it to be long
-        card.setTimeout(5000);
+        // allow it to be long. Under normal circumstances we could survive
+        // with the 5 second timeout, but when there has been wrong CAN entry
+        // 10 times in a row, the card protection mechanisms introduce a delay.
+        // Since length of the delay is only validated empirically to be around
+        // 30 seconds, we have established 50 seconds as resonable upper
+        // boundary. It is long enough to cover the delay and it does not
+        // disturb any positive cases.
+        card.setTimeout(50000);
 
         try {
             card.connect();
