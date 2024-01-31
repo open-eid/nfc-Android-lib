@@ -1,0 +1,105 @@
+@startuml
+
+
+left to right direction
+
+package ee.ria.DigiDoc.idcard {}
+abstract class ee.ria.DigiDoc.smartcardreader.SmartCardReader
+abstract class ee.ria.DigiDoc.smartcardreader.usb.UsbSmartCardReader
+
+package "com" as ee.ria.DigiDoc.smartcardreader.usb.com <<External>> {
+  package acs {}
+  package identive {}
+}
+class ee.ria.DigiDoc.smartcardreader.ApduResponseException
+class ee.ria.DigiDoc.smartcardreader.BuildConfig
+class ee.ria.DigiDoc.smartcardreader.SmartCardReaderException
+class ee.ria.DigiDoc.smartcardreader.nfc.NfcSmartCardReader
+class ee.ria.DigiDoc.smartcardreader.nfc.NfcSmartCardReaderManager
+class ee.ria.DigiDoc.smartcardreader.usb.AcsUsbSmartCardReader
+class ee.ria.DigiDoc.smartcardreader.usb.IdentivUsbSmartCardReader
+class ee.ria.DigiDoc.smartcardreader.usb.UsbSmartCardReaderManager
+class ee.ria.DigiDoc.smartcardreader.usb.UsbSmartCardReaderOnSubscribe
+
+package "core" as ee.ria.DigiDoc.smartcardreader.io.reactivex.rxjava3.core <<External>> {
+  class Observable
+  class ObservableEmitter
+  interface ObservableOnSubscribe
+}
+
+package java <<External>> {
+  package io {}
+  package security {}
+  package util {}
+}
+
+package org.bouncycastle <<External>> {
+  package util {}
+}
+
+package "nfc" as ee.ria.DigiDoc.smartcardreader.nfc.android.nfc <<External>> {
+  class Tag
+  class tech.IsoDep
+  interface NfcAdapter.ReaderCallback
+}
+
+package "usb" as ee.ria.DigiDoc.smartcardreader.usb.android.hardware.usb <<External>> {
+  class UsbDevice
+  class UsbManager
+}
+
+package "content" as ee.ria.DigiDoc.smartcardreader.usb.android.content <<External>> {
+  class BroadcastReceiver
+  class Context
+  class Intent
+  class IntentFilter
+}
+
+
+package "android" as ee.ria.DigiDoc.smartcardreader.android <<External>> {
+  class app.Activity
+  class app.PendingIntent
+}
+
+
+enum ee.ria.DigiDoc.smartcardreader.SmartCardReaderStatus
+interface ee.ria.DigiDoc.smartcardreader.SmartCardReaderManager
+interface ee.ria.DigiDoc.smartcardreader.nfc.ApduEncryptor
+ee.ria.DigiDoc.smartcardreader.usb.UsbSmartCardReader -up-|> ee.ria.DigiDoc.smartcardreader.SmartCardReader
+ee.ria.DigiDoc.smartcardreader.usb.UsbSmartCardReader ..> ee.ria.DigiDoc.smartcardreader.usb.android.hardware.usb.UsbDevice
+ee.ria.DigiDoc.smartcardreader.nfc.NfcSmartCardReader -up-|> ee.ria.DigiDoc.smartcardreader.SmartCardReader
+ee.ria.DigiDoc.smartcardreader.nfc.NfcSmartCardReader ..> ee.ria.DigiDoc.smartcardreader.nfc.android.nfc.Tag
+ee.ria.DigiDoc.smartcardreader.nfc.NfcSmartCardReader ..> ee.ria.DigiDoc.smartcardreader.nfc.android.nfc.tech.IsoDep
+ee.ria.DigiDoc.smartcardreader.nfc.NfcSmartCardReaderManager ..> ee.ria.DigiDoc.smartcardreader.android.app.Activity
+ee.ria.DigiDoc.smartcardreader.nfc.NfcSmartCardReaderManager ..> ee.ria.DigiDoc.smartcardreader.nfc.android.nfc.NfcAdapter
+ee.ria.DigiDoc.smartcardreader.nfc.NfcSmartCardReaderManager ..> ee.ria.DigiDoc.smartcardreader.nfc.android.nfc.Tag
+ee.ria.DigiDoc.smartcardreader.nfc.NfcSmartCardReaderManager -up-|> ee.ria.DigiDoc.smartcardreader.nfc.android.nfc.NfcAdapter.ReaderCallback
+ee.ria.DigiDoc.smartcardreader.usb.AcsUsbSmartCardReader -up-|> ee.ria.DigiDoc.smartcardreader.usb.UsbSmartCardReader
+ee.ria.DigiDoc.smartcardreader.usb.AcsUsbSmartCardReader ..> ee.ria.DigiDoc.smartcardreader.usb.android.hardware.usb.UsbDevice
+ee.ria.DigiDoc.smartcardreader.usb.AcsUsbSmartCardReader ..> ee.ria.DigiDoc.smartcardreader.usb.android.hardware.usb.UsbManager
+ee.ria.DigiDoc.smartcardreader.usb.AcsUsbSmartCardReader ..> ee.ria.DigiDoc.smartcardreader.usb.com.acs
+ee.ria.DigiDoc.smartcardreader.usb.IdentivUsbSmartCardReader -up-|> ee.ria.DigiDoc.smartcardreader.usb.UsbSmartCardReader
+ee.ria.DigiDoc.smartcardreader.usb.IdentivUsbSmartCardReader ..> ee.ria.DigiDoc.smartcardreader.usb.android.content.Context
+ee.ria.DigiDoc.smartcardreader.usb.IdentivUsbSmartCardReader ..> ee.ria.DigiDoc.smartcardreader.usb.android.hardware.usb.UsbDevice
+ee.ria.DigiDoc.smartcardreader.usb.IdentivUsbSmartCardReader ..> ee.ria.DigiDoc.smartcardreader.usb.android.hardware.usb.UsbManager
+ee.ria.DigiDoc.smartcardreader.usb.IdentivUsbSmartCardReader ..> ee.ria.DigiDoc.smartcardreader.usb.com.identive
+ee.ria.DigiDoc.smartcardreader.usb.UsbSmartCardReaderManager ..> ee.ria.DigiDoc.smartcardreader.SmartCardReader
+ee.ria.DigiDoc.smartcardreader.usb.UsbSmartCardReaderManager ..> ee.ria.DigiDoc.smartcardreader.usb.android.content.Context
+ee.ria.DigiDoc.smartcardreader.usb.UsbSmartCardReaderManager ..> ee.ria.DigiDoc.smartcardreader.usb.android.hardware.usb.UsbDevice
+ee.ria.DigiDoc.smartcardreader.usb.UsbSmartCardReaderManager ..> ee.ria.DigiDoc.smartcardreader.usb.android.hardware.usb.UsbManager
+ee.ria.DigiDoc.smartcardreader.usb.UsbSmartCardReaderManager ..> ee.ria.DigiDoc.smartcardreader.io.reactivex.rxjava3.core.Observable
+ee.ria.DigiDoc.smartcardreader.usb.UsbSmartCardReaderManager ..> ee.ria.DigiDoc.smartcardreader.SmartCardReaderStatus
+ee.ria.DigiDoc.smartcardreader.usb.UsbSmartCardReaderManager -up-|> ee.ria.DigiDoc.smartcardreader.SmartCardReaderManager
+ee.ria.DigiDoc.smartcardreader.usb.UsbSmartCardReaderOnSubscribe ..> ee.ria.DigiDoc.smartcardreader.SmartCardReader
+ee.ria.DigiDoc.smartcardreader.usb.UsbSmartCardReaderOnSubscribe ..> ee.ria.DigiDoc.smartcardreader.android.app.PendingIntent
+ee.ria.DigiDoc.smartcardreader.usb.UsbSmartCardReaderOnSubscribe ..> ee.ria.DigiDoc.smartcardreader.usb.android.content.BroadcastReceiver
+ee.ria.DigiDoc.smartcardreader.usb.UsbSmartCardReaderOnSubscribe ..> ee.ria.DigiDoc.smartcardreader.usb.android.content.Context
+ee.ria.DigiDoc.smartcardreader.usb.UsbSmartCardReaderOnSubscribe ..> ee.ria.DigiDoc.smartcardreader.usb.android.content.Intent
+ee.ria.DigiDoc.smartcardreader.usb.UsbSmartCardReaderOnSubscribe ..> ee.ria.DigiDoc.smartcardreader.usb.android.content.IntentFilter
+ee.ria.DigiDoc.smartcardreader.usb.UsbSmartCardReaderOnSubscribe ..> ee.ria.DigiDoc.smartcardreader.usb.android.hardware.usb.UsbDevice
+ee.ria.DigiDoc.smartcardreader.usb.UsbSmartCardReaderOnSubscribe ..> ee.ria.DigiDoc.smartcardreader.usb.android.hardware.usb.UsbManager
+ee.ria.DigiDoc.smartcardreader.usb.UsbSmartCardReaderOnSubscribe ..> ee.ria.DigiDoc.smartcardreader.BuildConfig
+ee.ria.DigiDoc.smartcardreader.usb.UsbSmartCardReaderOnSubscribe ..> ee.ria.DigiDoc.smartcardreader.io.reactivex.rxjava3.core.ObservableEmitter
+ee.ria.DigiDoc.smartcardreader.usb.UsbSmartCardReaderOnSubscribe -up-|> ee.ria.DigiDoc.smartcardreader.io.reactivex.rxjava3.core.ObservableOnSubscribe
+ee.ria.DigiDoc.smartcardreader.SmartCardReaderManager ..> ee.ria.DigiDoc.smartcardreader.io.reactivex.rxjava3.core.Observable
+@enduml
