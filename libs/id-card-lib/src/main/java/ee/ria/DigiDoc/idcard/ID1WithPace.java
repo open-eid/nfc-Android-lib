@@ -329,6 +329,22 @@ class ID1WithPace extends ID1 implements TokenWithPace, ApduEncryptor {
     }
 
     /**
+     * Generate private key in range [1, N-1]
+     *
+     * @param upperBound
+     * @return
+     */
+    private static BigInteger generateRandomPrivateKey(BigInteger upperBound) {
+        SecureRandom random = new SecureRandom();
+
+        // Generate a random number in the range [1, upperBound-1]
+        BigInteger randomValue = new BigInteger(upperBound.bitLength(), random).add(BigInteger.ONE);
+
+        // Ensure the generated value is within the specified range
+        return randomValue.min(upperBound.subtract(BigInteger.ONE));
+    }
+
+    /**
      * PACE Key-Exchange with ID1
      *
      * @param can the card access number
@@ -358,9 +374,7 @@ class ID1WithPace extends ID1 implements TokenWithPace, ApduEncryptor {
         // generate an EC keypair and exchange public keys with the chip
         ECNamedCurveParameterSpec spec = ECNamedCurveTable.getParameterSpec("secp256r1");
 
-        // TODO: should be in [1, spec.getN()-1]
-        BigInteger privateKey = new BigInteger(255,
-                new SecureRandom()).add(BigInteger.ONE);
+        BigInteger privateKey = generateRandomPrivateKey(spec.getN());;
 
         ECPoint publicKey = spec.getG().multiply(privateKey).normalize();
         response = getGAMapNonce(publicKey.getEncoded(false));
@@ -377,8 +391,7 @@ class ID1WithPace extends ID1 implements TokenWithPace, ApduEncryptor {
         ECPoint mappedECBasePoint = spec.getG().multiply(
                 new BigInteger(1, decryptedNonce)).add(sharedSecret).normalize();
 
-        // TODO: should be in [1, spec.getN()-1]
-        privateKey = new BigInteger(255, new SecureRandom()).add(BigInteger.ONE);
+        privateKey = generateRandomPrivateKey(spec.getN());
         publicKey = mappedECBasePoint.multiply(privateKey).normalize();
         response = getGAKeyAgreement(publicKey.getEncoded(false));
 
