@@ -43,6 +43,9 @@ import java.security.MessageDigest
 import java.security.cert.CertificateFactory
 import java.security.cert.X509Certificate
 
+/**
+ * CardReaderFragment is direct integration point with NFC library
+ */
 class CardReaderFragment : Fragment() {
 
     private val dataViewModel: DataViewModel by activityViewModels()
@@ -53,6 +56,10 @@ class CardReaderFragment : Fragment() {
     private lateinit var resultIcon: ImageView
 
     private lateinit var broadcastReceiver: BroadcastReceiver
+
+    /**
+     * NfcSmartCardReaderManager is used to acquire NFC tag
+     */
     private lateinit var nfcSmartCardReaderManager: NfcSmartCardReaderManager
 
     override fun onCreateView(
@@ -73,6 +80,7 @@ class CardReaderFragment : Fragment() {
         progressBar.visibility = View.INVISIBLE
         resultIcon.visibility = View.GONE
 
+        // Create the manager to be used for serving different requests
         nfcSmartCardReaderManager = NfcSmartCardReaderManager()
 
         val get = arguments?.getString("get")
@@ -102,62 +110,85 @@ class CardReaderFragment : Fragment() {
         })
     }
 
+    /**
+     * Authentication workflow for Web-eID over NFC. NB! Serverless mock.
+     */
     private fun auth() {
+        // Start NFC discovery
         checkNfcStatus(nfcSmartCardReaderManager.startDiscovery(requireActivity()) { nfcReader, exc ->
+
             requireActivity().runOnUiThread {
                 progressBar.visibility = View.VISIBLE
                 communicationTextView.text = getString(R.string.card_detected)
             }
-            try {
-                val card = TokenWithPace.create(nfcReader)
-                card.tunnel(dataViewModel.getCan())
-                val authCert = card.certificate(CertificateType.AUTHENTICATION)
-                Timber.log(Log.DEBUG, Base64.toBase64String(authCert))
-                val pin1 = arguments?.getByteArray("pin1")
 
-                // NB! This is mock authentication, we are only interested in the correct
-                // behaviour of ID1 PIN1 API
-                val nonce = Base64.decode(
-                    "Tldaa01EZ3hZV0kwWmpkallXUXpaalV3TkdKbVpUZ3lOamhqWVRZMVlqVUsK")
+            if ((nfcReader != null) && (exc == null)) {
+                try {
+                    // Create card session over NFC
+                    val card = TokenWithPace.create(nfcReader)
+                    // Establish PACE tunnel with previously captured CAN
+                    card.tunnel(dataViewModel.getCan())
+                    // Get auth certificate
+                    val authCert = card.certificate(CertificateType.AUTHENTICATION)
+                    Timber.log(Log.DEBUG, Base64.toBase64String(authCert))
+                    val pin1 = arguments?.getByteArray("pin1")
 
-                val nonceHash = MessageDigest.getInstance("SHA-512").digest(nonce)
-                Timber.log(Log.DEBUG, "NONCE %s, %s", Hex.toHexString(nonce), Hex.toHexString(nonceHash))
+                    // NB! This is mock authentication, we are only interested in the correct
+                    // behaviour of ID1 PIN1 API
+                    val nonce = Base64.decode(
+                        "Tldaa01EZ3hZV0kwWmpkallXUXpaalV3TkdKbVpUZ3lOamhqWVRZMVlqVUsK"
+                    )
 
-                val origin = "https://" + Utils.origin
-                val originHash = MessageDigest.getInstance("SHA-512").digest(origin.toByteArray())
-                Timber.log(Log.DEBUG, "ORIGIN %s, %s", origin, Hex.toHexString(originHash))
+                    val nonceHash = MessageDigest.getInstance("SHA-512").digest(nonce)
+                    Timber.log(
+                        Log.DEBUG,
+                        "NONCE %s, %s",
+                        Hex.toHexString(nonce),
+                        Hex.toHexString(nonceHash)
+                    )
 
-                val tbsData = originHash + nonceHash
-                val tbsHash = MessageDigest.getInstance("SHA-384").digest(tbsData)
-                val signedHash = card.authenticate(pin1, tbsHash)
-                Timber.log(Log.DEBUG, "TBSDATA %s", Hex.toHexString(tbsData))
-                Timber.log(Log.DEBUG, "TBSHASH %s", Hex.toHexString(tbsHash))
-                Timber.log(Log.DEBUG, "SIGNEDHASH %s", Hex.toHexString(signedHash))
+                    val origin = "https://" + Utils.origin
+                    val originHash =
+                        MessageDigest.getInstance("SHA-512").digest(origin.toByteArray())
+                    Timber.log(Log.DEBUG, "ORIGIN %s, %s", origin, Hex.toHexString(originHash))
 
-                val inps = ByteArrayInputStream(authCert)
-                val cf: CertificateFactory = CertificateFactory.getInstance("X.509")
-                val cert: X509Certificate = cf.generateCertificate(inps) as X509Certificate
+                    val tbsData = originHash + nonceHash
+                    val tbsHash = MessageDigest.getInstance("SHA-384").digest(tbsData)
 
-                setReaderResult(R.drawable.success)
-                requireActivity().runOnUiThread {
-                    val bundle = Bundle()
-                    bundle.putString("user", cert.subjectDN.toString())
-                    findNavController()
-                        .navigate(R.id.action_cardReaderFragment_to_authFragment, bundle)
+                    // Use PIN1 to sign created challenge-response
+                    val signedHash = card.authenticate(pin1, tbsHash)
+                    Timber.log(Log.DEBUG, "TBSDATA %s", Hex.toHexString(tbsData))
+                    Timber.log(Log.DEBUG, "TBSHASH %s", Hex.toHexString(tbsHash))
+                    Timber.log(Log.DEBUG, "SIGNEDHASH %s", Hex.toHexString(signedHash))
+
+                    val inps = ByteArrayInputStream(authCert)
+                    val cf: CertificateFactory = CertificateFactory.getInstance("X.509")
+                    val cert: X509Certificate = cf.generateCertificate(inps) as X509Certificate
+
+                    setReaderResult(R.drawable.success)
+                    requireActivity().runOnUiThread {
+                        val bundle = Bundle()
+                        bundle.putString("user", cert.subjectDN.toString())
+                        findNavController()
+                            .navigate(R.id.action_cardReaderFragment_to_authFragment, bundle)
+                    }
+                } catch (ex: SmartCardReaderException) {
+                    setReaderResult(R.drawable.error)
+                    requireActivity().runOnUiThread {
+                        exceptionToast(ex)
+                        findNavController().popBackStack(R.id.pin1Fragment, false)
+                    }
+                    Timber.log(Log.ERROR, ex, ex.message)
+                } finally {
+                    nfcSmartCardReaderManager.disableNfcReaderMode()
                 }
-            } catch (ex: SmartCardReaderException) {
-                setReaderResult(R.drawable.error)
-                requireActivity().runOnUiThread {
-                    exceptionToast(ex)
-                    findNavController().popBackStack(R.id.pin1Fragment, false)
-                }
-                Timber.log(Log.ERROR, ex, ex.message)
-            } finally {
-                nfcSmartCardReaderManager.disableNfcReaderMode()
             }
         })
     }
 
+    /**
+     * Digital signature workflow with card over NFC
+     */
     private fun getSignature() {
         checkNfcStatus(nfcSmartCardReaderManager.startDiscovery(requireActivity()) { nfcReader, exc ->
             requireActivity().runOnUiThread {
@@ -201,6 +232,9 @@ class CardReaderFragment : Fragment() {
         signatureIsAdded = true
     }
 
+    /**
+     * Reading different counters and datafile from the card
+     */
     private fun readCardData() {
         checkNfcStatus(nfcSmartCardReaderManager.startDiscovery(requireActivity()) { nfcReader, exc ->
             requireActivity().runOnUiThread {

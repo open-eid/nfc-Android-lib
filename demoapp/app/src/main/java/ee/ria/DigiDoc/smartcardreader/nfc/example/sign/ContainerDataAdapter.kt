@@ -23,10 +23,6 @@ class ContainerDataAdapter(
 ) :
     RecyclerView.Adapter<ContainerDataAdapter.ViewHolder>() {
 
-    /**
-     * Provide a reference to the type of views that you are using
-     * (custom ViewHolder)
-     */
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val fileNameTextView: TextView
         val deleteButton: ImageButton
