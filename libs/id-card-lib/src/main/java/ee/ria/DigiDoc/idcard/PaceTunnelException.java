@@ -22,7 +22,7 @@ package ee.ria.DigiDoc.idcard;
 import ee.ria.DigiDoc.smartcardreader.SmartCardReaderException;
 
 /**
- * PIN1/PIN2/PUK code verification failed.
+ * Exception in creating PACE tunnel.
  */
 public class PaceTunnelException extends SmartCardReaderException {
 

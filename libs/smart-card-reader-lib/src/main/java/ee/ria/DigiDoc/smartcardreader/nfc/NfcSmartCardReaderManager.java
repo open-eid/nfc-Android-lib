@@ -27,6 +27,9 @@ import androidx.annotation.Nullable;
 
 import ee.ria.DigiDoc.smartcardreader.SmartCardReaderException;
 
+/**
+ * Communication manager for NFC based readers
+ */
 public final class NfcSmartCardReaderManager implements NfcAdapter.ReaderCallback {
 
     /**
@@ -35,6 +38,9 @@ public final class NfcSmartCardReaderManager implements NfcAdapter.ReaderCallbac
     @Nullable
     private NfcAdapter nfcAdapter;
 
+    /**
+     * Disables reader mode, detaches this manager from activity.
+     */
     public void disableNfcReaderMode() {
         if ((this.currentActivity != null) && (this.nfcAdapter != null)) {
             this.nfcAdapter.disableReaderMode(this.currentActivity);
@@ -81,8 +87,6 @@ public final class NfcSmartCardReaderManager implements NfcAdapter.ReaderCallbac
 
         return NfcStatus.NFC_ACTIVE;
     }
-
-
 
     /**
      * Get NfcAdapter and enable the reader mode for NFC_A type of tags.

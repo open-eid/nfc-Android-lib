@@ -37,6 +37,9 @@ import ee.ria.DigiDoc.smartcardreader.SmartCardReader;
 import ee.ria.DigiDoc.smartcardreader.SmartCardReaderException;
 import timber.log.Timber;
 
+/**
+ * SmartCardReader implementation for NFC
+ */
 public class NfcSmartCardReader extends SmartCardReader {
     /**
      * Actual smart-card handle
