@@ -2,6 +2,50 @@
 
 [TOC]
 
+## Teegi kasutamine näidisrakenduse näitel
+
+### AAR ehitamine
+
+Enne näidisrakenduse ehitamist tuleb teegist ehitada AAR failid
+
+* Liigu eid-nfc-android `/libs` kausta
+
+* Defineeri Android SDK asukoht (kui vaja)
+
+  * > echo "sdk.dir=/path/to/android-sdk" > local.properties
+
+* > ./gradlew build -x test
+
+* > ./gradlew assemble
+
+#### Näidisrakenduse käivitamine
+
+* Liigu eid-nfc-android `/demoapp` kausta
+
+* Defineeri Android SDK asukoht (kui vaja)
+
+  * > echo "sdk.dir=/path/to/android-sdk" > local.properties
+
+* > ./gradlew build
+
+* > ./gradlew assembleDebug
+
+  * Genereeritud apk fail asub kaustas `/app/build/outputs/apk`
+
+* Installi rakendus seadmesse või emulaatorisse
+
+  * seadmesse installimiseks veendu, et seade on arvutiga USB kaabli kaudu ühendatud
+
+  * > ./gradlew installDebug
+
+### Teekide kasutamine teistes rakendustes
+
+* Tee läbi ülal kirjeldatud AAR ehitamise osa
+  * `.aar` failid asuvad `id-card-lib/build/outputs/aar` ja `smart-card-reader-lib/build/outputs/aar` kaustades
+* Tekkinud `.aar` failid tõsta oma projekti `/libs` kausta
+* Lisa oma rakenduse `builds.gradle` faili vastav sõltuvus
+  * `implementation files('app/libs/aar')`
+
 ## Ülevaade
 
 ID-kaardi tugi Android rakendustele rajaneb kahel teegil: `id-card-lib` ja `smart-card-reader-lib`.
