@@ -1,6 +1,6 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 plugins {
-    id("com.android.library") version "8.1.4" apply false
+    id("com.android.library") version "8.7.0" apply false
 }
 
 val androidxVersion by extra("1.6.0")
