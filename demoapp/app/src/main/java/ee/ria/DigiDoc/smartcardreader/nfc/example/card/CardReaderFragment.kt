@@ -135,7 +135,7 @@ class CardReaderFragment : Fragment() {
     private fun auth() {
         // Start NFC discovery
         checkNfcStatus(nfcSmartCardReaderManager.startDiscovery(requireActivity()) { nfcReader, exc ->
-
+            nfcSmartCardReaderManager.setLoggingEnabled(true)
             requireActivity().runOnUiThread {
                 progressBar.visibility = View.VISIBLE
                 communicationTextView.text = getString(R.string.card_detected)
@@ -210,6 +210,7 @@ class CardReaderFragment : Fragment() {
      */
     private fun getSignature() {
         checkNfcStatus(nfcSmartCardReaderManager.startDiscovery(requireActivity()) { nfcReader, exc ->
+            nfcSmartCardReaderManager.setLoggingEnabled(true)
             requireActivity().runOnUiThread {
                 progressBar.visibility = View.VISIBLE
                 communicationTextView.text = getString(R.string.card_detected)
@@ -256,6 +257,7 @@ class CardReaderFragment : Fragment() {
      */
     private fun readCardData() {
         checkNfcStatus(nfcSmartCardReaderManager.startDiscovery(requireActivity()) { nfcReader, exc ->
+            nfcSmartCardReaderManager.setLoggingEnabled(true)
             requireActivity().runOnUiThread {
                 progressBar.visibility = View.VISIBLE
                 communicationTextView.text = getString(R.string.card_detected)

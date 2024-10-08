@@ -24,19 +24,19 @@ android {
 }
 
 dependencies {
-    implementation "androidx.annotation:annotation:${androidxVersion}"
-    implementation "org.bouncycastle:bcpkix-jdk15on:${bouncycastleVersion}"
-
-    implementation "com.google.guava:guava:${guavaVersion}"
-    implementation "com.jakewharton.timber:timber:${timberVersion}"
-    implementation "io.reactivex.rxjava3:rxjava:${rxJavaVersion}"
+    implementation(libs.androidx.annotation)
+    implementation(libs.bouncy.castle)
+    implementation(libs.guava)
+    implementation(libs.rxjava)
 
     implementation files(
             'libs/acssmc-1.1.6.jar', // ACS
             'libs/androidSCardV1.2.jar' // Identiv
     )
 
-    testImplementation "org.junit.jupiter:junit-jupiter-api:${junitVersion}"
-    testImplementation "com.google.truth:truth:${truthVersion}"
-    testImplementation "org.mockito:mockito-core:${mockitoVersion}"
+    implementation project(':card-utils-lib')
+
+    testImplementation(libs.mockito.core)
+    testImplementation(libs.junit.jupiter.api)
+    testImplementation(libs.truth)
 }

@@ -22,7 +22,6 @@ package ee.ria.DigiDoc.idcard;
 import static com.google.common.primitives.Bytes.concat;
 
 import android.annotation.SuppressLint;
-import android.util.Log;
 
 import androidx.annotation.NonNull;
 
@@ -56,16 +55,17 @@ import ee.ria.DigiDoc.smartcardreader.ApduResponseException;
 import ee.ria.DigiDoc.smartcardreader.SmartCardReaderException;
 import ee.ria.DigiDoc.smartcardreader.nfc.ApduEncryptor;
 import ee.ria.DigiDoc.smartcardreader.nfc.NfcSmartCardReader;
-import timber.log.Timber;
+import ee.ria.DigiDoc.utilsLib.logging.LoggingUtil;
 
 /**
  * ID1WithPace extends ID1 APDU protocol with Secure Messaging and PACE capabilities
  * enabling the use over NFC. It must implement the ApduEncryptor interface so that
  * NfcSmartCardReader class has an oracle to encrypt C-APDUs and decrypt R-APDUs
  * so that the ID1 APDU protocol can remain mostly unchanged
+ * @noinspection FieldCanBeLocal, SameParameterValue
  */
 class ID1WithPace extends ID1 implements TokenWithPace, ApduEncryptor {
-
+    private static final String TAG = ID1WithPace.class.getName();
     /**
      * Last bytes for padding used in establishing encryption key,
      * MAC key and nonce decryption key
@@ -161,8 +161,7 @@ class ID1WithPace extends ID1 implements TokenWithPace, ApduEncryptor {
             // everything is encrypted
             nfcReader.setApduEncryptor(this);
         } catch (SmartCardReaderException ex) {
-            if (ex instanceof ApduResponseException) {
-                ApduResponseException aex = (ApduResponseException)ex;
+            if (ex instanceof ApduResponseException aex) {
                 if ((aex.sw1 == (byte) 0x63) && (aex.sw2 == 0x00)) {
                     throw new PaceTunnelException(ex);
                 }
@@ -374,7 +373,7 @@ class ID1WithPace extends ID1 implements TokenWithPace, ApduEncryptor {
         // generate an EC keypair and exchange public keys with the chip
         ECNamedCurveParameterSpec spec = ECNamedCurveTable.getParameterSpec("secp256r1");
 
-        BigInteger privateKey = generateRandomPrivateKey(spec.getN());;
+        BigInteger privateKey = generateRandomPrivateKey(spec.getN());
 
         ECPoint publicKey = spec.getG().multiply(privateKey).normalize();
         response = getGAMapNonce(publicKey.getEncoded(false));
@@ -520,9 +519,8 @@ class ID1WithPace extends ID1 implements TokenWithPace, ApduEncryptor {
      */
     public byte[] encryptAndMac(int cla, int ins, int p1, int p2, byte[] data, Integer le)
             throws GeneralSecurityException {
-        Timber.log(Log.DEBUG,
-                "C-APDU to encrypt: 0x%02X 0x%02X 0x%02X 0x%02X %s %s",
-                (byte)cla, (byte)ins, (byte)p1, (byte)p2, toHexString(data), le);
+        LoggingUtil.Companion.debugLog(TAG, String.format("C-APDU to encrypt: 0x%02X 0x%02X 0x%02X 0x%02X %s %s",
+                (byte)cla, (byte)ins, (byte)p1, (byte)p2, toHexString(data), le), null);
 
         incrementSSC(ssc);
         byte[] maskedHeader = new byte[] {
@@ -532,9 +530,9 @@ class ID1WithPace extends ID1 implements TokenWithPace, ApduEncryptor {
         byte[] do8e = getDo8e(maskedHeader, do8587, do97);
 
         byte newLength = 0;
-        newLength += do8587.length;
-        newLength += do97.length;
-        newLength += do8e.length;
+        newLength += (byte) do8587.length;
+        newLength += (byte) do97.length;
+        newLength += (byte) do8e.length;
 
         byte[] result = concat(
                 maskedHeader,
@@ -545,7 +543,7 @@ class ID1WithPace extends ID1 implements TokenWithPace, ApduEncryptor {
                 new byte[] {0x00}
         );
         incrementSSC(ssc);
-        Timber.log(Log.DEBUG, "Encrypted C-APDU: %s", toHexString(result));
+        LoggingUtil.Companion.debugLog(TAG, String.format("Encrypted C-APDU: %s", toHexString(result)), null);
         return result;
     }
 
@@ -627,7 +625,7 @@ class ID1WithPace extends ID1 implements TokenWithPace, ApduEncryptor {
     public byte[] decryptAndVerify(byte[] response) throws
             GeneralSecurityException, SmartCardReaderException {
 
-        Timber.log(Log.DEBUG, "Encrypted R-APDU: %s", Hex.toHexString(response));
+        LoggingUtil.Companion.debugLog(TAG, String.format("Encrypted R-APDU: %s", Hex.toHexString(response)), null);
 
         // result shall be decrypted data or empty
         byte[] result = new byte[]{};
@@ -640,7 +638,8 @@ class ID1WithPace extends ID1 implements TokenWithPace, ApduEncryptor {
             currentByte += 1;
 
             int size = response[currentByte] & 0xFF;
-            Timber.log(Log.DEBUG, "Encrypted data size %d ", size);
+            LoggingUtil.Companion.debugLog(TAG, String.format("Encrypted data size %d ", size), null);
+
             currentByte += 1;
 
             if (size > 0x80) {
@@ -648,7 +647,7 @@ class ID1WithPace extends ID1 implements TokenWithPace, ApduEncryptor {
                 byte[] sizeBytes = new byte[sizeLen];
                 System.arraycopy(response, currentByte, sizeBytes, 0, sizeLen);
                 size = new BigInteger(1, sizeBytes).intValue();
-                Timber.log(Log.DEBUG, "size bytes %d, size %d", sizeLen, size);
+                LoggingUtil.Companion.debugLog(TAG, String.format("size bytes %d, size %d", sizeLen, size), null);
                 currentByte += sizeLen;
             }
 
@@ -674,7 +673,7 @@ class ID1WithPace extends ID1 implements TokenWithPace, ApduEncryptor {
 
         int macStart = currentByte;
         if (response[currentByte] != DO8E) {
-            Timber.log(Log.DEBUG, "0x%02X, %d", response[currentByte], currentByte);
+            LoggingUtil.Companion.debugLog(TAG, String.format("0x%02X, %d", response[currentByte], currentByte), null);
             throw new SmartCardReaderException("Missing MAC");
         }
         currentByte += 1;
@@ -691,9 +690,8 @@ class ID1WithPace extends ID1 implements TokenWithPace, ApduEncryptor {
         byte[] rdata = Arrays.copyOfRange(response, 0, macStart);
         byte[] macData = pad(concat(ssc, rdata), BLOCK_SIZE);
         byte[] ourMac = getMAC(macData, keyMAC);
-        Timber.log(Log.DEBUG,
-                "Card MAC: %s, our MAC: %s",
-                Hex.toHexString(cardMac), Hex.toHexString(ourMac));
+        LoggingUtil.Companion.debugLog(TAG, String.format("Card MAC: %s, our MAC: %s",
+                Hex.toHexString(cardMac), Hex.toHexString(ourMac)), null);
 
         if (!Hex.toHexString(cardMac).equals(Hex.toHexString(ourMac))) {
             throw new RuntimeException("Could not verify chip's MAC.");
@@ -703,7 +701,7 @@ class ID1WithPace extends ID1 implements TokenWithPace, ApduEncryptor {
             throw new SmartCardReaderException("Malformed R-APDU");
         }
 
-        Timber.log(Log.DEBUG, "Decrypted data: %s", Hex.toHexString(result));
+        LoggingUtil.Companion.debugLog(TAG, String.format("Decrypted data: %s", Hex.toHexString(result)), null);
         return unpad(result);
     }
 

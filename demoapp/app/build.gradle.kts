@@ -69,6 +69,7 @@ dependencies {
 
     // NFC-ID lib
     implementation(files(
+            "../../libs/card-utils-lib/build/outputs/aar/card-utils-lib-debug.aar",
             "../../libs/id-card-lib/build/outputs/aar/id-card-lib-debug.aar",
             "../../libs/smart-card-reader-lib/build/outputs/aar/smart-card-reader-lib-debug.aar"
     ))

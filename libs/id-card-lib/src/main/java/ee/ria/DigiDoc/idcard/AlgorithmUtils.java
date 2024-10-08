@@ -52,7 +52,7 @@ final class AlgorithmUtils {
                 0x02, 0x03, 0x05, 0x00, 0x04, 0x40
         });
 
-        private byte[] padding;
+        private final byte[] padding;
 
         ALGORITHM(byte[] padding) {
             this.padding = padding;
@@ -73,19 +73,13 @@ final class AlgorithmUtils {
     }
 
     private static ALGORITHM getAlgorithm(int hashLength) throws IdCardException {
-        switch (hashLength) {
-            case BINARY_SHA1_LENGTH:
-                return ALGORITHM.SHA_1;
-            case BINARY_SHA224_LENGTH:
-                return ALGORITHM.SHA_224;
-            case BINARY_SHA256_LENGTH:
-                return ALGORITHM.SHA_256;
-            case BINARY_SHA384_LENGTH:
-                return ALGORITHM.SHA_384;
-            case BINARY_SHA512_LENGTH:
-                return ALGORITHM.SHA_512;
-            default:
-                throw new IdCardException("Unsupported Algorithm");
-        }
+        return switch (hashLength) {
+            case BINARY_SHA1_LENGTH -> ALGORITHM.SHA_1;
+            case BINARY_SHA224_LENGTH -> ALGORITHM.SHA_224;
+            case BINARY_SHA256_LENGTH -> ALGORITHM.SHA_256;
+            case BINARY_SHA384_LENGTH -> ALGORITHM.SHA_384;
+            case BINARY_SHA512_LENGTH -> ALGORITHM.SHA_512;
+            default -> throw new IdCardException("Unsupported Algorithm");
+        };
     }
 }

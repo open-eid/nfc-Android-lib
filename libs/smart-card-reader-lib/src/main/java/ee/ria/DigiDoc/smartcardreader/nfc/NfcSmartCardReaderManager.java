@@ -25,13 +25,16 @@ import android.nfc.Tag;
 
 import androidx.annotation.Nullable;
 
+import java.util.logging.Logger;
+
 import ee.ria.DigiDoc.smartcardreader.SmartCardReaderException;
+import ee.ria.DigiDoc.utilsLib.logging.LoggingUtil;
 
 /**
  * Communication manager for NFC based readers
  */
 public final class NfcSmartCardReaderManager implements NfcAdapter.ReaderCallback {
-
+    private static final String TAG = NfcSmartCardReaderManager.class.getName();
     /**
      * The actual NfcAdapter to use for comms
      */
@@ -66,6 +69,16 @@ public final class NfcSmartCardReaderManager implements NfcAdapter.ReaderCallbac
      * Create the NfcSmartCardReaderManager
      */
     public NfcSmartCardReaderManager() {
+    }
+
+    /**
+     * Set the logging enabled parameter.
+     *
+     * @param enabled - true to enable logging, false to disable
+     */
+    public void setLoggingEnabled(boolean enabled) {
+        assert this.currentActivity != null;
+        LoggingUtil.Companion.initialize(this.currentActivity, Logger.getLogger(NfcSmartCardReaderManager.class.getName()), enabled);
     }
 
     /**
@@ -130,6 +143,7 @@ public final class NfcSmartCardReaderManager implements NfcAdapter.ReaderCallbac
             clientCallback.onNfcReader(reader, ex);
         }
 
+        assert reader != null;
         reader.close();
         disableNfcReaderMode();
     }

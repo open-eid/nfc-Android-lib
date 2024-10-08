@@ -22,13 +22,12 @@ import static com.google.common.primitives.Bytes.concat;
 import static java.util.Arrays.copyOf;
 import static java.util.Arrays.copyOfRange;
 
-import android.util.Log;
-
 import java.util.Collections;
 
-import timber.log.Timber;
+import ee.ria.DigiDoc.utilsLib.logging.LoggingUtil;
 
 public abstract class SmartCardReader implements AutoCloseable {
+    private static final String TAG = SmartCardReader.class.getName();
     public abstract boolean connected();
 
     public abstract byte[] atr();
@@ -53,8 +52,7 @@ public abstract class SmartCardReader implements AutoCloseable {
      */
     public byte[] transmit(int cla, int ins, int p1, int p2, byte[] data, Integer le)
             throws SmartCardReaderException {
-        Timber.log(Log.DEBUG, "transmit: %s %s %s %s %s %s", cla, ins, p1, p2, Collections.singletonList(data), le);
-
+        LoggingUtil.Companion.debugLog(TAG, String.format("transmit: %s %s %s %s %s %s", cla, ins, p1, p2, Collections.singletonList(data), le), null);
         byte[] response;
         if (data == null || data.length == 0) {
             response = transmit(SmartCardReader.appendLe(
