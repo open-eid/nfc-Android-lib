@@ -32,6 +32,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 import ee.ria.DigiDoc.smartcardreader.ApduResponseException;
 import ee.ria.DigiDoc.smartcardreader.SmartCardReader;
@@ -82,8 +83,8 @@ class ID1 implements Token {
     public byte[] certificate(CertificateType type) throws SmartCardReaderException {
         selectMainAid();
         selectMasterFile();
-        reader.transmit(0x00, 0xA4, 0x01, 0x0C, new byte[] {(byte) 0xAD, CERT_MAP.get(type).first}, null);
-        reader.transmit(0x00, 0xA4, 0x01, 0x0C, new byte[] {0x34, CERT_MAP.get(type).second}, null);
+        reader.transmit(0x00, 0xA4, 0x01, 0x0C, new byte[] {(byte) 0xAD, Objects.requireNonNull(CERT_MAP.get(type)).first}, null);
+        reader.transmit(0x00, 0xA4, 0x01, 0x0C, new byte[] {0x34, Objects.requireNonNull(CERT_MAP.get(type)).second}, null);
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
         while (true) {
             try {
@@ -108,7 +109,7 @@ class ID1 implements Token {
         } else {
             selectMainAid();
         }
-        return reader.transmit(0x00, 0xCB, 0x3F, 0xFF, new byte[] {0x4D, 0x08, 0x70, 0x06, (byte) 0xBF, (byte) 0x81, PIN_MAP.get(type), 0x02, (byte) 0xA0, (byte) 0x80}, 0x00)[13];
+        return reader.transmit(0x00, 0xCB, 0x3F, 0xFF, new byte[] {0x4D, 0x08, 0x70, 0x06, (byte) 0xBF, (byte) 0x81, Objects.requireNonNull(PIN_MAP.get(type)), 0x02, (byte) 0xA0, (byte) 0x80}, 0x00)[13];
     }
 
     @Override
@@ -119,7 +120,7 @@ class ID1 implements Token {
         } else {
             selectMainAid();
         }
-        reader.transmit(0x00, 0x24, 0x00, VERIFY_PIN_MAP.get(type), Bytes.concat(code(currentCode), code(newCode)), null);
+        reader.transmit(0x00, 0x24, 0x00, Objects.requireNonNull(VERIFY_PIN_MAP.get(type)), Bytes.concat(code(currentCode), code(newCode)), null);
     }
 
     @Override
@@ -134,7 +135,7 @@ class ID1 implements Token {
         if (type.equals(CodeType.PIN2)) {
             selectQSCDAid();
         }
-        reader.transmit(0x00, 0x2C, 0x02, VERIFY_PIN_MAP.get(type), code(newCode), null);
+        reader.transmit(0x00, 0x2C, 0x02, Objects.requireNonNull(VERIFY_PIN_MAP.get(type)), code(newCode), null);
     }
 
     @Override
@@ -169,7 +170,7 @@ class ID1 implements Token {
             selectMainAid();
         }
         try {
-            reader.transmit(0x00, 0x20, 0x00, VERIFY_PIN_MAP.get(type), code(code), null);
+            reader.transmit(0x00, 0x20, 0x00, Objects.requireNonNull(VERIFY_PIN_MAP.get(type)), code(code), null);
         } catch (ApduResponseException e) {
             if (e.sw1 == 0x63 || (e.sw1 == 0x69 && e.sw2 == (byte) 0x83)) {
                 if (e.sw2 == (byte)0xC2) {

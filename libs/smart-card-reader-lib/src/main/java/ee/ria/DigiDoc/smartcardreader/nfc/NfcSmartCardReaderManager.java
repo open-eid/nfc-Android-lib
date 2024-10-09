@@ -31,7 +31,7 @@ import ee.ria.DigiDoc.smartcardreader.SmartCardReaderException;
  * Communication manager for NFC based readers
  */
 public final class NfcSmartCardReaderManager implements NfcAdapter.ReaderCallback {
-
+    private static final String TAG = NfcSmartCardReaderManager.class.getName();
     /**
      * The actual NfcAdapter to use for comms
      */
@@ -130,6 +130,7 @@ public final class NfcSmartCardReaderManager implements NfcAdapter.ReaderCallbac
             clientCallback.onNfcReader(reader, ex);
         }
 
+        assert reader != null;
         reader.close();
         disableNfcReaderMode();
     }

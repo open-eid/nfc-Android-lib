@@ -19,7 +19,6 @@
 
 package ee.ria.DigiDoc.idcard;
 
-import android.util.Log;
 import android.util.SparseArray;
 
 import java.time.DateTimeException;
@@ -28,10 +27,10 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.util.List;
 
-import timber.log.Timber;
+import ee.ria.DigiDoc.utilsLib.logging.LoggingUtil;
 
 class ID1PersonalDataParser {
-
+    private static final String TAG = ID1PersonalDataParser.class.getName();
     private static final DateTimeFormatter DATE_FORMAT = new DateTimeFormatterBuilder()
             .appendPattern("dd MM yyyy")
             .toFormatter();
@@ -79,14 +78,14 @@ class ID1PersonalDataParser {
         try {
             return LocalDate.parse(expiryDateString, DATE_FORMAT);
         } catch (Exception e) {
-            Timber.log(Log.ERROR, e, "Could not parse expiry date %s", expiryDateString);
+            LoggingUtil.Companion.errorLog(TAG, String.format("Could not parse expiry date %s", expiryDateString), e);
             return null;
         }
     }
 
     private static LocalDate parseDateOfBirth(String dateAndPlaceOfBirthString) {
         if (dateAndPlaceOfBirthString == null) {
-            Timber.log(Log.ERROR, "Could not parse date of birth: no data");
+            LoggingUtil.Companion.errorLog(TAG, "Could not parse date of birth: no data", null);
             return null;
         }
         try {
@@ -95,7 +94,7 @@ class ID1PersonalDataParser {
 
             return LocalDate.parse(dateOfBirthString, DATE_FORMAT);
         } catch (Exception e) {
-            Timber.log(Log.ERROR, e, "Could not parse date of birth %s", dateAndPlaceOfBirthString);
+            LoggingUtil.Companion.errorLog(TAG, String.format("Could not parse date of birth %s", dateAndPlaceOfBirthString), e);
             return null;
         }
     }
@@ -116,10 +115,9 @@ class ID1PersonalDataParser {
 
     private static LocalDate parseDigiIdDateOfBirth(String personalCode) {
         try {
-//            return DateOfBirthUtil.parseDateOfBirth(personalCode);
-            return null;
+            return DateOfBirthUtil.parseDateOfBirth(personalCode);
         } catch (DateTimeException e) {
-            Timber.log(Log.ERROR, "Invalid personal code birth of date", e);
+            LoggingUtil.Companion.errorLog(TAG, "Invalid personal code birth of date", e);
             throw new IllegalArgumentException("Invalid personal code");
         }
     }

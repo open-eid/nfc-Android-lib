@@ -26,7 +26,6 @@ import android.content.IntentFilter
 import android.nfc.NfcAdapter
 import android.nfc.TagLostException
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -54,9 +53,10 @@ import ee.ria.DigiDoc.smartcardreader.nfc.example.util.Utils.container
 import ee.ria.DigiDoc.smartcardreader.nfc.example.util.Utils.signature
 import ee.ria.DigiDoc.smartcardreader.nfc.example.util.Utils.signatureIsAdded
 import ee.ria.DigiDoc.smartcardreader.nfc.example.viewmodel.DataViewModel
+import ee.ria.DigiDoc.utilsLib.logging.LoggingUtil.Companion.debugLog
+import ee.ria.DigiDoc.utilsLib.logging.LoggingUtil.Companion.errorLog
 import org.bouncycastle.util.encoders.Base64
 import org.bouncycastle.util.encoders.Hex
-import timber.log.Timber
 import java.io.ByteArrayInputStream
 import java.security.MessageDigest
 import java.security.cert.CertificateFactory
@@ -66,7 +66,7 @@ import java.security.cert.X509Certificate
  * CardReaderFragment is direct integration point with NFC library
  */
 class CardReaderFragment : Fragment() {
-
+    private val logTag = javaClass.simpleName
     private val dataViewModel: DataViewModel by activityViewModels()
     private lateinit var binding: FragmentCardReaderBinding
     private lateinit var infoTextView: TextView
@@ -135,7 +135,6 @@ class CardReaderFragment : Fragment() {
     private fun auth() {
         // Start NFC discovery
         checkNfcStatus(nfcSmartCardReaderManager.startDiscovery(requireActivity()) { nfcReader, exc ->
-
             requireActivity().runOnUiThread {
                 progressBar.visibility = View.VISIBLE
                 communicationTextView.text = getString(R.string.card_detected)
@@ -149,7 +148,7 @@ class CardReaderFragment : Fragment() {
                     card.tunnel(dataViewModel.getCan())
                     // Get auth certificate
                     val authCert = card.certificate(CertificateType.AUTHENTICATION)
-                    Timber.log(Log.DEBUG, Base64.toBase64String(authCert))
+                    debugLog(logTag, Base64.toBase64String(authCert))
                     val pin1 = arguments?.getByteArray("pin1")
 
                     // NB! This is mock authentication, we are only interested in the correct
@@ -159,26 +158,25 @@ class CardReaderFragment : Fragment() {
                     )
 
                     val nonceHash = MessageDigest.getInstance("SHA-512").digest(nonce)
-                    Timber.log(
-                        Log.DEBUG,
-                        "NONCE %s, %s",
+                    debugLog(logTag,
+                        String.format("NONCE %s, %s",
                         Hex.toHexString(nonce),
-                        Hex.toHexString(nonceHash)
-                    )
+                        Hex.toHexString(nonceHash)))
 
                     val origin = "https://" + Utils.origin
                     val originHash =
                         MessageDigest.getInstance("SHA-512").digest(origin.toByteArray())
-                    Timber.log(Log.DEBUG, "ORIGIN %s, %s", origin, Hex.toHexString(originHash))
+
+                    debugLog(logTag, String.format("ORIGIN %s, %s", origin, Hex.toHexString(originHash)))
 
                     val tbsData = originHash + nonceHash
                     val tbsHash = MessageDigest.getInstance("SHA-384").digest(tbsData)
 
                     // Use PIN1 to sign created challenge-response
                     val signedHash = card.authenticate(pin1, tbsHash)
-                    Timber.log(Log.DEBUG, "TBSDATA %s", Hex.toHexString(tbsData))
-                    Timber.log(Log.DEBUG, "TBSHASH %s", Hex.toHexString(tbsHash))
-                    Timber.log(Log.DEBUG, "SIGNEDHASH %s", Hex.toHexString(signedHash))
+                    debugLog(logTag, String.format("TBSDATA %s", Hex.toHexString(tbsData)))
+                    debugLog(logTag, String.format("TBSHASH %s", Hex.toHexString(tbsHash)))
+                    debugLog(logTag, String.format("SIGNEDHASH %s", Hex.toHexString(signedHash)))
 
                     val inps = ByteArrayInputStream(authCert)
                     val cf: CertificateFactory = CertificateFactory.getInstance("X.509")
@@ -197,7 +195,8 @@ class CardReaderFragment : Fragment() {
                         exceptionToast(ex)
                         findNavController().popBackStack(R.id.pin1Fragment, false)
                     }
-                    Timber.log(Log.ERROR, ex, ex.message)
+                    val message =  ex.message ?: "Error communicating with card"
+                    errorLog(logTag, message, ex)
                 } finally {
                     nfcSmartCardReaderManager.disableNfcReaderMode()
                 }
@@ -220,12 +219,12 @@ class CardReaderFragment : Fragment() {
                     val card = TokenWithPace.create(nfcReader)
                     card.tunnel(dataViewModel.getCan())
                     val signerCert = card.certificate(CertificateType.SIGNING)
-                    Timber.log(Log.DEBUG, Base64.toBase64String(signerCert))
+                    debugLog(logTag, Base64.toBase64String(signerCert))
                     signature = container.prepareWebSignature(signerCert, Utils.signatureProfile)
                     val dataToSign = signature.dataToSign()
                     val pin2 = arguments?.getByteArray("pin2")
                     val signatureArray = card.calculateSignature(pin2!!, dataToSign!!, true)
-                    Timber.log(Log.DEBUG, "%s", Hex.toHexString(signatureArray))
+                    debugLog(logTag, String.format("%s", Hex.toHexString(signatureArray)))
                     addSignature(signatureArray)
                     setReaderResult(R.drawable.success)
                 } catch (ex: SmartCardReaderException) {
@@ -233,7 +232,8 @@ class CardReaderFragment : Fragment() {
                     requireActivity().runOnUiThread {
                         exceptionToast(ex)
                     }
-                    Timber.log(Log.ERROR, ex, ex.message)
+                    val message =  ex.message ?: "Error communicating with card"
+                    errorLog(logTag, message, ex)
                 } finally {
                     nfcSmartCardReaderManager.disableNfcReaderMode()
                 }
@@ -265,7 +265,7 @@ class CardReaderFragment : Fragment() {
                     val card = TokenWithPace.create(nfcReader)
                     card.tunnel(dataViewModel.getCan())
                     val cardData = card.personalData()
-                    Timber.log(Log.DEBUG, cardData.toString())
+                    debugLog(logTag, cardData.toString())
                     dataViewModel.setUserValues(cardData)
 
                     val pin1counter = card.codeRetryCounter(CodeType.PIN1)
@@ -284,7 +284,8 @@ class CardReaderFragment : Fragment() {
                         findNavController().popBackStack(R.id.canFragment, false)
                         exceptionToast(ex)
                     }
-                    Timber.log(Log.ERROR, ex, ex.message)
+                    val message =  ex.message ?: "Error communicating with card"
+                    errorLog(logTag, message, ex)
                 } finally {
                     nfcSmartCardReaderManager.disableNfcReaderMode()
                 }
