@@ -25,28 +25,35 @@ import android.os.Build
 import android.os.Bundle
 import android.system.ErrnoException
 import android.system.Os
-import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import androidx.navigation.NavController
 import androidx.navigation.fragment.NavHostFragment
+import ee.ria.DigiDoc.smartcardreader.nfc.NfcSmartCardReaderManager
 import ee.ria.DigiDoc.smartcardreader.nfc.example.configuration.ContainerConfiguration
 import ee.ria.DigiDoc.smartcardreader.nfc.example.databinding.ActivityMainBinding
+import ee.ria.DigiDoc.utilsLib.logging.LoggingUtil.Companion.errorLog
+import ee.ria.DigiDoc.utilsLib.logging.LoggingUtil.Companion.initialize
 import ee.ria.libdigidocpp.Conf
 import ee.ria.libdigidocpp.DigiDocConf
 import ee.ria.libdigidocpp.DigiDocWrapperImpl
 import ee.ria.libdigidocpp.digidoc
-import timber.log.Timber
 import java.util.Locale
+import java.util.logging.Logger
 
 class MainActivity : AppCompatActivity() {
-
+    private val logTag = javaClass.simpleName
     private lateinit var navigationController: NavController
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        Timber.plant(Timber.DebugTree())
+
+        initialize(
+            this, Logger.getLogger(
+                NfcSmartCardReaderManager::class.java.name
+            ), true
+        )
 
         // install schema files
         val digidocWrapperImpl = DigiDocWrapperImpl(this)
@@ -67,7 +74,7 @@ class MainActivity : AppCompatActivity() {
             Os.setenv("HOME", schemaAbsolutePath, true)
         } catch (ex: ErrnoException) {
             ex.printStackTrace()
-            Timber.log(Log.ERROR, "Setting HOME environment variable failed")
+            errorLog(logTag, "Setting HOME environment variable failed", ex)
         }
         val digiDocConf = DigiDocConf(schemaAbsolutePath)
         Conf.init(digiDocConf.transfer())

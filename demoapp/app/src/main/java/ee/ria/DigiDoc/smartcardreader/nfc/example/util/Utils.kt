@@ -26,11 +26,10 @@ import android.content.Intent
 import android.database.Cursor
 import android.net.Uri
 import android.provider.OpenableColumns
-import android.util.Log
 import com.google.common.io.Files
+import ee.ria.DigiDoc.utilsLib.logging.LoggingUtil.Companion.debugLog
 import ee.ria.libdigidocpp.Container
 import ee.ria.libdigidocpp.Signature
-import timber.log.Timber
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
@@ -40,7 +39,7 @@ import java.io.OutputStream
 object Utils {
 
     val origin = "ivxv.valimised.ee:443"
-
+    private val logTag = javaClass.simpleName
     const val SIGNATURE_CONTAINER_EXTENSION = "asice"
     private val containerFiles: MutableList<FileData> = mutableListOf()
     lateinit var container: Container
@@ -113,7 +112,7 @@ object Utils {
     private fun createContainersDir(filesDir: File): File {
         val dir = File(filesDir, "containers")
         if (dir.mkdirs()) {
-            Timber.log(Log.DEBUG, "Directories created for %s", dir.path)
+            debugLog(logTag, String.format("Directories created for %s", dir.path))
         }
         return dir
     }
@@ -150,7 +149,7 @@ object Utils {
     private fun createDataFilesDir(cacheDir: File): File {
         val dir = File(cacheDir, "datafiles")
         if (dir.mkdirs()) {
-            Timber.log(Log.DEBUG, "Directories created for %s", dir.path)
+            debugLog(logTag, String.format("Directories created for %s", dir.path))
         }
         return dir
     }

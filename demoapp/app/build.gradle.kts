@@ -56,7 +56,6 @@ dependencies {
     // Fragment
     implementation("androidx.fragment:fragment-ktx:1.6.2")
     implementation("androidx.navigation:navigation-fragment-ktx:2.7.5")
-    implementation("com.jakewharton.timber:timber:5.0.1")
 
     // Digidoc container
     implementation(project(":libdigidocpp"))
