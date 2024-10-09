@@ -19,7 +19,9 @@
 
 package ee.ria.DigiDoc.idcard;
 
-import android.util.Log;
+import static com.google.common.primitives.Bytes.concat;
+import static ee.ria.DigiDoc.idcard.AlgorithmUtils.addPadding;
+
 import android.util.SparseArray;
 
 import org.bouncycastle.util.encoders.Hex;
@@ -34,13 +36,10 @@ import java.time.format.DateTimeFormatterBuilder;
 import ee.ria.DigiDoc.smartcardreader.ApduResponseException;
 import ee.ria.DigiDoc.smartcardreader.SmartCardReader;
 import ee.ria.DigiDoc.smartcardreader.SmartCardReaderException;
-import timber.log.Timber;
-
-import static com.google.common.primitives.Bytes.concat;
-import static ee.ria.DigiDoc.idcard.AlgorithmUtils.addPadding;
+import ee.ria.DigiDoc.utilsLib.logging.LoggingUtil;
 
 abstract class EstEIDToken implements Token {
-
+    private static final String TAG = EstEIDToken.class.getName();
     private static final DateTimeFormatter DATE_FORMAT = new DateTimeFormatterBuilder()
             .appendPattern("dd.MM.yyyy")
             .toFormatter();
@@ -77,7 +76,7 @@ abstract class EstEIDToken implements Token {
         String expiryDateString = data.get(9);
 
         StringBuilder givenNames = new StringBuilder(givenName1);
-        if (givenName2.length() > 0) {
+        if (!givenName2.isEmpty()) {
             if (givenNames.length() > 0) {
                 givenNames.append(" ");
             }
@@ -88,14 +87,14 @@ abstract class EstEIDToken implements Token {
             dateOfBirth = LocalDate.parse(dateOfBirthString, DATE_FORMAT);
         } catch (Exception e) {
             dateOfBirth = null;
-            Timber.log(Log.ERROR, e, "Could not parse date of birth %s", dateOfBirthString);
+            LoggingUtil.Companion.errorLog(TAG, String.format("Could not parse date of birth %s", dateOfBirthString), e);
         }
         LocalDate expiryDate;
         try {
             expiryDate = LocalDate.parse(expiryDateString, DATE_FORMAT);
         } catch (Exception e) {
             expiryDate = null;
-            Timber.log(Log.ERROR, e, "Could not parse expiry date %s", expiryDateString);
+            LoggingUtil.Companion.errorLog(TAG, String.format("Could not parse expiry date %s", expiryDateString), e);
         }
 
         return PersonalData.create(surname, givenNames.toString(), citizenship, dateOfBirth,

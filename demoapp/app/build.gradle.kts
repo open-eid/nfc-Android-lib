@@ -56,7 +56,6 @@ dependencies {
     // Fragment
     implementation("androidx.fragment:fragment-ktx:1.6.2")
     implementation("androidx.navigation:navigation-fragment-ktx:2.7.5")
-    implementation("com.jakewharton.timber:timber:5.0.1")
 
     // Digidoc container
     implementation(project(":libdigidocpp"))
@@ -69,6 +68,7 @@ dependencies {
 
     // NFC-ID lib
     implementation(files(
+            "../../libs/card-utils-lib/build/outputs/aar/card-utils-lib-debug.aar",
             "../../libs/id-card-lib/build/outputs/aar/id-card-lib-debug.aar",
             "../../libs/smart-card-reader-lib/build/outputs/aar/smart-card-reader-lib-debug.aar"
     ))

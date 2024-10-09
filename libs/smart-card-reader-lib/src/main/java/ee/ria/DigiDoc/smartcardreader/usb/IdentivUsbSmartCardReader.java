@@ -19,6 +19,11 @@
 
 package ee.ria.DigiDoc.smartcardreader.usb;
 
+import static com.identive.libs.WinDefs.SCARD_LEAVE_CARD;
+import static com.identive.libs.WinDefs.SCARD_PROTOCOL_TX;
+import static com.identive.libs.WinDefs.SCARD_SHARE_EXCLUSIVE;
+import static com.identive.libs.WinDefs.SCARD_SPECIFIC;
+
 import android.content.Context;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbManager;
@@ -28,13 +33,7 @@ import com.identive.libs.SCard;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-import ee.ria.DigiDoc.smartcardreader.usb.UsbSmartCardReader;
 import ee.ria.DigiDoc.smartcardreader.SmartCardReaderException;
-
-import static com.identive.libs.WinDefs.SCARD_LEAVE_CARD;
-import static com.identive.libs.WinDefs.SCARD_PROTOCOL_TX;
-import static com.identive.libs.WinDefs.SCARD_SHARE_EXCLUSIVE;
-import static com.identive.libs.WinDefs.SCARD_SPECIFIC;
 
 public final class IdentivUsbSmartCardReader extends UsbSmartCardReader {
 
@@ -58,7 +57,7 @@ public final class IdentivUsbSmartCardReader extends UsbSmartCardReader {
         open(usbDevice);
         ArrayList<String> readers = new ArrayList<>();
         sCard.SCardListReaders(context, readers);
-        return readers.size() > 0;
+        return !readers.isEmpty();
     }
 
     @Override
@@ -84,7 +83,7 @@ public final class IdentivUsbSmartCardReader extends UsbSmartCardReader {
 
         ArrayList<String> readers = new ArrayList<>();
         sCard.SCardListReaders(context, readers);
-        if (readers.size() > 0) {
+        if (!readers.isEmpty()) {
             sCard.SCardConnect(readers.get(0), SCARD_SHARE_EXCLUSIVE, (int) SCARD_PROTOCOL_TX);
         }
         return false;

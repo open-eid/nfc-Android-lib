@@ -2,15 +2,13 @@
 plugins {
     id("com.android.application") version "8.7.0" apply false
     id("com.android.library") version "8.7.0" apply false
-    id("org.jetbrains.kotlin.android") version "1.8.0" apply false
+    id("org.jetbrains.kotlin.android") version "2.0.20" apply false
     id("org.jetbrains.kotlin.jvm") version "1.7.20" apply false
 }
 
 val androidxVersion by extra("1.6.0")
 
 val androidxAppCompatVersion by extra("1.6.1")
-
-val timberVersion by extra ("5.0.1")
 
 val bouncycastleVersion by extra ("1.70")
 

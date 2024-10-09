@@ -23,7 +23,6 @@ import static java.util.Arrays.copyOfRange;
 
 import android.nfc.Tag;
 import android.nfc.tech.IsoDep;
-import android.util.Log;
 
 import androidx.annotation.NonNull;
 
@@ -35,12 +34,13 @@ import java.security.GeneralSecurityException;
 import ee.ria.DigiDoc.smartcardreader.ApduResponseException;
 import ee.ria.DigiDoc.smartcardreader.SmartCardReader;
 import ee.ria.DigiDoc.smartcardreader.SmartCardReaderException;
-import timber.log.Timber;
+import ee.ria.DigiDoc.utilsLib.logging.LoggingUtil;
 
 /**
  * SmartCardReader implementation for NFC
  */
 public class NfcSmartCardReader extends SmartCardReader {
+    private static final String TAG = NfcSmartCardReader.class.getName();
     /**
      * Actual smart-card handle
      */
@@ -86,7 +86,7 @@ public class NfcSmartCardReader extends SmartCardReader {
         try {
             card.close();
         } catch (IOException ex) {
-            Timber.log(Log.ERROR, ex);
+            LoggingUtil.Companion.errorLog(TAG, ex.getMessage(), ex);
         }
     }
 
@@ -125,7 +125,7 @@ public class NfcSmartCardReader extends SmartCardReader {
      */
     protected byte[] transmit(byte[] apdu) throws SmartCardReaderException {
         try {
-            Timber.log(Log.DEBUG, Hex.toHexString(apdu));
+            LoggingUtil.Companion.debugLog(TAG, Hex.toHexString(apdu), null);
             return card.transceive(apdu);
         } catch (IOException ex) {
             throw new SmartCardReaderException(ex);
@@ -171,8 +171,7 @@ public class NfcSmartCardReader extends SmartCardReader {
 
             byte sw1 = response[response.length - 2];
             byte sw2 = response[response.length - 1];
-            Timber.log(Log.DEBUG, "R-APDU: SW1: 0x%02X, SW2: 0x%02X", sw1, sw2);
-
+            LoggingUtil.Companion.debugLog(TAG, String.format("R-APDU: SW1: 0x%02X, SW2: 0x%02X", sw1, sw2), null);
             // Decryption of the R-APDU
             if (sw1 == (byte) 0x90 && sw2 == 0x00) {
                 return apduEncryptor.decryptAndVerify(response);
