@@ -1,5 +1,7 @@
 .gradle/
 .idea/
+.DS_Store
+build/
 local.properties
 
 libs/id-card-lib/build/
