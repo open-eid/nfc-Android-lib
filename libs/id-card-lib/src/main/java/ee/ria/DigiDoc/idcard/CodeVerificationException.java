@@ -27,7 +27,7 @@ public class CodeVerificationException extends IdCardException {
     private final CodeType type;
     private final int retries;
 
-    CodeVerificationException(CodeType type, int retries) {
+    public CodeVerificationException(CodeType type, int retries) {
         super(type + " verification failed. Retries left: " + retries);
         this.type = type;
         this.retries = retries;

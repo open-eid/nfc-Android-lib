@@ -97,12 +97,21 @@ final class UsbSmartCardReaderOnSubscribe implements ObservableOnSubscribe<Optio
             }
         };
 
-        context.registerReceiver(deviceAttachReceiver,
-                new IntentFilter(UsbManager.ACTION_USB_DEVICE_ATTACHED));
-        context.registerReceiver(deviceDetachReceiver,
-                new IntentFilter(UsbManager.ACTION_USB_DEVICE_DETACHED));
-        context.registerReceiver(devicePermissionReceiver,
-                new IntentFilter(ACTION_USB_DEVICE_PERMISSION));
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            context.registerReceiver(deviceAttachReceiver,
+                    new IntentFilter(UsbManager.ACTION_USB_DEVICE_ATTACHED), Context.RECEIVER_NOT_EXPORTED);
+            context.registerReceiver(deviceDetachReceiver,
+                    new IntentFilter(UsbManager.ACTION_USB_DEVICE_DETACHED), Context.RECEIVER_NOT_EXPORTED);
+            context.registerReceiver(devicePermissionReceiver,
+                    new IntentFilter(ACTION_USB_DEVICE_PERMISSION), Context.RECEIVER_NOT_EXPORTED);
+        } else {
+            context.registerReceiver(deviceAttachReceiver,
+                    new IntentFilter(UsbManager.ACTION_USB_DEVICE_ATTACHED));
+            context.registerReceiver(deviceDetachReceiver,
+                    new IntentFilter(UsbManager.ACTION_USB_DEVICE_DETACHED));
+            context.registerReceiver(devicePermissionReceiver,
+                    new IntentFilter(ACTION_USB_DEVICE_PERMISSION));
+        }
 
         emitter.setCancellable(() -> {
             context.unregisterReceiver(deviceAttachReceiver);
@@ -120,7 +129,14 @@ final class UsbSmartCardReaderOnSubscribe implements ObservableOnSubscribe<Optio
     }
 
     private void requestPermission(UsbDevice device) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            Intent permissionIntent = new Intent(ACTION_USB_DEVICE_PERMISSION);
+            permissionIntent.setPackage(context.getPackageName());
+
+            usbManager.requestPermission(device,
+                    PendingIntent
+                            .getBroadcast(context, 0, permissionIntent, PendingIntent.FLAG_MUTABLE));
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             usbManager.requestPermission(device,
                     PendingIntent
                             .getBroadcast(context, 0, new Intent(ACTION_USB_DEVICE_PERMISSION), PendingIntent.FLAG_MUTABLE));

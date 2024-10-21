@@ -35,6 +35,4 @@ public enum SmartCardReaderStatus {
      * Card inside reader detected, ready to receive transmissions.
      */
     CARD_DETECTED,
-
-    CARD_CONNECTED
 }

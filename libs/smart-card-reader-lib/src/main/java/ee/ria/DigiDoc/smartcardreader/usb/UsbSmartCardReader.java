@@ -31,7 +31,7 @@ import ee.ria.DigiDoc.smartcardreader.SmartCardReader;
  *
  * TODO Log all transmit commands in hex (request and response)
  */
-abstract class UsbSmartCardReader extends SmartCardReader {
+public abstract class UsbSmartCardReader extends SmartCardReader {
 
     public abstract boolean supports(UsbDevice usbDevice);
 
