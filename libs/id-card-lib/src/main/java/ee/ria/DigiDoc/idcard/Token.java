@@ -26,11 +26,13 @@ import java.util.Arrays;
 
 import ee.ria.DigiDoc.smartcardreader.SmartCardReader;
 import ee.ria.DigiDoc.smartcardreader.SmartCardReaderException;
+import ee.ria.DigiDoc.utilsLib.logging.LoggingUtil;
 
 /**
  * EstEID token interface.
  */
 public interface Token {
+    String TAG = Token.class.getName();
 
     /**
      * Read personal information of the cardholder.
@@ -130,10 +132,14 @@ public interface Token {
      */
     static Token create(SmartCardReader reader) throws SmartCardReaderException {
         byte[] atr = reader.atr();
+        LoggingUtil.Companion.debugLog(TAG, "ATR: " + Hex.toHexString(atr), null);
+
         if (atr == null) {
             throw new SmartCardReaderException("ATR cannot be null");
         }
         if (Arrays.equals(Hex.decode("3bdb960080b1fe451f830012233f536549440f9000f1"), atr)) {
+            return new ID1(reader);
+        } else if (Arrays.equals(Hex.decode("3bdc960080b1fe451f830012233f54654944320f9000c3"), atr)) {
             return new ID1(reader);
         } else if (Arrays.equals(Hex.decode("3bfa1800008031fe45fe654944202f20504b4903"), atr) ||
                 Arrays.equals(Hex.decode("3bfe1800008031fe45803180664090a4162a00830f9000ef"), atr)
@@ -144,6 +150,10 @@ public interface Token {
                 // TODO check for 3.0 card
         ) {
             return new EstEIDv3d4(reader);
+        /* TODO: Add Thales card
+        } else if (Arrays.equals(Hex.decode("3bff9600008031fe438031b85365494464b085051012233f1d"), atr)) {
+            return new Thales(reader);
+         */
         }
 
         throw new SmartCardReaderException("Unsupported card ATR: " + new String(Hex.encode(atr), StandardCharsets.UTF_8));

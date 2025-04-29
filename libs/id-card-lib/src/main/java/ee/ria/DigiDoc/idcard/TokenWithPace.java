@@ -25,11 +25,13 @@ import java.util.Arrays;
 
 import ee.ria.DigiDoc.smartcardreader.SmartCardReaderException;
 import ee.ria.DigiDoc.smartcardreader.nfc.NfcSmartCardReader;
+import ee.ria.DigiDoc.utilsLib.logging.LoggingUtil;
 
 /**
  * Extended ID1 token interface to create PACE-enabled cards
  */
 public interface TokenWithPace extends Token {
+    String TAG = TokenWithPace.class.getName();
 
     /**
      * Method to execute the PACE key-exchange, to allow for encrypted
@@ -51,12 +53,22 @@ public interface TokenWithPace extends Token {
      */
     static TokenWithPace create(NfcSmartCardReader reader) throws SmartCardReaderException {
         byte[] atr = reader.atr();
+        LoggingUtil.Companion.debugLog(TAG, "NFC ATR: " + Hex.toHexString(atr), null);
+
         if (atr == null) {
             throw new SmartCardReaderException("ATR/ATS cannot be null");
         }
         if (Arrays.equals(Hex.decode("0012233f536549440f9000"), atr)) {
             return new ID1WithPace(reader);
         }
+        if (Arrays.equals(Hex.decode("0012233f54654944320f9000"), atr)) {
+            return new ID1WithPace(reader);
+        }
+        /* TODO: Add Thales card
+        if (Arrays.equals(Hex.decode("8031d85365494464b085051012233f"), atr)) {
+            return new ThalesWithPace(reader);
+        }
+         */
         throw new SmartCardReaderException("ATS not supported");
     }
 }
