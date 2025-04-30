@@ -21,7 +21,6 @@ package ee.ria.DigiDoc.idcard;
 
 import static com.google.common.primitives.Bytes.concat;
 
-import android.util.Pair;
 import android.util.SparseArray;
 
 import com.google.common.base.Charsets;
@@ -39,11 +38,10 @@ import ee.ria.DigiDoc.smartcardreader.SmartCardReader;
 import ee.ria.DigiDoc.smartcardreader.SmartCardReaderException;
 
 class ID1 implements Token {
-
-    private static final Map<CertificateType, Pair<Byte, Byte>> CERT_MAP = new HashMap<>();
+    private static final Map<CertificateType, byte[]> CERT_MAP = new HashMap<>();
     static {
-        CERT_MAP.put(CertificateType.AUTHENTICATION, new Pair<>((byte) 0xF1, (byte) 0x01));
-        CERT_MAP.put(CertificateType.SIGNING, new Pair<>((byte) 0xF2, (byte) 0x1F));
+        CERT_MAP.put(CertificateType.AUTHENTICATION, new byte[] {(byte) 0xAD, (byte) 0xF1, 0x34, 0x01});
+        CERT_MAP.put(CertificateType.SIGNING, new byte[] {(byte) 0xAD, (byte) 0xF2, 0x34, (byte) 0x1F});
     }
 
     private static final Map<CodeType, Byte> PIN_MAP = new HashMap<>();
@@ -82,12 +80,7 @@ class ID1 implements Token {
     @Override
     public byte[] certificate(CertificateType type) throws SmartCardReaderException {
         selectMainAid();
-        reader.transmit(0x00, 0xA4, 0x09, 0x0C,
-                new byte[] {
-                        (byte) 0xAD, Objects.requireNonNull(CERT_MAP.get(type)).first,
-                        0x34, Objects.requireNonNull(CERT_MAP.get(type)).second
-                }, null
-        );
+        reader.transmit(0x00, 0xA4, 0x09, 0x0C, CERT_MAP.get(type), null);
 
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
         while (true) {
