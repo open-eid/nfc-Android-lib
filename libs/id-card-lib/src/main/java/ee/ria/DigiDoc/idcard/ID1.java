@@ -111,24 +111,18 @@ class ID1 implements Token {
 
     @Override
     public void changeCode(CodeType type, byte[] currentCode, byte[] newCode) throws SmartCardReaderException {
-        verifyCode(type, currentCode);
         if (type.equals(CodeType.PIN2)) {
             selectQSCDAid();
         } else {
             selectMainAid();
         }
+        verifyCode(type, currentCode);
         reader.transmit(0x00, 0x24, 0x00, Objects.requireNonNull(VERIFY_PIN_MAP.get(type)), Bytes.concat(code(currentCode), code(newCode)), null);
     }
 
     @Override
     public void unblockAndChangeCode(byte[] pukCode, CodeType type, byte[] newCode) throws SmartCardReaderException {
         verifyCode(CodeType.PUK, pukCode);
-        // block code if not yet blocked
-        while (codeRetryCounter(type) != 0) {
-            try {
-                verifyCode(type, new byte[] {(byte) 0xFF});
-            } catch (CodeVerificationException ignored) {}
-        }
         if (type.equals(CodeType.PIN2)) {
             selectQSCDAid();
         }
