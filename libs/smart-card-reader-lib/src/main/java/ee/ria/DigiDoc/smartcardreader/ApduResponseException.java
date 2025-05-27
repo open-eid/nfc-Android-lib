@@ -27,7 +27,7 @@ public class ApduResponseException extends SmartCardReaderException {
     public final byte sw2;
 
     public ApduResponseException(byte sw1, byte sw2) {
-        super("APDU error response sw1=" + sw1 + ", sw2=" + sw2);
+        super(String.format("APDU error response sw1=%x, sw2=%x", sw1, sw2));
         this.sw1 = sw1;
         this.sw2 = sw2;
     }

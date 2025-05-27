@@ -52,7 +52,7 @@ public abstract class SmartCardReader implements AutoCloseable {
      */
     public byte[] transmit(int cla, int ins, int p1, int p2, byte[] data, Integer le)
             throws SmartCardReaderException {
-        LoggingUtil.Companion.debugLog(TAG, String.format("transmit: %s %s %s %s %s %s", cla, ins, p1, p2, Collections.singletonList(data), le), null);
+        LoggingUtil.Companion.debugLog(TAG, String.format("transmit: %x %x %x %x %s %s", cla, ins, p1, p2, Collections.singletonList(data), le), null);
         byte[] response;
         if (data == null || data.length == 0) {
             response = transmit(SmartCardReader.appendLe(

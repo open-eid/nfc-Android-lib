@@ -21,11 +21,12 @@ package ee.ria.DigiDoc.idcard;
 
 import static com.google.common.primitives.Bytes.concat;
 
-import android.util.Pair;
 import android.util.SparseArray;
 
 import com.google.common.base.Charsets;
 import com.google.common.primitives.Bytes;
+
+import org.bouncycastle.util.encoders.Hex;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -37,13 +38,14 @@ import java.util.Objects;
 import ee.ria.DigiDoc.smartcardreader.ApduResponseException;
 import ee.ria.DigiDoc.smartcardreader.SmartCardReader;
 import ee.ria.DigiDoc.smartcardreader.SmartCardReaderException;
+import ee.ria.DigiDoc.utilsLib.logging.LoggingUtil;
 
 class ID1 implements Token {
-
-    private static final Map<CertificateType, Pair<Byte, Byte>> CERT_MAP = new HashMap<>();
+    private final String TAG = ID1.class.getName();
+    private static final Map<CertificateType, byte[]> CERT_MAP = new HashMap<>();
     static {
-        CERT_MAP.put(CertificateType.AUTHENTICATION, new Pair<>((byte) 0xF1, (byte) 0x01));
-        CERT_MAP.put(CertificateType.SIGNING, new Pair<>((byte) 0xF2, (byte) 0x1F));
+        CERT_MAP.put(CertificateType.AUTHENTICATION, new byte[] {(byte) 0xAD, (byte) 0xF1, 0x34, 0x01});
+        CERT_MAP.put(CertificateType.SIGNING, new byte[] {(byte) 0xAD, (byte) 0xF2, 0x34, (byte) 0x1F});
     }
 
     private static final Map<CodeType, Byte> PIN_MAP = new HashMap<>();
@@ -72,7 +74,7 @@ class ID1 implements Token {
         reader.transmit(0x00, 0xA4, 0x01, 0x0C, new byte[] {0x50, 0x00}, null);
         SparseArray<String> data = new SparseArray<>();
         for (int i = 1; i <= 8; i++) {
-            reader.transmit(0x00, 0xA4, 0x01, 0x0C, new byte[] {0x50, (byte) i}, null);
+            reader.transmit(0x00, 0xA4, 0x02, 0x0C, new byte[] {0x50, (byte) i}, null);
             byte[] record = reader.transmit(0x00, 0xB0, 0x00, 0x00, null, 0x00);
             data.put(i, new String(record, Charsets.UTF_8).trim());
         }
@@ -82,9 +84,8 @@ class ID1 implements Token {
     @Override
     public byte[] certificate(CertificateType type) throws SmartCardReaderException {
         selectMainAid();
-        selectMasterFile();
-        reader.transmit(0x00, 0xA4, 0x01, 0x0C, new byte[] {(byte) 0xAD, Objects.requireNonNull(CERT_MAP.get(type)).first}, null);
-        reader.transmit(0x00, 0xA4, 0x01, 0x0C, new byte[] {0x34, Objects.requireNonNull(CERT_MAP.get(type)).second}, null);
+        reader.transmit(0x00, 0xA4, 0x09, 0x0C, CERT_MAP.get(type), null);
+
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
         while (true) {
             try {
@@ -114,24 +115,18 @@ class ID1 implements Token {
 
     @Override
     public void changeCode(CodeType type, byte[] currentCode, byte[] newCode) throws SmartCardReaderException {
-        verifyCode(type, currentCode);
         if (type.equals(CodeType.PIN2)) {
             selectQSCDAid();
         } else {
             selectMainAid();
         }
+        verifyCode(type, currentCode);
         reader.transmit(0x00, 0x24, 0x00, Objects.requireNonNull(VERIFY_PIN_MAP.get(type)), Bytes.concat(code(currentCode), code(newCode)), null);
     }
 
     @Override
     public void unblockAndChangeCode(byte[] pukCode, CodeType type, byte[] newCode) throws SmartCardReaderException {
         verifyCode(CodeType.PUK, pukCode);
-        // block code if not yet blocked
-        while (codeRetryCounter(type) != 0) {
-            try {
-                verifyCode(type, new byte[] {(byte) 0xFF});
-            } catch (CodeVerificationException ignored) {}
-        }
         if (type.equals(CodeType.PIN2)) {
             selectQSCDAid();
         }
@@ -140,35 +135,30 @@ class ID1 implements Token {
 
     @Override
     public byte[] calculateSignature(byte[] pin2, byte[] hash, boolean ecc) throws SmartCardReaderException {
-        verifyCode(CodeType.PIN2, pin2);
         selectQSCDAid();
+        verifyCode(CodeType.PIN2, pin2);
         reader.transmit(0x00, 0x22, 0x41, 0xB6, new byte[] {(byte) 0x80, 0x04, (byte) 0xFF, 0x15, 0x08, 0x00, (byte) 0x84, 0x01, (byte) 0x9F}, null);
         return reader.transmit(0x00, 0x2A, 0x9E, 0x9A, padWithZeroes(hash), 0x00);
     }
 
     @Override
     public byte[] authenticate(byte[] pin1, byte[] token) throws SmartCardReaderException {
-        verifyCode(CodeType.PIN1, pin1);
         selectOberthurAid();
+        verifyCode(CodeType.PIN1, pin1);
         reader.transmit(0x00, 0x22, 0x41, 0xA4, new byte[] {(byte) 0x80, 0x04, (byte) 0xFF, 0x20, 0x08, 0x00, (byte) 0x84, 0x01, (byte) 0x81}, null);
         return reader.transmit(0x00, 0x88, 0x00, 0x00, token, 0x00);
     }
 
     @Override
     public byte[] decrypt(byte[] pin1, byte[] data, boolean ecc) throws SmartCardReaderException {
+        selectOberthurAid();
         byte[] prefix = new byte[] {0x00};
         verifyCode(CodeType.PIN1, pin1);
-        selectOberthurAid();
         reader.transmit(0x00, 0x22, 0x41, 0xB8, new byte[] {(byte) 0x80, 0x04, (byte) 0xFF, 0x30, 0x04, 0x00, (byte) 0x84, 0x01, (byte) 0x81}, null);
         return reader.transmit(0x00, 0x2A, 0x80, 0x86, concat(prefix, data), 0x00);
     }
 
     private void verifyCode(CodeType type, byte[] code) throws SmartCardReaderException {
-        if (type.equals(CodeType.PIN2)) {
-            selectQSCDAid();
-        } else {
-            selectMainAid();
-        }
         try {
             reader.transmit(0x00, 0x20, 0x00, Objects.requireNonNull(VERIFY_PIN_MAP.get(type)), code(code), null);
         } catch (ApduResponseException e) {
@@ -186,10 +176,6 @@ class ID1 implements Token {
 
     protected void selectMainAid() throws SmartCardReaderException {
         reader.transmit(0x00, 0xA4, 0x04, 0x00, new byte[] {(byte) 0xA0, 0x00, 0x00, 0x00, 0x77, 0x01, 0x08, 0x00, 0x07, 0x00, 0x00, (byte) 0xFE, 0x00, 0x00, 0x01, 0x00}, null);
-    }
-
-    protected void selectMasterFile() throws SmartCardReaderException {
-        reader.transmit(0x00, 0xA4, 0x00, 0x0C, null, null);
     }
 
     private void selectQSCDAid() throws SmartCardReaderException {
