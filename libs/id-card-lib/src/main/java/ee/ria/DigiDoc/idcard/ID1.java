@@ -26,6 +26,8 @@ import android.util.SparseArray;
 import com.google.common.base.Charsets;
 import com.google.common.primitives.Bytes;
 
+import org.bouncycastle.util.encoders.Hex;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Arrays;
@@ -36,8 +38,10 @@ import java.util.Objects;
 import ee.ria.DigiDoc.smartcardreader.ApduResponseException;
 import ee.ria.DigiDoc.smartcardreader.SmartCardReader;
 import ee.ria.DigiDoc.smartcardreader.SmartCardReaderException;
+import ee.ria.DigiDoc.utilsLib.logging.LoggingUtil;
 
 class ID1 implements Token {
+    private final String TAG = ID1.class.getName();
     private static final Map<CertificateType, byte[]> CERT_MAP = new HashMap<>();
     static {
         CERT_MAP.put(CertificateType.AUTHENTICATION, new byte[] {(byte) 0xAD, (byte) 0xF1, 0x34, 0x01});
