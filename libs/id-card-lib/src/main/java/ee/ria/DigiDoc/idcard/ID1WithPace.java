@@ -519,8 +519,8 @@ class ID1WithPace extends ID1 implements TokenWithPace, ApduEncryptor {
      */
     public byte[] encryptAndMac(int cla, int ins, int p1, int p2, byte[] data, Integer le)
             throws GeneralSecurityException {
-        LoggingUtil.Companion.debugLog(TAG, String.format("C-APDU to encrypt: 0x%02X 0x%02X 0x%02X 0x%02X %s %s",
-                (byte)cla, (byte)ins, (byte)p1, (byte)p2, toHexString(data), le), null);
+        LoggingUtil.Companion.debugLog(TAG, String.format("C-APDU to encrypt: 0x%02X 0x%02X 0x%02X 0x%02X",
+                (byte)cla, (byte)ins, (byte)p1, (byte)p2), null);
 
         incrementSSC(ssc);
         byte[] maskedHeader = new byte[] {
