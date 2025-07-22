@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 - 2024 Riigi Infosüsteemi Amet
+ * Copyright 2017 - 2025 Riigi Infosüsteemi Amet
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -30,6 +30,7 @@ import org.bouncycastle.util.encoders.Hex;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
+import java.util.Objects;
 
 import ee.ria.DigiDoc.smartcardreader.ApduResponseException;
 import ee.ria.DigiDoc.smartcardreader.SmartCardReader;
@@ -86,7 +87,7 @@ public class NfcSmartCardReader extends SmartCardReader {
         try {
             card.close();
         } catch (IOException ex) {
-            LoggingUtil.Companion.errorLog(TAG, ex.getMessage(), ex);
+            LoggingUtil.Companion.errorLog(TAG, Objects.requireNonNull(ex.getMessage()), ex);
         }
     }
 

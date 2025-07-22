@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 - 2024 Riigi Infosüsteemi Amet
+ * Copyright 2017 - 2025 Riigi Infosüsteemi Amet
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -29,6 +29,7 @@ import org.bouncycastle.crypto.BlockCipher;
 import org.bouncycastle.crypto.engines.AESEngine;
 import org.bouncycastle.crypto.macs.CMac;
 import org.bouncycastle.crypto.params.KeyParameter;
+
 import org.bouncycastle.jce.ECNamedCurveTable;
 import org.bouncycastle.jce.spec.ECNamedCurveParameterSpec;
 import org.bouncycastle.math.ec.ECPoint;
@@ -43,6 +44,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Arrays;
+import java.util.Locale;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
@@ -297,7 +299,7 @@ class ID1WithPace extends ID1 implements TokenWithPace, ApduEncryptor {
      * @return MAC
      */
     private byte[] getMAC(byte[] data, byte[] keyMAC) {
-        BlockCipher blockCipher = new AESEngine();
+        BlockCipher blockCipher = AESEngine.newInstance();
         CMac cmac = new CMac(blockCipher);
         cmac.init(new KeyParameter(keyMAC));
         cmac.update(data, 0, data.length);
@@ -638,7 +640,7 @@ class ID1WithPace extends ID1 implements TokenWithPace, ApduEncryptor {
             currentByte += 1;
 
             int size = response[currentByte] & 0xFF;
-            LoggingUtil.Companion.debugLog(TAG, String.format("Encrypted data size %d ", size), null);
+            LoggingUtil.Companion.debugLog(TAG, String.format(Locale.ENGLISH, "Encrypted data size %d ", size), null);
 
             currentByte += 1;
 
@@ -647,7 +649,7 @@ class ID1WithPace extends ID1 implements TokenWithPace, ApduEncryptor {
                 byte[] sizeBytes = new byte[sizeLen];
                 System.arraycopy(response, currentByte, sizeBytes, 0, sizeLen);
                 size = new BigInteger(1, sizeBytes).intValue();
-                LoggingUtil.Companion.debugLog(TAG, String.format("size bytes %d, size %d", sizeLen, size), null);
+                LoggingUtil.Companion.debugLog(TAG, String.format(Locale.ENGLISH,"size bytes %d, size %d", sizeLen, size), null);
                 currentByte += sizeLen;
             }
 
@@ -673,7 +675,7 @@ class ID1WithPace extends ID1 implements TokenWithPace, ApduEncryptor {
 
         int macStart = currentByte;
         if (response[currentByte] != DO8E) {
-            LoggingUtil.Companion.debugLog(TAG, String.format("0x%02X, %d", response[currentByte], currentByte), null);
+            LoggingUtil.Companion.debugLog(TAG, String.format(Locale.ENGLISH, "0x%02X, %d", response[currentByte], currentByte), null);
             throw new SmartCardReaderException("Missing MAC");
         }
         currentByte += 1;

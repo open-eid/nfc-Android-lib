@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 - 2024 Riigi Infosüsteemi Amet
+ * Copyright 2017 - 2025 Riigi Infosüsteemi Amet
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -32,12 +32,13 @@ import java.util.concurrent.TimeUnit;
 import ee.ria.DigiDoc.smartcardreader.SmartCardReader;
 import ee.ria.DigiDoc.smartcardreader.SmartCardReaderException;
 import ee.ria.DigiDoc.smartcardreader.SmartCardReaderStatus;
+import ee.ria.DigiDoc.smartcardreader.SmartCardReaderManager;
 import io.reactivex.rxjava3.core.Observable;
 
 /**
  * Manage smart card readers on Android platform.
  */
-public final class UsbSmartCardReaderManager implements ee.ria.DigiDoc.smartcardreader.SmartCardReaderManager {
+public final class UsbSmartCardReaderManager implements SmartCardReaderManager {
 
     /**
      * Card connected retry interval in milliseconds.
@@ -86,12 +87,12 @@ public final class UsbSmartCardReaderManager implements ee.ria.DigiDoc.smartcard
                 .refCount();
     }
 
-    protected boolean supports(UsbDevice usbDevice) {
+    boolean supports(UsbDevice usbDevice) {
         return reader(usbDevice) != null;
     }
 
     @Nullable
-    protected SmartCardReader reader(UsbDevice usbDevice) {
+    SmartCardReader reader(UsbDevice usbDevice) {
         for (UsbSmartCardReader reader : readers) {
             if (reader.supports(usbDevice)) {
                 if (usbManager.hasPermission(usbDevice)) {

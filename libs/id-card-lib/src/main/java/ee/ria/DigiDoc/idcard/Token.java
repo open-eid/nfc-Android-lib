@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 - 2024 Riigi Infosüsteemi Amet
+ * Copyright 2017 - 2025 Riigi Infosüsteemi Amet
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -56,7 +56,7 @@ public interface Token {
 
     /**
      * Unblock PIN1/PIN2 via PUK code and change it to a new value.
-     *
+     * <p>
      * When PIN1/PIN2 is not blocked yet it will be blocked before unblocking.
      *
      * @param pukCode PUK code.
@@ -150,10 +150,8 @@ public interface Token {
                 // TODO check for 3.0 card
         ) {
             return new EstEIDv3d4(reader);
-        /* TODO: Add Thales card
         } else if (Arrays.equals(Hex.decode("3bff9600008031fe438031b85365494464b085051012233f1d"), atr)) {
             return new Thales(reader);
-         */
         }
 
         throw new SmartCardReaderException("Unsupported card ATR: " + new String(Hex.encode(atr), StandardCharsets.UTF_8));
