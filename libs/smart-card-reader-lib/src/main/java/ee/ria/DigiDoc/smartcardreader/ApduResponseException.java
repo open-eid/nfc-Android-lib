@@ -51,9 +51,6 @@ public class ApduResponseException extends SmartCardReaderException {
     @NonNull
     @Override
     public String toString() {
-        return "ApduResponseException{" +
-                "sw1=" + sw1 +
-                ", sw2=" + sw2 +
-                '}';
+        return String.format("ApduResponseException{sw1=%x, sw2=%x}", sw1, sw2);
     }
 }

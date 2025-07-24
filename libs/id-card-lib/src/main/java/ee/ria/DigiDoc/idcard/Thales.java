@@ -20,6 +20,7 @@
 package ee.ria.DigiDoc.idcard;
 
 import static com.google.common.primitives.Bytes.concat;
+import static ee.ria.DigiDoc.idcard.TLV.parseTLVRecursive;
 
 import android.util.SparseArray;
 
@@ -54,33 +55,55 @@ class Thales implements Token {
 
     protected final SmartCardReader reader;
 
-    Thales(SmartCardReader reader) throws SmartCardReaderException {
+    Thales(SmartCardReader reader) {
         this.reader = reader;
-        selectMainAid();
     }
 
     @Override
     public PersonalData personalData() throws SmartCardReaderException {
-        reader.transmit(0x00, 0xA4, 0x08, 0x0C, new byte[] {(byte) 0xDF,(byte) 0xDD}, null);
+        selectMainAid();
+        byte[] bytes = new byte[] {(byte) 0xDF,(byte) 0xDD};
+        reader.transmit(0x00, 0xA4, 0x08, 0x0C, bytes, null);
         SparseArray<String> data = new SparseArray<>();
         for (int i = 1; i <= 8; i++) {
-            reader.transmit(0x00, 0xA4, 0x02, 0x0C, new byte[] {0x50, (byte) i}, null);
-            byte[] record = reader.transmit(0x00, 0xB0, 0x00, 0x00, null, 0x00);
+            byte[] record = readFile(0x02, new byte[] {0x50, (byte) i});
             data.put(i, new String(record, Charsets.UTF_8).trim());
         }
-        return ID1PersonalDataParser.parse(data);
+        return ThalesPersonalDataParser.parse(data);
     }
 
     @Override
     public byte[] certificate(CertificateType type) throws SmartCardReaderException {
-        reader.transmit(0x00, 0xA4, 0x08, 0x0C, CERT_MAP.get(type), null);
+        selectMainAid();
+        return readFile(0x08, CERT_MAP.get(type));
+    }
+
+    private byte[] readFile(int p1, byte[] bytes) throws SmartCardReaderException {
+        int size = 0xE5;
+        byte[] fci = reader.transmit(0x00, 0xA4, p1, 0x04, bytes, null);
+
+        List<TLV> records = parseTLVRecursive(fci);
+
+        for (TLV record : records) {
+            int tag = record.getTag();
+            if (tag == 0x80 || tag == 0x81) {
+                byte[] value = record.getValue();
+                if (value != null && value.length >= 2) {
+                    size = ((value[0] & 0xFF) << 8) | (value[1] & 0xFF);
+                }
+            }
+        }
 
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
-        while (true) {
+        while (stream.size() < size) {
+            int offset = stream.size();
+            int remaining = size - offset;
+            int le = Math.min(0xE5, remaining); // read max 0xE7 bytes or what's left
             try {
-                stream.write(reader.transmit(0x00, 0xB0, stream.size() >> 8, stream.size(), null, 0x00));
+                byte[] response = reader.transmit(0x00, 0xB0, offset >> 8, offset & 0xFF, null, le);
+                stream.write(response);
             } catch (ApduResponseException e) {
-                if (e.sw1 == 0x6B && e.sw2 == 0x00) {
+                if (e.sw1 == (byte)0x6B && e.sw2 == (byte)0x00) {
                     break;
                 } else {
                     throw new SmartCardReaderException(e);
@@ -93,12 +116,12 @@ class Thales implements Token {
     }
 
     private static int extractDf21Value(byte[] data) {
-        TLV info = TLV.from(data); // returns null if parsing fails
+        TLV info = TLV.from(data);
         if (info != null && (info.getTag() & 0xFF) == 0xA0) {
-            List<TLV> records = TLV.sequenceOfRecords(info.getValue());
+            List<TLV> records = parseTLVRecursive(data);
             for (TLV record : records) {
                 if ((record.getTag() & 0xFFFF) == 0xDF21 && record.getValue().length > 0) {
-                    return record.getValue()[0] & 0xFF; // return as int 0..255
+                    return record.getValue()[0] & 0xFF;
                 }
             }
         }
@@ -107,6 +130,7 @@ class Thales implements Token {
 
     @Override
     public int codeRetryCounter(CodeType type) throws SmartCardReaderException {
+        selectMainAid();
         byte[] data = reader.transmit(0x00, 0xCB, 0x00, 0xFF, new byte[] {(byte) 0xA0, 0x03, (byte) 0x83, 0x01, Objects.requireNonNull(VERIFY_PIN_MAP.get(type))}, 0x00);
 
         return extractDf21Value(data);
@@ -114,6 +138,7 @@ class Thales implements Token {
 
     @Override
     public void changeCode(CodeType type, byte[] currentCode, byte[] newCode) throws SmartCardReaderException {
+        selectMainAid();
         if (type.equals(CodeType.PUK)) {
             throw new SmartCardReaderException("Cannot change PUK code");
         }
@@ -123,6 +148,7 @@ class Thales implements Token {
 
     @Override
     public void unblockAndChangeCode(byte[] pukCode, CodeType type, byte[] newCode) throws SmartCardReaderException {
+        selectMainAid();
         if (type.equals(CodeType.PUK)) {
             throw new SmartCardReaderException("Cannot unblock and change PUK code");
         }
@@ -136,7 +162,7 @@ class Thales implements Token {
 
     private byte[] sign(CodeType type, byte[] pin, byte keyRef, byte[] hash) throws SmartCardReaderException {
         verifyCode(type, pin);
-        setSecEnv((byte) 0xB6, concat(new byte[] {0x24}, new byte[] {(byte) hash.length}), keyRef);
+        setSecEnv((byte) 0xB6, new byte[] {(byte) (0x24 + hash.length)}, keyRef);
 
         reader.transmit(0x00, 0x2A, 0x90, 0xA0, TLV.encodeTLV(0x90, hash), null);
         return reader.transmit(0x00, 0x2A, 0x9E, 0x9A, null, 0x00);
@@ -182,7 +208,7 @@ class Thales implements Token {
 
     private static byte[] code(byte[] code) {
         byte[] padded = Arrays.copyOf(code, 12);
-        Arrays.fill(padded, code.length, padded.length, (byte) 0xFF);
+        Arrays.fill(padded, code.length, padded.length, (byte) 0x00);
         return padded;
     }
 }

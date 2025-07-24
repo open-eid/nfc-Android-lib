@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 - 2024 Riigi Infosüsteemi Amet
+ * Copyright 2017 - 2025 Riigi Infosüsteemi Amet
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -43,7 +43,7 @@ public interface TokenWithPace extends Token {
 
     /**
      * Create an instance of TokenWithPace based on the current card in the NFC-reader.
-     *
+     * <p>
      * We detect the card type by historical bytes - a subset of ATS. We call the method
      * atr() since we inherit from wired interface specific classes.
      *
@@ -53,7 +53,7 @@ public interface TokenWithPace extends Token {
      */
     static TokenWithPace create(NfcSmartCardReader reader) throws SmartCardReaderException {
         byte[] atr = reader.atr();
-        LoggingUtil.Companion.debugLog(TAG, "NFC ATR: " + Hex.toHexString(atr), null);
+        LoggingUtil.Companion.debugLog(TAG, "ATR: " + (atr == null ? "null" : Hex.toHexString(atr)), null);
 
         if (atr == null) {
             throw new SmartCardReaderException("ATR/ATS cannot be null");
@@ -64,11 +64,10 @@ public interface TokenWithPace extends Token {
         if (Arrays.equals(Hex.decode("0012233f54654944320f9000"), atr)) {
             return new ID1WithPace(reader);
         }
-        /* TODO: Add Thales card
         if (Arrays.equals(Hex.decode("8031d85365494464b085051012233f"), atr)) {
             return new ThalesWithPace(reader);
         }
-         */
+
         throw new SmartCardReaderException("ATS not supported");
     }
 }

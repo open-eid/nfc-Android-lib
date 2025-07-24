@@ -132,7 +132,7 @@ public interface Token {
      */
     static Token create(SmartCardReader reader) throws SmartCardReaderException {
         byte[] atr = reader.atr();
-        LoggingUtil.Companion.debugLog(TAG, "ATR: " + Hex.toHexString(atr), null);
+        LoggingUtil.Companion.debugLog(TAG, "ATR: " + (atr == null ? "null" : Hex.toHexString(atr)), null);
 
         if (atr == null) {
             throw new SmartCardReaderException("ATR cannot be null");
@@ -151,7 +151,9 @@ public interface Token {
         ) {
             return new EstEIDv3d4(reader);
         } else if (Arrays.equals(Hex.decode("3bff9600008031fe438031b85365494464b085051012233f1d"), atr)) {
-            return new Thales(reader);
+            Thales thales = new Thales(reader);
+            thales.selectMainAid();
+            return thales;
         }
 
         throw new SmartCardReaderException("Unsupported card ATR: " + new String(Hex.encode(atr), StandardCharsets.UTF_8));
