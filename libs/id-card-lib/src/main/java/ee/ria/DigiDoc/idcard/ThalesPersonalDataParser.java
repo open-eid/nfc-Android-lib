@@ -29,8 +29,8 @@ import java.util.List;
 
 import ee.ria.DigiDoc.utilsLib.logging.LoggingUtil;
 
-class ID1PersonalDataParser {
-    private static final String TAG = ID1PersonalDataParser.class.getName();
+class ThalesPersonalDataParser {
+    private static final String TAG = ThalesPersonalDataParser.class.getName();
     private static final DateTimeFormatter DATE_FORMAT = new DateTimeFormatterBuilder()
             .appendPattern("dd MM yyyy")
             .toFormatter();
@@ -43,7 +43,7 @@ class ID1PersonalDataParser {
     private static final int DOCUMENT_NUMBER_POS = 7;
     private static final int EXPIRY_DATE_POS = 8;
 
-    private ID1PersonalDataParser() {}
+    private ThalesPersonalDataParser() {}
 
     static PersonalData parse(SparseArray<String> data) {
         String surname = data.get(SURNAME_POS);
@@ -89,10 +89,8 @@ class ID1PersonalDataParser {
             return null;
         }
         try {
-            String dateOfBirthString = dateAndPlaceOfBirthString
-                    .substring(0, dateAndPlaceOfBirthString.length() - 4);
 
-            return LocalDate.parse(dateOfBirthString, DATE_FORMAT);
+            return LocalDate.parse(dateAndPlaceOfBirthString, DATE_FORMAT);
         } catch (Exception e) {
             LoggingUtil.Companion.errorLog(TAG, String.format("Could not parse date of birth %s", dateAndPlaceOfBirthString), e);
             return null;

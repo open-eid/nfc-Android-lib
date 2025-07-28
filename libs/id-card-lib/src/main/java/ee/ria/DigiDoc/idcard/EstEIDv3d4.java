@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 - 2024 Riigi Infosüsteemi Amet
+ * Copyright 2017 - 2025 Riigi Infosüsteemi Amet
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -47,7 +47,7 @@ class EstEIDv3d4 extends EstEIDToken {
     }
 
     @Override
-    public byte[] authenticate(byte[] pin1, byte[] token) throws SmartCardReaderException {
+    public byte[] authenticate(byte[] pin1, byte[] token) {
         return new byte[0];
     }
 }

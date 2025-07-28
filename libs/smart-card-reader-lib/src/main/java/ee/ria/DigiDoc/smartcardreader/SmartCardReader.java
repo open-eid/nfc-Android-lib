@@ -1,6 +1,6 @@
 package ee.ria.DigiDoc.smartcardreader;
 /*
- * Copyright 2017 - 2024 Riigi Infosüsteemi Amet
+ * Copyright 2017 - 2025 Riigi Infosüsteemi Amet
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -22,8 +22,6 @@ import static com.google.common.primitives.Bytes.concat;
 import static java.util.Arrays.copyOf;
 import static java.util.Arrays.copyOfRange;
 
-import java.util.Collections;
-
 import ee.ria.DigiDoc.utilsLib.logging.LoggingUtil;
 
 public abstract class SmartCardReader implements AutoCloseable {
@@ -43,7 +41,7 @@ public abstract class SmartCardReader implements AutoCloseable {
 
     /**
      * Transmit APDU to the smart card reader.
-     *
+     * <p>
      * Automatically handles message chaining for large data transmissions and
      * reading additional data for large responses.
      *
@@ -52,7 +50,8 @@ public abstract class SmartCardReader implements AutoCloseable {
      */
     public byte[] transmit(int cla, int ins, int p1, int p2, byte[] data, Integer le)
             throws SmartCardReaderException {
-        LoggingUtil.Companion.debugLog(TAG, String.format("transmit: %x %x %x %x %s %s", cla, ins, p1, p2, Collections.singletonList(data), le), null);
+        LoggingUtil.Companion.debugLog(TAG, String.format("transmit: 0x%02X 0x%02X 0x%02X 0x%02X", cla, ins, p1, p2), null);
+
         byte[] response;
         if (data == null || data.length == 0) {
             response = transmit(SmartCardReader.appendLe(
