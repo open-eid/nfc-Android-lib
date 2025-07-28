@@ -20,6 +20,7 @@
 package ee.ria.DigiDoc.idcard;
 
 import static com.google.common.primitives.Bytes.concat;
+import static ee.ria.DigiDoc.idcard.TLV.encodeTLV;
 
 import android.annotation.SuppressLint;
 
@@ -59,14 +60,14 @@ import ee.ria.DigiDoc.smartcardreader.nfc.NfcSmartCardReader;
 import ee.ria.DigiDoc.utilsLib.logging.LoggingUtil;
 
 /**
- * ID1WithPace extends ID1 APDU protocol with Secure Messaging and PACE capabilities
+ * ThalesWithPace extends Thales APDU protocol with Secure Messaging and PACE capabilities
  * enabling the use over NFC. It must implement the ApduEncryptor interface so that
  * NfcSmartCardReader class has an oracle to encrypt C-APDUs and decrypt R-APDUs
- * so that the ID1 APDU protocol can remain mostly unchanged
+ * so that the Thales APDU protocol can remain mostly unchanged
  * @noinspection FieldCanBeLocal, SameParameterValue
  */
-class ID1WithPace extends ID1 implements TokenWithPace, ApduEncryptor {
-    private static final String TAG = ID1WithPace.class.getName();
+class ThalesWithPace extends Thales implements TokenWithPace, ApduEncryptor {
+    private static final String TAG = ThalesWithPace.class.getName();
     /**
      * Last bytes for padding used in establishing encryption key,
      * MAC key and nonce decryption key
@@ -142,7 +143,7 @@ class ID1WithPace extends ID1 implements TokenWithPace, ApduEncryptor {
      * Initialize ID1 token with NfcSmartCardReader
      * @param reader
      */
-    ID1WithPace(NfcSmartCardReader reader) {
+    ThalesWithPace(NfcSmartCardReader reader) {
         super(reader);
         nfcReader = reader;
         ssc = new byte[BLOCK_SIZE];
@@ -181,10 +182,8 @@ class ID1WithPace extends ID1 implements TokenWithPace, ApduEncryptor {
      * @throws SmartCardReaderException
      */
     protected void selectMainAid() throws SmartCardReaderException {
-        byte[] data = new byte[] {
-                (byte) 0xA0, 0x00, 0x00, 0x00, 0x77, 0x01, 0x08, 0x00,
-                0x07, 0x00, 0x00, (byte) 0xFE, 0x00, 0x00, 0x01, 0x00};
-        reader.transmit(CLA_ISO, 0xA4, 0x04, 0x0C, data, null);
+        reader.transmit(0x00, 0xA4, 0x04, 0x0C, new byte[] {(byte)0xA0, 0x00, 0x00, 0x00, 0x63, 0x50, 0x4B, 0x43, 0x53, 0x2D, 0x31, 0x35}, null);
+        // Master AID: A0000000181002030000000000000001
     }
 
     /**
@@ -195,7 +194,7 @@ class ID1WithPace extends ID1 implements TokenWithPace, ApduEncryptor {
     private void setMSEAuthenticationTemplate() throws SmartCardReaderException {
         byte[] data = new byte[] {
                 (byte)0x80, 0x0A, 0x04, 0x00, 0x7F, 0x00, 0x07, 0x02,
-                0x02, 0x04, 0x02, 0x04, (byte)0x83, 0x01, 0x02, (byte)0x84, 0x01, 0x0C};
+                0x02, 0x04, 0x02, 0x04, (byte)0x83, 0x01, 0x02};
         reader.transmit(CLA_ISO, INS_MSE, 0xC1, 0xA4, data, 0x00);
     }
 
@@ -206,7 +205,7 @@ class ID1WithPace extends ID1 implements TokenWithPace, ApduEncryptor {
      */
     private byte[] getGAGetNonce() throws SmartCardReaderException {
         byte[] data = new byte[] {0x7C, 0x00};
-        return reader.transmit(CLA_CHAIN, INS_GA, 0x00, 0x00, data, 0x00);
+        return reader.transmit(CLA_CHAIN, INS_GA, 0x00, 0x00, data, 0x100);
     }
 
     /**
@@ -216,9 +215,8 @@ class ID1WithPace extends ID1 implements TokenWithPace, ApduEncryptor {
      * @throws SmartCardReaderException
      */
     private byte[] getGAMapNonce(byte[] publicKey) throws SmartCardReaderException {
-        byte[] prefix = new byte[] {0x7c, 0x43, (byte)0x81, 0x41};
-        byte[] data = concat(prefix, publicKey);
-        return reader.transmit(CLA_CHAIN, INS_GA, 0x00, 0x00, data, 0x00);
+        byte[] data = encodeTLV(0x7c, encodeTLV((byte)0x81, publicKey));
+        return reader.transmit(CLA_CHAIN, INS_GA, 0x00, 0x00, data, 0x100);
     }
 
     /**
@@ -229,9 +227,8 @@ class ID1WithPace extends ID1 implements TokenWithPace, ApduEncryptor {
      * @throws SmartCardReaderException
      */
     private byte[] getGAKeyAgreement(byte[] publicKey) throws SmartCardReaderException {
-        byte[] prefix = new byte[] {0x7c, 0x43, (byte)0x83, 0x41};
-        byte[] data = concat(prefix, publicKey);
-        return reader.transmit(CLA_CHAIN, INS_GA, 0x00, 0x00, data, 0x00);
+        byte[] data = encodeTLV(0x7c, encodeTLV((byte)0x83, publicKey));
+        return reader.transmit(CLA_CHAIN, INS_GA, 0x00, 0x00, data, 0x100);
     }
 
     /**
@@ -241,9 +238,8 @@ class ID1WithPace extends ID1 implements TokenWithPace, ApduEncryptor {
      * @throws SmartCardReaderException
      */
     private byte[] getGAMutualAuthentication(byte[] mac) throws SmartCardReaderException {
-        byte[] prefix = new byte[] {0x7C, 0x0A, (byte)0x85, 0x08};
-        byte[] data = concat(prefix, mac);
-        return reader.transmit(CLA_ISO, INS_GA, 0x00, 0x00, data, 0x00);
+        byte[] data = encodeTLV(0x7c, encodeTLV((byte)0x85, mac));
+        return reader.transmit(CLA_ISO, INS_GA, 0x00, 0x00, data, 0x100);
     }
 
     /**
@@ -253,8 +249,8 @@ class ID1WithPace extends ID1 implements TokenWithPace, ApduEncryptor {
      */
     private byte[] getDataForMac(byte[] publicKey) {
         byte[] prefix = new byte[] {
-                0x7f, 0x49, 0x4f, 0x06, 0x0a, 0x04, 0x00, 0x7f,
-                0x00, 0x07, 0x02, 0x02, 0x04, 0x02, 0x04, (byte)0x86, 0x41};
+                0x7f, 0x49, 0x6f, 0x06, 0x0a, 0x04, 0x00, 0x7f,
+                0x00, 0x07, 0x02, 0x02, 0x04, 0x02, 0x04, (byte)0x86, 0x61};
         return concat(prefix, publicKey);
     }
 
@@ -345,7 +341,7 @@ class ID1WithPace extends ID1 implements TokenWithPace, ApduEncryptor {
     }
 
     /**
-     * PACE Key-Exchange with ID1
+     * PACE Key-Exchange with Thales
      *
      * @param can the card access number
      */
@@ -354,17 +350,15 @@ class ID1WithPace extends ID1 implements TokenWithPace, ApduEncryptor {
             NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException,
             InvalidKeyException, SmartCardReaderException {
 
-        selectMainAid();
+        // selectMainAid();
 
-        // NB: We could read PACE parameters from EF.CardAccess file here. This step can be
-        // omitted, since the parameters on all currently issued ID cards are fixed. This may
-        // change in the future
+        reader.transmit(CLA_ISO, 0xA4, 0x02, 0x0C, new byte[]{0x01, 0x1C}, null);
 
         setMSEAuthenticationTemplate();
 
         byte[] response = getGAGetNonce();
 
-        byte[] gaGetNonceResponseHeader = new byte[] {0x7C, 0x22, (byte)0x80, 0x20};
+        byte[] gaGetNonceResponseHeader = new byte[] {0x7C, 0x12, (byte)0x80, 0x10};
         validateHeader(response, gaGetNonceResponseHeader);
         byte[] decryptedNonce = decryptNonce(
                 Arrays.copyOfRange(
@@ -372,7 +366,7 @@ class ID1WithPace extends ID1 implements TokenWithPace, ApduEncryptor {
                 can);
 
         // generate an EC keypair and exchange public keys with the chip
-        ECNamedCurveParameterSpec spec = ECNamedCurveTable.getParameterSpec("secp256r1");
+        ECNamedCurveParameterSpec spec = ECNamedCurveTable.getParameterSpec("brainpoolP384r1");
 
         BigInteger privateKey = generateRandomPrivateKey(spec.getN());
 
@@ -380,7 +374,7 @@ class ID1WithPace extends ID1 implements TokenWithPace, ApduEncryptor {
         response = getGAMapNonce(publicKey.getEncoded(false));
 
         // Extract bytes from R-APDU to represent card public key
-        byte[] gaMapNonceHeader = new byte[] {0x7C, 0x43, (byte)0x82, 0x41};
+        byte[] gaMapNonceHeader = new byte[] {0x7C, 0x63, (byte)0x82, 0x61};
         validateHeader(response, gaMapNonceHeader);
         ECPoint cardPublicKey = spec.getCurve().decodePoint(
                 Arrays.copyOfRange(response, gaMapNonceHeader.length, response.length));
@@ -396,7 +390,7 @@ class ID1WithPace extends ID1 implements TokenWithPace, ApduEncryptor {
         response = getGAKeyAgreement(publicKey.getEncoded(false));
 
         // Extract 65 bytes from R-APDU to represent card public key
-        byte[] gaKeyAgreementHeader = new byte[] {0x7C, 0x43, (byte)0x84, 0x41};
+        byte[] gaKeyAgreementHeader = new byte[] {0x7C, 0x63, (byte)0x84, 0x61};
         validateHeader(response, gaKeyAgreementHeader);
         cardPublicKey = spec.getCurve().decodePoint(
                 Arrays.copyOfRange(response, gaKeyAgreementHeader.length, response.length));
@@ -420,7 +414,6 @@ class ID1WithPace extends ID1 implements TokenWithPace, ApduEncryptor {
             throw new SmartCardReaderException("Could not verify chip's MAC.");
         }
         return new byte[][]{keyEnc, keyMAC};
-
     }
 
     /**
@@ -623,6 +616,7 @@ class ID1WithPace extends ID1 implements TokenWithPace, ApduEncryptor {
      * @throws GeneralSecurityException
      * @throws SmartCardReaderException
      */
+
     public byte[] decryptAndVerify(byte[] response) throws
             GeneralSecurityException, SmartCardReaderException {
 
@@ -674,7 +668,7 @@ class ID1WithPace extends ID1 implements TokenWithPace, ApduEncryptor {
 
         int macStart = currentByte;
         if (response[currentByte] != DO8E) {
-            LoggingUtil.Companion.debugLog(TAG, String.format(Locale.ENGLISH, "0x%02X, %d", response[currentByte], currentByte), null);
+            LoggingUtil.Companion.debugLog(TAG, String.format(Locale.ENGLISH,"0x%02X, %d", response[currentByte], currentByte), null);
             throw new SmartCardReaderException("Missing MAC");
         }
         currentByte += 1;

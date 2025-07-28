@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 - 2024 Riigi Infosüsteemi Amet
+ * Copyright 2017 - 2025 Riigi Infosüsteemi Amet
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -31,7 +31,7 @@ import ee.ria.DigiDoc.smartcardreader.SmartCardReaderException;
  * Communication manager for NFC based readers
  */
 public final class NfcSmartCardReaderManager implements NfcAdapter.ReaderCallback {
-    private static final String TAG = NfcSmartCardReaderManager.class.getName();
+
     /**
      * The actual NfcAdapter to use for comms
      */
@@ -153,7 +153,7 @@ public final class NfcSmartCardReaderManager implements NfcAdapter.ReaderCallbac
          * The callback that the client must implement upon creation of the reader
          * @param reader - reader that was created
          * @param ex - exception that happened during reader creation
-         *
+         * <p>
          * The implementer must first ensure that the exception did not take place and
          * only then the reader can be used
          */

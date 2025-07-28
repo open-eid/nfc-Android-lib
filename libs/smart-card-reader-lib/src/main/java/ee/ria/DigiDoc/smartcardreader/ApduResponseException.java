@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 - 2024 Riigi Infosüsteemi Amet
+ * Copyright 2017 - 2025 Riigi Infosüsteemi Amet
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -18,6 +18,8 @@
  */
 
 package ee.ria.DigiDoc.smartcardreader;
+
+import androidx.annotation.NonNull;
 
 import java.util.Objects;
 
@@ -46,11 +48,9 @@ public class ApduResponseException extends SmartCardReaderException {
         return Objects.hash(sw1, sw2);
     }
 
+    @NonNull
     @Override
     public String toString() {
-        return "ApduResponseException{" +
-                "sw1=" + sw1 +
-                ", sw2=" + sw2 +
-                '}';
+        return String.format("ApduResponseException{sw1=%x, sw2=%x}", sw1, sw2);
     }
 }

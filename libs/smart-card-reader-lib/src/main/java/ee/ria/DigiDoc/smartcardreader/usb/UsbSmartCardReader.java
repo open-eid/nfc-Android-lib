@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 - 2024 Riigi Infosüsteemi Amet
+ * Copyright 2017 - 2025 Riigi Infosüsteemi Amet
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -21,14 +21,11 @@ package ee.ria.DigiDoc.smartcardreader.usb;
 
 import android.hardware.usb.UsbDevice;
 
-import static java.util.Arrays.copyOf;
-import static java.util.Arrays.copyOfRange;
-
 import ee.ria.DigiDoc.smartcardreader.SmartCardReader;
 
 /**
  * Base class for smart card readers.
- *
+ * <p>
  * TODO Log all transmit commands in hex (request and response)
  */
 public abstract class UsbSmartCardReader extends SmartCardReader {
