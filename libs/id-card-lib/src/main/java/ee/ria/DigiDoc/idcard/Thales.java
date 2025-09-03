@@ -190,7 +190,7 @@ class Thales implements Token {
         try {
             reader.transmit(0x00, 0x20, 0x00, Objects.requireNonNull(VERIFY_PIN_MAP.get(type)), code(code), null);
         } catch (ApduResponseException e) {
-            if (e.sw1 == 0x63 || (e.sw1 == 0x69 && e.sw2 == (byte) 0x83)) {
+            if (e.sw1 == 0x63 || (e.sw1 == 0x69 && e.sw2 == (byte) 0x83) || (e.sw1 == 0x69 && e.sw2 == (byte) 0x84)) {
                 if (e.sw2 == (byte)0xC2) {
                     throw new CodeVerificationException(type, 2);
                 } else if (e.sw2 == (byte)0xC1) {
