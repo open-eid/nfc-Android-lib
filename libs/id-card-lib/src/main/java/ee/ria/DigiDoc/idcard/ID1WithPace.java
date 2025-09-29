@@ -32,6 +32,8 @@ import org.bouncycastle.crypto.params.KeyParameter;
 import org.bouncycastle.jce.ECNamedCurveTable;
 import org.bouncycastle.jce.spec.ECNamedCurveParameterSpec;
 import org.bouncycastle.math.ec.ECPoint;
+import org.bouncycastle.math.ec.WNafUtil;
+import org.bouncycastle.util.BigIntegers;
 import org.bouncycastle.util.encoders.Hex;
 
 import java.math.BigInteger;
@@ -330,18 +332,33 @@ class ID1WithPace extends ID1 implements TokenWithPace, ApduEncryptor {
 
     /**
      * Generate private key in range [1, N-1]
-     *
-     * @param upperBound
-     * @return
      */
-    private static BigInteger generateRandomPrivateKey(BigInteger upperBound) {
+    private static BigInteger generateRandomPrivateKey(ECNamedCurveParameterSpec spec) {
         SecureRandom random = new SecureRandom();
+        BigInteger n = spec.getN();
+        int nBitLength = n.bitLength();
+        int minWeight = nBitLength >>> 2;
 
-        // Generate a random number in the range [1, upperBound-1]
-        BigInteger randomValue = new BigInteger(upperBound.bitLength(), random).add(BigInteger.ONE);
+        BigInteger d;
+        for (; ; ) {
+            d = BigIntegers.createRandomBigInteger(nBitLength, random);
 
-        // Ensure the generated value is within the specified range
-        return randomValue.min(upperBound.subtract(BigInteger.ONE));
+            if (isOutOfRangeD(d, n)) {
+                continue;
+            }
+
+            if (WNafUtil.getNafWeight(d) < minWeight) {
+                continue;
+            }
+
+            break;
+        }
+
+        return d;
+    }
+
+    private static boolean isOutOfRangeD(BigInteger d, BigInteger n) {
+        return d.compareTo(BigInteger.ONE) < 0 || (d.compareTo(n) >= 0);
     }
 
     /**
@@ -374,7 +391,7 @@ class ID1WithPace extends ID1 implements TokenWithPace, ApduEncryptor {
         // generate an EC keypair and exchange public keys with the chip
         ECNamedCurveParameterSpec spec = ECNamedCurveTable.getParameterSpec("secp256r1");
 
-        BigInteger privateKey = generateRandomPrivateKey(spec.getN());
+        BigInteger privateKey = generateRandomPrivateKey(spec);
 
         ECPoint publicKey = spec.getG().multiply(privateKey).normalize();
         response = getGAMapNonce(publicKey.getEncoded(false));
@@ -391,7 +408,7 @@ class ID1WithPace extends ID1 implements TokenWithPace, ApduEncryptor {
         ECPoint mappedECBasePoint = spec.getG().multiply(
                 new BigInteger(1, decryptedNonce)).add(sharedSecret).normalize();
 
-        privateKey = generateRandomPrivateKey(spec.getN());
+        privateKey = generateRandomPrivateKey(spec);
         publicKey = mappedECBasePoint.multiply(privateKey).normalize();
         response = getGAKeyAgreement(publicKey.getEncoded(false));
 
