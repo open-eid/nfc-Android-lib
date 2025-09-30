@@ -2,19 +2,39 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.android.library)
-    alias(libs.plugins.google.dagger)
     alias(libs.plugins.jetbrains.kotlin.android)
     alias(libs.plugins.ksp)
 }
 
 android {
-    namespace = "ee.ria.DigiDoc.utilsLib"
+    namespace = "ee.ria.libdigidocpp"
     compileSdk = 36
-
+    testOptions.targetSdk = 36
+    lint.targetSdk = 36
     defaultConfig {
         minSdk = 26
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        consumerProguardFiles("consumer-rules.pro")
+        ndk {
+            abiFilters += listOf("x86", "x86_64", "armeabi-v7a", "arm64-v8a")
+        }
+    }
+
+    sourceSets {
+        named("main") {
+            java.srcDir("include")
+        }
+    }
+
+    buildTypes {
+        release {
+            isMinifyEnabled = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+        }
     }
 
     compileOptions {
@@ -27,23 +47,10 @@ android {
             jvmTarget = JvmTarget.JVM_17
         }
     }
-
-    buildFeatures {
-        buildConfig = true
-    }
-
-    packaging {
-        resources {
-            pickFirsts += "/META-INF/{AL2.0,LGPL2.1}"
-            pickFirsts += "META-INF/versions/9/OSGI-INF/MANIFEST.MF"
-        }
-    }
 }
 
 dependencies {
     implementation(libs.dagger)
-    implementation(libs.google.dagger.hilt.android)
-    implementation(libs.google.dagger.hilt.core)
     implementation(libs.javax.inject)
-    ksp(libs.google.dagger.hilt.android.compile)
+    ksp(libs.dagger.compiler)
 }
