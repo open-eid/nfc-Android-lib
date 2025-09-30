@@ -31,6 +31,7 @@ import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
@@ -66,6 +67,29 @@ class ContainerFragment : Fragment() {
     private lateinit var containerDataAdapter: ContainerDataAdapter
 
     private var containerFiles: MutableList<FileData> = mutableListOf()
+    private val pickFileLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode != Activity.RESULT_OK) return@registerForActivityResult
+            val data = result.data ?: return@registerForActivityResult
+
+            data.action = Intent.ACTION_OPEN_DOCUMENT
+            val uri = data.data ?: return@registerForActivityResult
+            val nameSize = Utils.getFileNameAndSize(uri, requireContext())
+            val fileName = nameSize.first
+
+            if (containerFiles.any { it.getFileName() == fileName }) return@registerForActivityResult
+
+            addFileContent(fileName, data, requireActivity().contentResolver)
+
+            if (containerNameEditText.text.toString() == "") {
+                val name = String.format(
+                    Locale.US, "%s.%s",
+                    Utils.removeFileExtension(fileName), Utils.SIGNATURE_CONTAINER_EXTENSION
+                )
+                dataViewModel.setContainerName(name)
+            }
+            containerDataAdapter.notifyItemInserted(containerFiles.size - 1)
+        }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -156,36 +180,8 @@ class ContainerFragment : Fragment() {
     }
 
     private fun addFile() {
-        val chooseFileIntent = Intent(Intent.ACTION_GET_CONTENT)
-        chooseFileIntent.action = Intent.ACTION_GET_CONTENT
-        chooseFileIntent.type = "*/*"
-        startActivityForResult(Intent.createChooser(chooseFileIntent, "Choose a file"), 100)
-    }
-
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == 100 && resultCode == Activity.RESULT_OK && data != null) {
-
-            data.action = Intent.ACTION_OPEN_DOCUMENT
-            val nameSize = Utils.getFileNameAndSize(data.data!!, requireContext())
-            val fileName = nameSize.first
-
-            for (file in containerFiles) {
-                if (file.getFileName() == fileName) {
-                    return
-                }
-            }
-            addFileContent(fileName, data, requireActivity().contentResolver)
-
-            if (containerNameEditText.text.toString() == "") {
-                val name = String.format(
-                    Locale.US, "%s.%s",
-                    Utils.removeFileExtension(fileName), Utils.SIGNATURE_CONTAINER_EXTENSION
-                )
-                dataViewModel.setContainerName(name)
-            }
-            containerDataAdapter.notifyItemInserted(containerFiles.size - 1)
-        }
+        val chooseFileIntent = Intent(Intent.ACTION_GET_CONTENT).apply { type = "*/*" }
+        pickFileLauncher.launch(Intent.createChooser(chooseFileIntent, "Choose a file"))
     }
 
     private fun createContainer() {
