@@ -37,7 +37,7 @@ class HideInput : PasswordTransformationMethod() {
             get() = source.length
 
         @Suppress("SameReturnValue")
-        override fun get(ignoredIndex: Int): Char = HIDE_CHAR
+        override fun get(index: Int): Char = HIDE_CHAR
 
         override fun subSequence(startIndex: Int, endIndex: Int): CharSequence {
             return source.subSequence(startIndex, endIndex)
