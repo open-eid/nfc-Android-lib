@@ -1,0 +1,63 @@
+[versions]
+activity = "1.11.0"
+agp = "8.13.0"
+annotation = "1.9.1"
+appcompat = "1.7.1"
+autoValue = "1.11.0"
+bouncyCastle = "1.82"
+constraintlayout = "2.2.1"
+core = "1.17.0"
+dagger = "2.57.2"
+dependencyCheck = "3.0.4"
+fragmentKtx = "1.8.9"
+guava = "33.5.0-android"
+hamcrest = "3.0"
+javaxInject = "1"
+junit = "4.13.2"
+kotlin = "2.2.20"
+ksp = "2.2.20-2.0.3"
+lifecycleViewmodel = "2.9.4"
+material = "1.13.0"
+mockitoCore = "5.20.0"
+navigationFragmentKtx = "2.9.5"
+recyclerview = "1.4.0"
+rxjava = "3.1.12"
+truth = "1.4.5"
+
+[libraries]
+androidx-activity = { module = "androidx.activity:activity", version.ref = "activity" }
+androidx-annotation = { group = "androidx.annotation", name = "annotation", version.ref = "annotation" }
+androidx-appcompat = { module = "androidx.appcompat:appcompat", version.ref = "appcompat" }
+androidx-constraintlayout = { module = "androidx.constraintlayout:constraintlayout", version.ref = "constraintlayout" }
+androidx-core = { module = "androidx.core:core", version.ref = "core" }
+androidx-lifecycle-common = { module = "androidx.lifecycle:lifecycle-common", version.ref = "lifecycleViewmodel" }
+androidx-lifecycle-viewmodel = { module = "androidx.lifecycle:lifecycle-viewmodel", version.ref = "lifecycleViewmodel" }
+androidx-navigation-runtime = { module = "androidx.navigation:navigation-runtime", version.ref = "navigationFragmentKtx" }
+auto-value = { group = "com.google.auto.value", name = "auto-value", version.ref = "autoValue" }
+auto-value-annotations = { group = "com.google.auto.value", name = "auto-value-annotations", version.ref = "autoValue" }
+bcprov-jdk18on = { module = "org.bouncycastle:bcprov-jdk18on", version.ref = "bouncyCastle" }
+dagger = { module = "com.google.dagger:dagger", version.ref = "dagger" }
+dagger-compiler = { module = "com.google.dagger:dagger-compiler", version.ref = "dagger" }
+fragment-ktx = { module = "androidx.fragment:fragment-ktx", version.ref = "fragmentKtx" }
+google-dagger-hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "dagger" }
+google-dagger-hilt-android-compile = { group = "com.google.dagger", name = "hilt-android-compiler", version.ref = "dagger" }
+google-dagger-hilt-core = { module = "com.google.dagger:hilt-core", version.ref = "dagger" }
+guava = {group = "com.google.guava", name = "guava", version.ref = "guava" }
+hamcrest = { module = "org.hamcrest:hamcrest", version.ref = "hamcrest" }
+javax-inject = { module = "javax.inject:javax.inject", version.ref = "javaxInject" }
+junit = { group = "junit", name = "junit", version.ref = "junit" }
+material = { group = "com.google.android.material", name = "material", version.ref = "material" }
+mockito-core = { group = "org.mockito", name = "mockito-core", version.ref = "mockitoCore" }
+navigation-fragment-ktx = { module = "androidx.navigation:navigation-fragment-ktx", version.ref = "navigationFragmentKtx" }
+recyclerview = { module = "androidx.recyclerview:recyclerview", version.ref = "recyclerview" }
+rxjava = { group = "io.reactivex.rxjava3", name = "rxjava", version.ref = "rxjava" }
+truth = { group = "com.google.truth", name = "truth", version.ref = "truth" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+android-library = { id = "com.android.library", version.ref = "agp" }
+dependency-analysis = { id = "com.autonomousapps.dependency-analysis", version.ref = "dependencyCheck" }
+google-dagger = {id = "com.google.dagger.hilt.android", version.ref = "dagger"}
+jetbrains-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+jetbrains-kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }

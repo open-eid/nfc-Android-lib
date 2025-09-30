@@ -19,7 +19,12 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "NFC-eID Android Library"
-include(":id-card-lib")
-include(":smart-card-reader-lib")
-include(":card-utils-lib")
+rootProject.name = "NFC-Android library and demo app"
+
+include(":demoapp")
+include(":demoapp:app")
+include(":demoapp:libdigidocpp")
+include(":libs")
+include(":libs:card-utils-lib")
+include(":libs:id-card-lib")
+include(":libs:smart-card-reader-lib")
