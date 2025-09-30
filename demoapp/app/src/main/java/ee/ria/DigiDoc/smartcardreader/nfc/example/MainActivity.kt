@@ -107,7 +107,17 @@ class MainActivity : AppCompatActivity() {
                 ).versionName
             )
                 .append(".")
-                .append(context.packageManager.getPackageInfo(context.packageName, 0).versionCode)
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                versionName.append(
+                    context.packageManager.getPackageInfo(context.packageName, 0).longVersionCode
+                )
+            } else {
+                @Suppress("DEPRECATION")
+                versionName.append(
+                    context.packageManager.getPackageInfo(context.packageName, 0).versionCode
+                )
+            }
         } catch (e: PackageManager.NameNotFoundException) {
             e.printStackTrace()
         }
