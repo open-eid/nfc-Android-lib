@@ -142,8 +142,11 @@ class Thales implements Token {
         if (type.equals(CodeType.PUK)) {
             throw new SmartCardReaderException("Cannot change PUK code");
         }
-        verifyCode(type, currentCode);
-        reader.transmit(0x00, 0x24, 0x00, Objects.requireNonNull(VERIFY_PIN_MAP.get(type)), concat(code(currentCode), code(newCode)), null);
+        try {
+            reader.transmit(0x00, 0x24, 0x00, Objects.requireNonNull(VERIFY_PIN_MAP.get(type)), concat(code(currentCode), code(newCode)), null);
+        } catch (ApduResponseException e) {
+            handleApduResponseException(type, e);
+        }
     }
 
     @Override
@@ -152,7 +155,11 @@ class Thales implements Token {
         if (type.equals(CodeType.PUK)) {
             throw new SmartCardReaderException("Cannot unblock and change PUK code");
         }
-        reader.transmit(0x00, 0x2C, pukCode == null ? 0x02 : 0x00, Objects.requireNonNull(VERIFY_PIN_MAP.get(type)), concat(code(pukCode), code(newCode)), null);
+        try {
+            reader.transmit(0x00, 0x2C, pukCode == null ? 0x02 : 0x00, Objects.requireNonNull(VERIFY_PIN_MAP.get(type)), concat(code(pukCode), code(newCode)), null);
+        } catch (ApduResponseException e) {
+            handleApduResponseException(CodeType.PUK, e);
+        }
     }
 
     private void setSecEnv(byte mode, byte[] algo, byte keyRef) throws SmartCardReaderException {
@@ -190,16 +197,20 @@ class Thales implements Token {
         try {
             reader.transmit(0x00, 0x20, 0x00, Objects.requireNonNull(VERIFY_PIN_MAP.get(type)), code(code), null);
         } catch (ApduResponseException e) {
-            if (e.sw1 == 0x63 || (e.sw1 == 0x69 && e.sw2 == (byte) 0x83) || (e.sw1 == 0x69 && e.sw2 == (byte) 0x84)) {
-                if (e.sw2 == (byte)0xC2) {
-                    throw new CodeVerificationException(type, 2);
-                } else if (e.sw2 == (byte)0xC1) {
-                    throw new CodeVerificationException(type, 1);
-                }
-                throw new CodeVerificationException(type, 0);
-            }
-            throw e;
+            handleApduResponseException(type, e);
         }
+    }
+
+    private void handleApduResponseException(CodeType type, ApduResponseException e) throws SmartCardReaderException {
+        if (e.sw1 == 0x63 || (e.sw1 == 0x69 && e.sw2 == (byte) 0x83) || (e.sw1 == 0x69 && e.sw2 == (byte) 0x84)) {
+            if (e.sw2 == (byte) 0xC2) {
+                throw new CodeVerificationException(type, 2);
+            } else if (e.sw2 == (byte) 0xC1) {
+                throw new CodeVerificationException(type, 1);
+            }
+            throw new CodeVerificationException(type, 0);
+        }
+        throw e;
     }
 
     protected void selectMainAid() throws SmartCardReaderException {
