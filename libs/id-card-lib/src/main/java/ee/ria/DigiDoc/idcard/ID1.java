@@ -117,17 +117,23 @@ class ID1 implements Token {
         } else {
             selectMainAid();
         }
-        verifyCode(type, currentCode);
-        reader.transmit(0x00, 0x24, 0x00, Objects.requireNonNull(VERIFY_PIN_MAP.get(type)), Bytes.concat(code(currentCode), code(newCode)), null);
+        try {
+            reader.transmit(0x00, 0x24, 0x00, Objects.requireNonNull(VERIFY_PIN_MAP.get(type)), Bytes.concat(code(currentCode), code(newCode)), null);
+        } catch (ApduResponseException e) {
+            handleApduResponseException(type, e);
+        }
     }
 
     @Override
     public void unblockAndChangeCode(byte[] pukCode, CodeType type, byte[] newCode) throws SmartCardReaderException {
-        verifyCode(CodeType.PUK, pukCode);
         if (type.equals(CodeType.PIN2)) {
             selectQSCDAid();
         }
-        reader.transmit(0x00, 0x2C, 0x02, Objects.requireNonNull(VERIFY_PIN_MAP.get(type)), code(newCode), null);
+        try {
+            reader.transmit(0x00, 0x2C, 0x02, Objects.requireNonNull(VERIFY_PIN_MAP.get(type)), code(newCode), null);
+        } catch (ApduResponseException e) {
+            handleApduResponseException(CodeType.PUK, e);
+        }
     }
 
     @Override
@@ -159,16 +165,20 @@ class ID1 implements Token {
         try {
             reader.transmit(0x00, 0x20, 0x00, Objects.requireNonNull(VERIFY_PIN_MAP.get(type)), code(code), null);
         } catch (ApduResponseException e) {
-            if (e.sw1 == 0x63 || (e.sw1 == 0x69 && e.sw2 == (byte) 0x83)) {
-                if (e.sw2 == (byte)0xC2) {
-                    throw new CodeVerificationException(type, 2);
-                } else if (e.sw2 == (byte)0xC1) {
-                    throw new CodeVerificationException(type, 1);
-                }
-                throw new CodeVerificationException(type, 0);
-            }
-            throw e;
+            handleApduResponseException(type, e);
         }
+    }
+
+    private void handleApduResponseException(CodeType type, ApduResponseException e) throws SmartCardReaderException {
+        if (e.sw1 == 0x63 || (e.sw1 == 0x69 && e.sw2 == (byte) 0x83)) {
+            if (e.sw2 == (byte) 0xC2) {
+                throw new CodeVerificationException(type, 2);
+            } else if (e.sw2 == (byte) 0xC1) {
+                throw new CodeVerificationException(type, 1);
+            }
+            throw new CodeVerificationException(type, 0);
+        }
+        throw e;
     }
 
     protected void selectMainAid() throws SmartCardReaderException {
