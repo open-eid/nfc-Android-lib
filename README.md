@@ -4,47 +4,45 @@
 
 ## Teegi kasutamine näidisrakenduse näitel
 
-### AAR ehitamine
+### Defineeri Android SDK asukoht (kui vaja)
 
-Enne näidisrakenduse ehitamist tuleb teegist ehitada AAR failid
+```shell
+echo "sdk.dir=/path/to/android-sdk" > local.properties
+```
 
-* Liigu eid-nfc-android `/libs` kausta
+### Näidisrakenduse paigaldamine seadmesse või emulaatorisse
 
-* Defineeri Android SDK asukoht (kui vaja)
+Seadmesse installimiseks veendu, et seade on arvutiga USB kaabli kaudu ühendatud.
 
-  * > echo "sdk.dir=/path/to/android-sdk" > local.properties
+```shell
+./gradlew installDebug
+```
 
-* > ./gradlew build -x test
+Vaata
+lisaks Androidi ametlikku
+dokumentatsiooni [rakenduse installimiseks füüsilises seadmes](https://developer.android.com/studio/run/device)
+või [emulaatoris](https://developer.android.com/studio/run/emulator).
 
-* > ./gradlew assemble
+### Ainult näidisrakenduse apk ehitamine
 
-#### Näidisrakenduse käivitamine
+```shell
+./gradlew assembleDebug
+```
 
-* Liigu eid-nfc-android `/demoapp` kausta
-
-* Defineeri Android SDK asukoht (kui vaja)
-
-  * > echo "sdk.dir=/path/to/android-sdk" > local.properties
-
-* > ./gradlew build
-
-* > ./gradlew assembleDebug
-
-  * Genereeritud apk fail asub kaustas `/app/build/outputs/apk`
-
-* Installi rakendus seadmesse või emulaatorisse
-
-  * seadmesse installimiseks veendu, et seade on arvutiga USB kaabli kaudu ühendatud
-
-  * > ./gradlew installDebug
+Genereeritud apk fail asub kaustas `/demoapp/app/build/outputs/apk/debug`
 
 ### Teekide kasutamine teistes rakendustes
 
-* Tee läbi ülal kirjeldatud AAR ehitamise osa
-  * `.aar` failid asuvad `id-card-lib/build/outputs/aar` ja `smart-card-reader-lib/build/outputs/aar` kaustades
+#### AAR ehitamine
+
+```shell
+./gradlew -p libs assemble
+```
+
+* `.aar` failid asuvad `id-card-lib/build/outputs/aar` ja `smart-card-reader-lib/build/outputs/aar` kaustades
 * Tekkinud `.aar` failid tõsta oma projekti `/libs` kausta
 * Lisa oma rakenduse `builds.gradle` faili vastav sõltuvus
-  * `implementation files('app/libs/aar')`
+    * `implementation files('app/libs/aar')`
 
 ## Ülevaade
 
