@@ -115,12 +115,12 @@ class Thales implements Token {
         return stream.toByteArray();
     }
 
-    private static int extractDf21Value(byte[] data) {
+    private static int extractTagValue(byte[] data, int tag) {
         TLV info = TLV.from(data);
         if (info != null && (info.getTag() & 0xFF) == 0xA0) {
             List<TLV> records = parseTLVRecursive(data);
             for (TLV record : records) {
-                if ((record.getTag() & 0xFFFF) == 0xDF21 && record.getValue().length > 0) {
+                if ((record.getTag() & 0xFFFF) == tag && record.getValue().length > 0) {
                     return record.getValue()[0] & 0xFF;
                 }
             }
@@ -129,11 +129,20 @@ class Thales implements Token {
     }
 
     @Override
-    public int codeRetryCounter(CodeType type) throws SmartCardReaderException {
-        selectMainAid();
-        byte[] data = reader.transmit(0x00, 0xCB, 0x00, 0xFF, new byte[] {(byte) 0xA0, 0x03, (byte) 0x83, 0x01, Objects.requireNonNull(VERIFY_PIN_MAP.get(type))}, 0x00);
+    public int pinChangedFlag() throws SmartCardReaderException {
+        byte[] data = getData(CodeType.PIN2);
+        return extractTagValue(data, 0xDF2F);
+    }
 
-        return extractDf21Value(data);
+    @Override
+    public int codeRetryCounter(CodeType type) throws SmartCardReaderException {
+        byte[] data = getData(type);
+        return extractTagValue(data, 0xDF21);
+    }
+
+    private byte[] getData(CodeType type) throws SmartCardReaderException {
+        selectMainAid();
+        return reader.transmit(0x00, 0xCB, 0x00, 0xFF, new byte[] {(byte) 0xA0, 0x03, (byte) 0x83, 0x01, Objects.requireNonNull(VERIFY_PIN_MAP.get(type))}, 0x00);
     }
 
     @Override
@@ -177,6 +186,9 @@ class Thales implements Token {
 
     @Override
     public byte[] calculateSignature(byte[] pin2, byte[] hash, boolean ecc) throws SmartCardReaderException {
+        if (pinChangedFlag() == 0) {
+            throw new SmartCardReaderException("PIN2 has not been changed, operation not allowed");
+        }
         return sign(CodeType.PIN2, pin2, (byte) 0x05, hash);
     }
 

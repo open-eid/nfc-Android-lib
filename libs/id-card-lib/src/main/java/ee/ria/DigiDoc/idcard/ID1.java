@@ -137,6 +137,11 @@ class ID1 implements Token {
     }
 
     @Override
+    public int pinChangedFlag() {
+        return 1;
+    }
+
+    @Override
     public byte[] calculateSignature(byte[] pin2, byte[] hash, boolean ecc) throws SmartCardReaderException {
         selectQSCDAid();
         verifyCode(CodeType.PIN2, pin2);

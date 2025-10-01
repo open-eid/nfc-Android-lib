@@ -47,6 +47,11 @@ class EstEIDv3d5 extends EstEIDToken {
     }
 
     @Override
+    public int pinChangedFlag() throws SmartCardReaderException {
+        return 1;
+    }
+
+    @Override
     public byte[] authenticate(byte[] pin1, byte[] token) {
         return new byte[0];
     }
