@@ -71,7 +71,7 @@ class ID1PersonalDataParser {
         LocalDate expiryDate = parseExpiryDate(expiryDateString);
 
         return PersonalData.create(surname, givenNames, citizenship, dateOfBirth,
-                personalCode, documentNumber, expiryDate);
+                personalCode, documentNumber, expiryDate, CardType.ID1);
     }
 
     private static LocalDate parseExpiryDate(String expiryDateString) {

@@ -45,10 +45,12 @@ public abstract class PersonalData {
 
     @Nullable public abstract LocalDate expiryDate();
 
+    public abstract CardType cardType();
+
     static PersonalData create(String surname, String givenNames, String citizenship,
                                @Nullable LocalDate dateOfBirth, String personalCode,
-                               String documentNumber, @Nullable LocalDate expiryDate) {
+                               String documentNumber, @Nullable LocalDate expiryDate, CardType cardType) {
         return new AutoValue_PersonalData(surname, givenNames, citizenship, dateOfBirth,
-                personalCode, documentNumber, expiryDate);
+                personalCode, documentNumber, expiryDate, cardType);
     }
 }
