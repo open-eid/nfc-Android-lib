@@ -68,6 +68,8 @@ public interface Token {
     void unblockAndChangeCode(byte[] pukCode, CodeType type, byte[] newCode)
             throws SmartCardReaderException;
 
+    int pinChangedFlag() throws SmartCardReaderException;
+
     /**
      * Read retry counter for PIN1/PIN2/PUK code.
      *
@@ -141,15 +143,6 @@ public interface Token {
             return new ID1(reader);
         } else if (Arrays.equals(Hex.decode("3bdc960080b1fe451f830012233f54654944320f9000c3"), atr)) {
             return new ID1(reader);
-        } else if (Arrays.equals(Hex.decode("3bfa1800008031fe45fe654944202f20504b4903"), atr) ||
-                Arrays.equals(Hex.decode("3bfe1800008031fe45803180664090a4162a00830f9000ef"), atr)
-        ) {
-            return new EstEIDv3d5(reader);
-        } else if (
-                Arrays.equals(Hex.decode("3bfe1800008031fe454573744549442076657220312e30a8"), atr)
-                // TODO check for 3.0 card
-        ) {
-            return new EstEIDv3d4(reader);
         } else if (Arrays.equals(Hex.decode("3bff9600008031fe438031b85365494464b085051012233f1d"), atr)) {
             Thales thales = new Thales(reader);
             thales.selectMainAid();
