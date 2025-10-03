@@ -1,4 +1,3 @@
-package ee.ria.DigiDoc.smartcardreader;
 /*
  * Copyright 2017 - 2025 Riigi Infosüsteemi Amet
  *
@@ -17,6 +16,8 @@ package ee.ria.DigiDoc.smartcardreader;
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
+
+package ee.ria.DigiDoc.smartcardreader;
 
 import static com.google.common.primitives.Bytes.concat;
 import static java.util.Arrays.copyOf;
