@@ -3,7 +3,8 @@
 - [Using the Library in the Sample Application](#using-the-library-in-the-sample-application) 
   - [Define the Android SDK Location](#define-the-android-sdk-location)   
   - [Installing the Sample Application on a Device or Emulator](#installing-the-sample-application-on-a-device-or-emulator)  
-  - [Building Only the Sample App APK](#building-only-the-sample-app-apk) 
+  - [Building only the Sample App APK](#building-only-the-sample-app-apk) 
+  - [Testing with the Demo App](#testing-with-the-demo-app)  
   - [Using the Libraries in Other Applications](#using-the-libraries-in-other-applications) 
     - [Building the AAR](#building-the-aar) 
 - [Overview](#overview) 
@@ -29,17 +30,40 @@ To install on a physical device, ensure the device is connected to your computer
 ./gradlew installDebug
 ```
 
-See also the official Android documentation for
-[installing an app on a physical device](https://developer.android.com/studio/run/device)
-or [in an emulator](https://developer.android.com/studio/run/emulator).
+> [!TIP]
+> See also the official Android documentation for
+> [installing an app on a physical device](https://developer.android.com/studio/run/device)
+> or [in an emulator](https://developer.android.com/studio/run/emulator).
 
-### Building Only the Sample App APK
+### Building only the Sample App APK
 
 ```shell
 ./gradlew assembleDebug
 ```
 
 The generated APK file is located at `/demoapp/app/build/outputs/apk/debug`.
+
+### Testing with the Demo App
+The demo application (`demoapp/app`) provides a complete reference implementation for NFC ID card integration. It demonstrates:
+* **Reading personal data** from the ID card
+* **Digital signing** with PIN2 (creates ASiC-E containers using [libdigidocpp](https://github.com/open-eid/libdigidocpp))
+* **Authentication** with PIN1 (mock Web-eID implementation)
+* **Exception handling** for various error scenarios
+**Prerequisites for testing:**
+* An Android device with NFC capability (NFC-enabled emulators do not support physical NFC cards)
+* An Estonian ID card with NFC support (IDEMIA or Thales)
+* The card's CAN code (6-digit number printed on the card)
+* PIN1 and/or PIN2 codes (depending on the functionality being tested)
+**Testing steps:**
+1. Install the demo app using `./gradlew installDebug`
+2. Enable NFC on your Android device (Settings → NFC and contactless payments)
+3. Launch the demo app
+4. Choose the desired operation (read card info, sign document, or authenticate)
+5. Enter the required codes (CAN, PIN1, or PIN2) when prompted
+6. Hold your ID card against the device's NFC antenna
+7. Keep the card steady until the operation completes
+> [!TIP]
+> The exact location of the NFC antenna varies by device model. It's typically near the camera on the back of the phone.
 
 ### Using the Libraries in Other Applications
 
@@ -49,16 +73,20 @@ The generated APK file is located at `/demoapp/app/build/outputs/apk/debug`.
 ./gradlew -p libs assemble
 ```
 
-* The `.aar` files are located in `id-card-lib/build/outputs/aar` and `smart-card-reader-lib/build/outputs/aar`.
-* Move the resulting `.aar` files to your project’s `/libs` directory.
-* Add the corresponding dependency to your application’s `build.gradle` file:
+* The `.aar` files are located in:
+  * `libs/id-card-lib/build/outputs/aar`
+  * `libs/smart-card-reader-lib/build/outputs/aar`
+* Move the resulting `.aar` files to your project's `/libs` directory.
+* Add the corresponding dependencies to your application's `build.gradle` file:
     * `implementation files('app/libs/aar')`
 
 ## Overview
 
 ID card support for Android applications is based on two libraries: `id-card-lib` and `smart-card-reader-lib`.
 
-`smart-card-reader-lib` enables the use of the ID card over USB or NFC. `id-card-lib` implements the APDU-based communication protocols required to use the core functionality across different types of ID cards. Integrating ID card support into an Android application proceeds as follows:
+* `smart-card-reader-lib` enables the use of the ID card over USB or NFC. It provides the low-level smart card reader interfaces and communication layer.
+* `id-card-lib` implements the APDU-based communication protocols required to use the core functionality across different types of ID cards (IDEMIA and Thales).
+Integrating ID card support into an Android application proceeds as follows:
 
 * The developer declares the permissions required for the chosen integration method in the application manifest.
 * The developer creates a manager specific to the selected integration method.
@@ -93,10 +121,10 @@ To communicate with the ID card, create an instance of the NFC manager
 `ee.ria.DigiDoc.smartcardreader.nfc.NfcSmartCardReaderManager` and use the methods provided by this class.
 
 ```java
-public NfcStatus detectNfcStatus(Activity activity)
-public NfcStatus startDiscovery(Activity activity, NfcSmartCardReaderCallback callback)
-public void onTagDiscovered(Tag tag)
-public void disableNfcReaderMode()
+public NfcStatus detectNfcStatus(Activity activity) {}
+public NfcStatus startDiscovery(Activity activity, NfcSmartCardReaderCallback callback) {}
+public void onTagDiscovered(Tag tag) {}
+public void disableNfcReaderMode() {}
 ```
 
 * The `detectNfcStatus` method can be used to determine whether the device supports NFC and whether NFC is enabled.  
@@ -119,16 +147,23 @@ public interface TokenWithPace extends Token {
 }
 ```
 
-The `TokenWithPace` interface is used for communicating with the ID card over NFC.  
-An instance implementing this interface is created via the `create` factory method — the specific subclass is chosen based on the card’s returned ATS (*Answer To Select*).  
-Currently, there is only one type of NFC-enabled ID card — **IDEMIA** cards.
+The `TokenWithPace` interface enables NFC communication with the ID card. An instance is obtained via
+its `create` factory method, which selects the correct implementation based on the card's ATS (*Answer To Select*). 
+Currently, two NFC-enabled ID card types are supported: IDEMIA (ID1) and Thales, implemented as `ID1WithPace` and `ThalesWithPace`.
 
 After creating the instance, establish the communication channel using the card’s `CAN` code and the `tunnel` method.
 
 ```java
 public interface Token {
-    PersonalData personalData();
-    int codeRetryCounter(CodeType type);
+    PersonalData personalData() throws SmartCardReaderException;
+    int codeRetryCounter(CodeType type) throws SmartCardReaderException;
+    byte[] certificate(CertificateType type) throws SmartCardReaderException;
+    byte[] calculateSignature(byte[] pin2, byte[] hash, boolean ecc) throws SmartCardReaderException, CodeVerificationException;
+    byte[] authenticate(byte[] pin1, byte[] token) throws SmartCardReaderException, CodeVerificationException;
+    byte[] decrypt(byte[] pin1, byte[] data, boolean ecc) throws SmartCardReaderException, CodeVerificationException;
+    void changeCode(CodeType type, byte[] currentCode, byte[] newCode) throws SmartCardReaderException, CodeVerificationException;
+    void unblockAndChangeCode(byte[] pukCode, CodeType type, byte[] newCode) throws SmartCardReaderException, CodeVerificationException;
+    int pinChangedFlag() throws SmartCardReaderException;
     byte[] certificate(CertificateType type);
     byte[] calculateSignature(byte[] pin2, byte[] hash, boolean ecc);
     byte[] authenticate(byte[] pin1, byte[] token);
@@ -137,9 +172,6 @@ public interface Token {
 
 If the tunnel is created successfully, ID card functionality becomes available over NFC.  
 The functions are defined in the `Token` interface.  
-Note that not all ID card features available over the **contact interface** are available over the NFC interface.  
-The example lists five methods, all of which can be used via NFC.  
-⚠️ All of these methods may throw a `SmartCardReaderException`.
 
 Below is an example of reading the personal data file from the ID card when an instance of `NfcSmartCardReaderManager` has already been created.
 
@@ -203,6 +235,8 @@ private fun exceptionHandler(ex: SmartCardReaderException) {
         ...
     } else if (ex is PaceTunnelException) {
         ...
+    } else if (ex is IdCardException) {
+        ...
     } else if (ex is ApduResponseException) {
         ...
     } else {
@@ -215,14 +249,15 @@ private fun exceptionHandler(ex: SmartCardReaderException) {
 }
 ```
 
-* **Line 1:** `ee.ria.DigiDoc.smartcardreader.SmartCardReaderException` – base exception from which all ID card–related exceptions inherit.  
-* **Line 2:** `ee.ria.DigiDoc.idcard.CodeVerificationException` – specific exception indicating that the PIN1 or PIN2 used for authorization was incorrect.  
-  The exception includes information on how many attempts remain before the PIN becomes locked.  
-* **Line 4:** `ee.ria.DigiDoc.idcard.PaceTunnelException` – specific exception indicating that the establishment of a secure communication channel between the card and the device has failed.  
-  Most likely, the issue is caused by an incorrect CAN code.  
-* **Line 6:** `ee.ria.DigiDoc.smartcardreader.ApduResponseException` – exception indicating an error in the ID card’s APDU communication protocol.  
-* **Line 10:** `android.nfc.TagLostException` – exception indicating that the NFC connection between the card and the device was lost.  
-* **Line 12:** Any other unexpected exception that triggered the `SmartCardReaderException`.  
+* **Line 1:** `ee.ria.DigiDoc.smartcardreader.SmartCardReaderException` – base exception from which all ID card–related exceptions inherit.
+* **Line 2:** `ee.ria.DigiDoc.idcard.CodeVerificationException` – specific exception indicating that the PIN1 or PIN2 used for authorization was incorrect.
+  The exception includes information on how many attempts remain before the PIN becomes locked.
+* **Line 4:** `ee.ria.DigiDoc.idcard.PaceTunnelException` – specific exception indicating that the establishment of a secure communication channel between the card and the device has failed.
+  Most likely, the issue is caused by an incorrect CAN code.
+* **Line 6:** `ee.ria.DigiDoc.idcard.IdCardException` – general exception class for ID card-specific errors that don't fall into other categories.
+* **Line 8:** `ee.ria.DigiDoc.smartcardreader.ApduResponseException` – exception indicating an error in the ID card's APDU communication protocol.
+* **Line 11:** `android.nfc.TagLostException` – exception indicating that the NFC connection between the card and the device was lost.
+* **Line 13:** Any other unexpected exception that triggered the `SmartCardReaderException`.   
 
 ---
 
