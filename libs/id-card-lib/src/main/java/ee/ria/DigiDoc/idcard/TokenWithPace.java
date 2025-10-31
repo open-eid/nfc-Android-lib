@@ -59,10 +59,10 @@ public interface TokenWithPace extends Token {
             throw new SmartCardReaderException("ATR/ATS cannot be null");
         }
         if (Arrays.equals(Hex.decode("0012233f536549440f9000"), atr)) {
-            return new ID1WithPace(reader);
+            return new IdemiaWithPace(reader);
         }
         if (Arrays.equals(Hex.decode("0012233f54654944320f9000"), atr)) {
-            return new ID1WithPace(reader);
+            return new IdemiaWithPace(reader);
         }
         if (Arrays.equals(Hex.decode("8031d85365494464b085051012233f"), atr)) {
             return new ThalesWithPace(reader);

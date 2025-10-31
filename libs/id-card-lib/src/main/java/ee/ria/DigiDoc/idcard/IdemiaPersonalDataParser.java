@@ -29,8 +29,8 @@ import java.util.List;
 
 import ee.ria.DigiDoc.utilsLib.logging.LoggingUtil;
 
-class ID1PersonalDataParser {
-    private static final String TAG = ID1PersonalDataParser.class.getName();
+class IdemiaPersonalDataParser {
+    private static final String TAG = IdemiaPersonalDataParser.class.getName();
     private static final DateTimeFormatter DATE_FORMAT = new DateTimeFormatterBuilder()
             .appendPattern("dd MM yyyy")
             .toFormatter();
@@ -43,7 +43,7 @@ class ID1PersonalDataParser {
     private static final int DOCUMENT_NUMBER_POS = 7;
     private static final int EXPIRY_DATE_POS = 8;
 
-    private ID1PersonalDataParser() {}
+    private IdemiaPersonalDataParser() {}
 
     static PersonalData parse(SparseArray<String> data) {
         String surname = data.get(SURNAME_POS);

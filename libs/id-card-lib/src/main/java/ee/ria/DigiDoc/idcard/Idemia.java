@@ -37,7 +37,7 @@ import ee.ria.DigiDoc.smartcardreader.ApduResponseException;
 import ee.ria.DigiDoc.smartcardreader.SmartCardReader;
 import ee.ria.DigiDoc.smartcardreader.SmartCardReaderException;
 
-class ID1 implements Token {
+class Idemia implements Token {
 
     private static final Map<CertificateType, byte[]> CERT_MAP = new HashMap<>();
     static {
@@ -61,7 +61,7 @@ class ID1 implements Token {
 
     protected final SmartCardReader reader;
 
-    ID1(SmartCardReader reader) {
+    Idemia(SmartCardReader reader) {
         this.reader = reader;
     }
 
@@ -75,7 +75,7 @@ class ID1 implements Token {
             byte[] record = reader.transmit(0x00, 0xB0, 0x00, 0x00, null, 0x00);
             data.put(i, new String(record, Charsets.UTF_8).trim());
         }
-        return ID1PersonalDataParser.parse(data);
+        return IdemiaPersonalDataParser.parse(data);
     }
 
     @Override
@@ -117,6 +117,7 @@ class ID1 implements Token {
         } else {
             selectMainAid();
         }
+        verifyCode(type, currentCode);
         try {
             reader.transmit(0x00, 0x24, 0x00, Objects.requireNonNull(VERIFY_PIN_MAP.get(type)), Bytes.concat(code(currentCode), code(newCode)), null);
         } catch (ApduResponseException e) {
@@ -126,6 +127,7 @@ class ID1 implements Token {
 
     @Override
     public void unblockAndChangeCode(byte[] pukCode, CodeType type, byte[] newCode) throws SmartCardReaderException {
+        verifyCode(CodeType.PUK, pukCode);
         if (type.equals(CodeType.PIN2)) {
             selectQSCDAid();
         }

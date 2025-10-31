@@ -67,8 +67,8 @@ import ee.ria.DigiDoc.utilsLib.logging.LoggingUtil;
  * so that the ID1 APDU protocol can remain mostly unchanged
  * @noinspection FieldCanBeLocal, SameParameterValue
  */
-class ID1WithPace extends ID1 implements TokenWithPace, ApduEncryptor {
-    private static final String TAG = ID1WithPace.class.getName();
+class IdemiaWithPace extends Idemia implements TokenWithPace, ApduEncryptor {
+    private static final String TAG = IdemiaWithPace.class.getName();
     /**
      * Last bytes for padding used in establishing encryption key,
      * MAC key and nonce decryption key
@@ -144,7 +144,7 @@ class ID1WithPace extends ID1 implements TokenWithPace, ApduEncryptor {
      * Initialize ID1 token with NfcSmartCardReader
      * @param reader
      */
-    ID1WithPace(NfcSmartCardReader reader) {
+    IdemiaWithPace(NfcSmartCardReader reader) {
         super(reader);
         nfcReader = reader;
         ssc = new byte[BLOCK_SIZE];
