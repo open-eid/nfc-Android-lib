@@ -117,7 +117,6 @@ class Idemia implements Token {
         } else {
             selectMainAid();
         }
-        verifyCode(type, currentCode);
         try {
             reader.transmit(0x00, 0x24, 0x00, Objects.requireNonNull(VERIFY_PIN_MAP.get(type)), Bytes.concat(code(currentCode), code(newCode)), null);
         } catch (ApduResponseException e) {
