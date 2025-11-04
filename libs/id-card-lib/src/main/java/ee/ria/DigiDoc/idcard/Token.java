@@ -140,9 +140,9 @@ public interface Token {
             throw new SmartCardReaderException("ATR cannot be null");
         }
         if (Arrays.equals(Hex.decode("3bdb960080b1fe451f830012233f536549440f9000f1"), atr)) {
-            return new ID1(reader);
+            return new Idemia(reader);
         } else if (Arrays.equals(Hex.decode("3bdc960080b1fe451f830012233f54654944320f9000c3"), atr)) {
-            return new ID1(reader);
+            return new Idemia(reader);
         } else if (Arrays.equals(Hex.decode("3bff9600008031fe438031b85365494464b085051012233f1d"), atr)) {
             Thales thales = new Thales(reader);
             thales.selectMainAid();
