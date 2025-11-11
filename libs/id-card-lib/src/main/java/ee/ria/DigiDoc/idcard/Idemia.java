@@ -23,11 +23,11 @@ import static com.google.common.primitives.Bytes.concat;
 
 import android.util.SparseArray;
 
-import com.google.common.base.Charsets;
 import com.google.common.primitives.Bytes;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -73,7 +73,7 @@ class Idemia implements Token {
         for (int i = 1; i <= 8; i++) {
             reader.transmit(0x00, 0xA4, 0x02, 0x0C, new byte[] {0x50, (byte) i}, null);
             byte[] record = reader.transmit(0x00, 0xB0, 0x00, 0x00, null, 0x00);
-            data.put(i, new String(record, Charsets.UTF_8).trim());
+            data.put(i, new String(record, StandardCharsets.UTF_8).trim());
         }
         return IdemiaPersonalDataParser.parse(data);
     }
