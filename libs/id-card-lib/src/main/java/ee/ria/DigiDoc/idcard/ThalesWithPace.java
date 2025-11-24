@@ -174,6 +174,7 @@ class ThalesWithPace extends Thales implements TokenWithPace, ApduEncryptor {
         } catch (Exception ex) {
             throw new SmartCardReaderException("Could not establish tunnel", ex);
         }
+        selectMainAid();
     }
 
     /**

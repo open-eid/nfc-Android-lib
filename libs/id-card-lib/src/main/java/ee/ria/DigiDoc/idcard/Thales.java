@@ -24,10 +24,9 @@ import static ee.ria.DigiDoc.idcard.TLV.parseTLVRecursive;
 
 import android.util.SparseArray;
 
-import com.google.common.base.Charsets;
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -61,20 +60,18 @@ class Thales implements Token {
 
     @Override
     public PersonalData personalData() throws SmartCardReaderException {
-        selectMainAid();
         byte[] bytes = new byte[] {(byte) 0xDF,(byte) 0xDD};
         reader.transmit(0x00, 0xA4, 0x08, 0x0C, bytes, null);
         SparseArray<String> data = new SparseArray<>();
         for (int i = 1; i <= 8; i++) {
             byte[] record = readFile(0x02, new byte[] {0x50, (byte) i});
-            data.put(i, new String(record, Charsets.UTF_8).trim());
+            data.put(i, new String(record, StandardCharsets.UTF_8).trim());
         }
         return ThalesPersonalDataParser.parse(data);
     }
 
     @Override
     public byte[] certificate(CertificateType type) throws SmartCardReaderException {
-        selectMainAid();
         return readFile(0x08, CERT_MAP.get(type));
     }
 
@@ -141,13 +138,11 @@ class Thales implements Token {
     }
 
     private byte[] getData(CodeType type) throws SmartCardReaderException {
-        selectMainAid();
         return reader.transmit(0x00, 0xCB, 0x00, 0xFF, new byte[] {(byte) 0xA0, 0x03, (byte) 0x83, 0x01, Objects.requireNonNull(VERIFY_PIN_MAP.get(type))}, 0x00);
     }
 
     @Override
     public void changeCode(CodeType type, byte[] currentCode, byte[] newCode) throws SmartCardReaderException {
-        selectMainAid();
         if (type.equals(CodeType.PUK)) {
             throw new SmartCardReaderException("Cannot change PUK code");
         }
@@ -160,7 +155,6 @@ class Thales implements Token {
 
     @Override
     public void unblockAndChangeCode(byte[] pukCode, CodeType type, byte[] newCode) throws SmartCardReaderException {
-        selectMainAid();
         if (type.equals(CodeType.PUK)) {
             throw new SmartCardReaderException("Cannot unblock and change PUK code");
         }
