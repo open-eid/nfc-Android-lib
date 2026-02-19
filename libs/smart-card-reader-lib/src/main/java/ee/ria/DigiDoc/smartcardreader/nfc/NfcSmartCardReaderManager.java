@@ -47,6 +47,7 @@ public final class NfcSmartCardReaderManager implements NfcAdapter.ReaderCallbac
         }
         this.nfcAdapter = null;
         this.currentActivity = null;
+        this.clientCallback = null;
     }
 
     /**
@@ -96,20 +97,14 @@ public final class NfcSmartCardReaderManager implements NfcAdapter.ReaderCallbac
      * @return - status if the NFC is available / enabled / active
      */
     public NfcStatus startDiscovery(Activity activity, NfcSmartCardReaderCallback callback) {
+        NfcAdapter adapter = NfcAdapter.getDefaultAdapter(activity);
+        if (adapter == null) return NfcStatus.NFC_NOT_SUPPORTED;
+        if (!adapter.isEnabled()) return NfcStatus.NFC_NOT_ACTIVE;
+
         this.currentActivity = activity;
-        this.nfcAdapter = NfcAdapter.getDefaultAdapter(this.currentActivity);
-
-        if (this.nfcAdapter == null) {
-            return NfcStatus.NFC_NOT_SUPPORTED;
-        }
-
-        if (!this.nfcAdapter.isEnabled()) {
-            return NfcStatus.NFC_NOT_ACTIVE;
-        }
-
+        this.nfcAdapter = adapter;
         this.clientCallback = callback;
-        this.nfcAdapter.enableReaderMode(
-                this.currentActivity, this, NfcAdapter.FLAG_READER_NFC_A, null);
+        adapter.enableReaderMode(activity, this, NfcAdapter.FLAG_READER_NFC_A, null);
         return NfcStatus.NFC_ACTIVE;
     }
 
