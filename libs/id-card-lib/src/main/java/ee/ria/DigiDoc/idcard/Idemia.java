@@ -167,7 +167,7 @@ class Idemia implements Token {
         return reader.transmit(0x00, 0x2A, 0x80, 0x86, concat(prefix, data), 0x00);
     }
 
-    private void verifyCode(CodeType type, byte[] code) throws SmartCardReaderException {
+    protected void verifyCode(CodeType type, byte[] code) throws SmartCardReaderException {
         try {
             reader.transmit(0x00, 0x20, 0x00, Objects.requireNonNull(VERIFY_PIN_MAP.get(type)), code(code), null);
         } catch (ApduResponseException e) {
@@ -191,11 +191,11 @@ class Idemia implements Token {
         reader.transmit(0x00, 0xA4, 0x04, 0x00, new byte[] {(byte) 0xA0, 0x00, 0x00, 0x00, 0x77, 0x01, 0x08, 0x00, 0x07, 0x00, 0x00, (byte) 0xFE, 0x00, 0x00, 0x01, 0x00}, null);
     }
 
-    private void selectQSCDAid() throws SmartCardReaderException {
+    protected void selectQSCDAid() throws SmartCardReaderException {
         reader.transmit(0x00, 0xA4, 0x04, 0x0C, new byte[] {0x51, 0x53, 0x43, 0x44, 0x20, 0x41, 0x70, 0x70, 0x6C, 0x69, 0x63, 0x61, 0x74, 0x69, 0x6F, 0x6E}, null);
     }
 
-    private void selectOberthurAid() throws SmartCardReaderException {
+    protected void selectOberthurAid() throws SmartCardReaderException {
         reader.transmit(0x00, 0xA4, 0x04, 0x0C, new byte[] {(byte) 0xE8, 0x28, (byte) 0xBD, 0x08, 0x0F, (byte) 0xF2, 0x50, 0x4F, 0x54, 0x20, 0x41, 0x57, 0x50}, null);
     }
 
@@ -214,7 +214,7 @@ class Idemia implements Token {
      * @return zero padded hash with 48 byte length or same hash if it's longer than 48 bytes
      * @throws IdCardException when padding the hash fails
      */
-    private static byte[] padWithZeroes(byte[] hash) throws IdCardException {
+    protected static byte[] padWithZeroes(byte[] hash) throws IdCardException {
         if (hash.length >= 48) {
             return hash;
         }
