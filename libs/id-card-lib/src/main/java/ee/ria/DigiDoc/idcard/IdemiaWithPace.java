@@ -20,6 +20,8 @@ import org.bouncycastle.math.ec.WNafUtil;
 import org.bouncycastle.util.BigIntegers;
 import org.bouncycastle.util.encoders.Hex;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
@@ -29,6 +31,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Locale;
 
 import javax.crypto.BadPaddingException;
@@ -124,6 +127,12 @@ class IdemiaWithPace extends Idemia implements TokenWithPace, ApduEncryptor {
      */
     private final NfcSmartCardReader nfcReader;
 
+    protected Byte authKeyRef = (byte) 0x81;
+    protected Byte signKeyRef = (byte) 0x9F;
+
+    protected String paceEcSpec;
+    protected byte paceDomainParam;
+
     /**
      * Initialize ID1 token with NfcSmartCardReader
      * @param reader
@@ -174,6 +183,38 @@ class IdemiaWithPace extends Idemia implements TokenWithPace, ApduEncryptor {
     }
 
     /**
+     * Read PACE domain parameter and EC curve from EF.CardAccess.
+     * Accessible before PACE, in plaintext.
+     */
+    private void readPaceParametersFromCard() throws SmartCardReaderException {
+        if (paceEcSpec != null) {
+            return;
+        }
+
+        reader.transmit(0x00, 0xA4, 0x02, 0x0C, new byte[]{0x01, 0x1C}, null);
+        byte[] cardAccess = readBinaryFile();
+        byte paramId = parsePaceParameterId(cardAccess);
+
+        if (paramId == 0) {
+            throw new SmartCardReaderException("Failed to read PACE parameters from EF.CardAccess");
+        }
+
+        paceDomainParam = paramId;
+        paceEcSpec = domainParamToCurveName(paramId);
+
+        if (paceEcSpec == null) {
+            throw new SmartCardReaderException(
+                "Unsupported PACE domain parameter: 0x" + Integer.toHexString(paramId & 0xFF)
+            );
+        }
+
+        LoggingUtil.Companion.debugLog(TAG,
+            String.format("PACE parameters read from EF.CardAccess: paramId=0x%02X, curve=%s", paramId, paceEcSpec),
+            null
+        );
+    }
+
+    /**
      * Set MSE Authentication Template
      *
      * @throws SmartCardReaderException
@@ -181,7 +222,7 @@ class IdemiaWithPace extends Idemia implements TokenWithPace, ApduEncryptor {
     private void setMSEAuthenticationTemplate() throws SmartCardReaderException {
         byte[] data = new byte[] {
                 (byte)0x80, 0x0A, 0x04, 0x00, 0x7F, 0x00, 0x07, 0x02,
-                0x02, 0x04, 0x02, 0x04, (byte)0x83, 0x01, 0x02, (byte)0x84, 0x01, 0x0C};
+                0x02, 0x04, 0x02, 0x04, (byte)0x83, 0x01, 0x02, (byte)0x84, 0x01, paceDomainParam};
         reader.transmit(CLA_ISO, INS_MSE, 0xC1, 0xA4, data, 0x00);
     }
 
@@ -357,10 +398,7 @@ class IdemiaWithPace extends Idemia implements TokenWithPace, ApduEncryptor {
 
         selectMainAid();
 
-        // NB: We could read PACE parameters from EF.CardAccess file here. This step can be
-        // omitted, since the parameters on all currently issued ID cards are fixed. This may
-        // change in the future
-
+        readPaceParametersFromCard();
         setMSEAuthenticationTemplate();
 
         byte[] response = getGAGetNonce();
@@ -373,7 +411,7 @@ class IdemiaWithPace extends Idemia implements TokenWithPace, ApduEncryptor {
                 can);
 
         // generate an EC keypair and exchange public keys with the chip
-        ECNamedCurveParameterSpec spec = ECNamedCurveTable.getParameterSpec("secp256r1");
+        ECNamedCurveParameterSpec spec = ECNamedCurveTable.getParameterSpec(paceEcSpec);
 
         BigInteger privateKey = generateRandomPrivateKey(spec);
 
@@ -718,6 +756,253 @@ class IdemiaWithPace extends Idemia implements TokenWithPace, ApduEncryptor {
                 break;
             }
         }
+    }
+
+    @Override
+    public byte[] authenticate(byte[] pin1, byte[] token) throws SmartCardReaderException {
+        selectOberthurAid();
+        verifyCode(CodeType.PIN1, pin1);
+        byte keyRef = getAuthKeyRef();
+
+        LoggingUtil.Companion.debugLog(TAG,
+            String.format("MSE SET auth: algo=FF200800, keyRef=0x%02x", keyRef & 0xFF),
+            null
+        );
+
+        reader.transmit(0x00, 0x22, 0x41, 0xA4,
+                new byte[] {(byte) 0x80, 0x04, (byte) 0xFF, 0x20, 0x08, 0x00, (byte) 0x84, 0x01, keyRef}, null);
+        return reader.transmit(0x00, 0x88, 0x00, 0x00, token, 0x00);
+    }
+
+    @Override
+    public byte[] calculateSignature(byte[] pin2, byte[] hash, boolean ecc) throws SmartCardReaderException {
+        selectQSCDAid();
+        verifyCode(CodeType.PIN2, pin2);
+        byte keyRef = getSignKeyRef();
+
+        LoggingUtil.Companion.debugLog(TAG,
+            String.format("MSE SET sign: algo=FF150800, keyRef=0x%02x", keyRef & 0xFF),
+            null
+        );
+
+        reader.transmit(0x00, 0x22, 0x41, 0xB6,
+                new byte[] {(byte) 0x80, 0x04, (byte) 0xFF, 0x15, 0x08, 0x00, (byte) 0x84, 0x01, keyRef}, null);
+        return reader.transmit(0x00, 0x2A, 0x9E, 0x9A, padWithZeroes(hash), 0x00);
+    }
+
+    @Override
+    public byte[] decrypt(byte[] pin1, byte[] data, boolean ecc) throws SmartCardReaderException {
+        selectOberthurAid();
+        verifyCode(CodeType.PIN1, pin1);
+        byte keyRef = getAuthKeyRef();
+
+        LoggingUtil.Companion.debugLog(TAG,
+            String.format("MSE SET decrypt: algo=FF300400, keyRef=0x%02x", keyRef & 0xFF),
+            null
+        );
+
+        reader.transmit(0x00, 0x22, 0x41, 0xB8,
+                new byte[] {(byte) 0x80, 0x04, (byte) 0xFF, 0x30, 0x04, 0x00, (byte) 0x84, 0x01, keyRef}, null);
+        return reader.transmit(0x00, 0x2A, 0x80, 0x86, concat(new byte[] {0x00}, data), 0x00);
+    }
+
+    /**
+     * Get the authentication key reference. If null, attempts dynamic discovery from PrKDF.
+     * Cached after first read.
+     */
+    protected byte getAuthKeyRef() throws SmartCardReaderException {
+        if (authKeyRef == null) {
+            byte ref = readKeyRefFromCurrentContext();
+            if (ref != 0) {
+                authKeyRef = ref;
+                LoggingUtil.Companion.debugLog(TAG,
+                    String.format("PrKDF auth key ref discovered: 0x%02x", authKeyRef & 0xFF),
+                    null
+                );
+            } else {
+                throw new SmartCardReaderException("Auth key reference not found in PrKDF");
+            }
+        }
+
+        return authKeyRef;
+    }
+
+    /**
+     * Get the signing key reference. If null, attempts dynamic discovery from PrKDF.
+     * Cached after first read.
+     */
+    protected byte getSignKeyRef() throws SmartCardReaderException {
+        if (signKeyRef == null) {
+            byte ref = readKeyRefFromCurrentContext();
+            if (ref != 0) {
+                signKeyRef = ref;
+                LoggingUtil.Companion.debugLog(TAG,
+                    String.format("PrKDF sign key ref discovered: 0x%02x", signKeyRef & 0xFF),
+                    null
+                );
+            } else {
+                throw new SmartCardReaderException("Sign key reference not found in PrKDF");
+            }
+        }
+
+        return signKeyRef;
+    }
+
+    /**
+     * Read the first private key reference from the PrKDF in the currently selected AID context.
+     *
+     * Flow (matching Web eID libelectronic-id):
+     * 1. Select and read EF_OD (0x5031) — Object Directory File
+     * 2. Find tag 0xA0 (private key dir ref) → extract PrKDF file ID
+     * 3. Read PrKDF file
+     * 4. Return first keyReference INTEGER found
+     *
+     * @return key reference byte, or 0 if not found
+     */
+    private byte readKeyRefFromCurrentContext() throws SmartCardReaderException {
+        // Read EF_OD (Object Directory File at 0x5031)
+        reader.transmit(0x00, 0xA4, 0x02, 0x0C, new byte[] {0x50, 0x31}, null);
+        byte[] efOd = readBinaryFile();
+
+        // Find tag 0xA0 (private key directory reference)
+        List<TLV> odEntries = TLV.parseAll(efOd);
+        TLV privKeyDir = TLV.findByTag(odEntries, 0xA0);
+        if (privKeyDir == null || privKeyDir.children == null) {
+            return 0;
+        }
+
+        // Navigate: A0 → 30 → 04 to get PrKDF file ID
+        TLV seq = privKeyDir.findByTag(0x30);
+        if (seq == null) {
+            return 0;
+        }
+        TLV fileIdTlv = seq.findByTag(0x04);
+        if (fileIdTlv == null || fileIdTlv.getValue().length != 2) {
+            return 0;
+        }
+
+        // Select and read PrKDF
+        byte[] fileId = fileIdTlv.getValue();
+        reader.transmit(0x00, 0xA4, 0x02, 0x0C, fileId, null);
+        byte[] prKdfData = readBinaryFile();
+
+        // Parse PrKDF entries and return first key reference found
+        List<TLV> keyEntries = TLV.parseAll(prKdfData);
+        for (TLV entry : keyEntries) {
+            if (entry.children == null || entry.children.size() < 2) {
+                continue;
+            }
+            byte keyRef = extractKeyReference(entry);
+            if (keyRef != 0) {
+                return keyRef;
+            }
+        }
+        return 0;
+    }
+
+    /**
+     * Extract key reference from a PKCS#15 PrivateKeyType entry.
+     *
+     * Structure: SEQUENCE { CommonObjectAttributes, CommonKeyAttributes, TypeAttributes }
+     * CommonKeyAttributes contains: iD, usage, ..., keyReference (INTEGER)
+     *
+     * In DER, key refs >= 0x80 are encoded as 2-byte INTEGERs (e.g., 02 02 00 82).
+     */
+    protected static byte extractKeyReference(TLV entry) {
+        if (entry.children == null || entry.children.size() < 2) {
+            return 0;
+        }
+
+        // Second child SEQUENCE = CommonKeyAttributes
+        TLV commonKeyAttrs = entry.children.get(1);
+        if (commonKeyAttrs.children == null) {
+            return 0;
+        }
+
+        // Find INTEGER (tag 0x02) — this is the keyReference
+        for (TLV child : commonKeyAttrs.children) {
+            if (child.getTag() == 0x02) {
+                byte[] val = child.getValue();
+                if (val.length == 2) {
+                    // 2-byte DER INTEGER (e.g., 00 82 → key ref 0x82)
+                    return val[1];
+                } else if (val.length == 1) {
+                    return val[0];
+                }
+            }
+        }
+        return 0;
+    }
+
+    /**
+     * Read a binary file from the currently selected EF.
+     */
+    protected byte[] readBinaryFile() throws SmartCardReaderException {
+        ByteArrayOutputStream stream = new ByteArrayOutputStream();
+        while (true) {
+            try {
+                stream.write(reader.transmit(0x00, 0xB0, stream.size() >> 8, stream.size(), null, 0x00));
+            } catch (ApduResponseException e) {
+                if (e.sw1 == 0x6B && e.sw2 == 0x00) {
+                    break; // offset out of range = end of file
+                } else if (e.sw1 == 0x6A && e.sw2 == (byte) 0x82) {
+                    break; // file not found
+                } else {
+                    throw e;
+                }
+            } catch (IOException e) {
+                throw new SmartCardReaderException(e);
+            }
+        }
+        return stream.toByteArray();
+    }
+
+    /**
+     * Parse PACEInfo parameterId from EF.CardAccess.
+     *
+     * EF.CardAccess is ASN.1: SET OF SecurityInfo
+     * PACEInfo ::= SEQUENCE { OID, INTEGER version, INTEGER parameterId }
+     *
+     * @return parameterId byte, or 0 if not found
+     */
+    private static byte parsePaceParameterId(byte[] cardAccess) {
+        List<TLV> entries = TLV.parseAll(cardAccess);
+        for (TLV entry : entries) {
+            if (entry.children == null) {
+                continue;
+            }
+            // SET contains SEQUENCEs (SecurityInfo entries)
+            for (TLV child : entry.children) {
+                if (child.children == null || child.children.size() < 3) {
+                    continue;
+                }
+                // Third child is parameterId INTEGER
+                TLV paramTlv = child.children.get(2);
+                if (paramTlv.getTag() == 0x02 && paramTlv.getValue().length == 1) {
+                    return paramTlv.getValue()[0];
+                }
+            }
+        }
+        // Also check top-level SEQUENCEs (if no outer SET wrapper)
+        for (TLV entry : entries) {
+            if (entry.children != null && entry.children.size() >= 3) {
+                TLV paramTlv = entry.children.get(2);
+                if (paramTlv.getTag() == 0x02 && paramTlv.getValue().length == 1) {
+                    return paramTlv.getValue()[0];
+                }
+            }
+        }
+        return 0;
+    }
+
+    private static String domainParamToCurveName(byte paramId) {
+        return switch (paramId & 0xFF) {
+            case 0x0C -> "secp256r1";
+            case 0x0D -> "brainpoolP256r1";
+            case 0x0F -> "secp384r1";
+            case 0x10 -> "brainpoolP384r1";
+            default -> null;
+        };
     }
 
 }
