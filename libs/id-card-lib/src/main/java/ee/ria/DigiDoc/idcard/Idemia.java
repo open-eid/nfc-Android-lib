@@ -144,27 +144,17 @@ class Idemia implements Token {
 
     @Override
     public byte[] calculateSignature(byte[] pin2, byte[] hash, boolean ecc) throws SmartCardReaderException {
-        selectQSCDAid();
-        verifyCode(CodeType.PIN2, pin2);
-        reader.transmit(0x00, 0x22, 0x41, 0xB6, new byte[] {(byte) 0x80, 0x04, (byte) 0xFF, 0x15, 0x08, 0x00, (byte) 0x84, 0x01, (byte) 0x9F}, null);
-        return reader.transmit(0x00, 0x2A, 0x9E, 0x9A, padWithZeroes(hash), 0x00);
+        throw new SmartCardReaderException("Signature calculation not supported on this card");
     }
 
     @Override
     public byte[] authenticate(byte[] pin1, byte[] token) throws SmartCardReaderException {
-        selectOberthurAid();
-        verifyCode(CodeType.PIN1, pin1);
-        reader.transmit(0x00, 0x22, 0x41, 0xA4, new byte[] {(byte) 0x80, 0x04, (byte) 0xFF, 0x20, 0x08, 0x00, (byte) 0x84, 0x01, (byte) 0x81}, null);
-        return reader.transmit(0x00, 0x88, 0x00, 0x00, token, 0x00);
+        throw new SmartCardReaderException("Authentication not supported on this card");
     }
 
     @Override
     public byte[] decrypt(byte[] pin1, byte[] data, boolean ecc) throws SmartCardReaderException {
-        selectOberthurAid();
-        byte[] prefix = new byte[] {0x00};
-        verifyCode(CodeType.PIN1, pin1);
-        reader.transmit(0x00, 0x22, 0x41, 0xB8, new byte[] {(byte) 0x80, 0x04, (byte) 0xFF, 0x30, 0x04, 0x00, (byte) 0x84, 0x01, (byte) 0x81}, null);
-        return reader.transmit(0x00, 0x2A, 0x80, 0x86, concat(prefix, data), 0x00);
+        throw new SmartCardReaderException("Decryption not supported on this card");
     }
 
     protected void verifyCode(CodeType type, byte[] code) throws SmartCardReaderException {

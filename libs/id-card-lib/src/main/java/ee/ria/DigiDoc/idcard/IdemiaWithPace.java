@@ -143,15 +143,11 @@ class IdemiaWithPace extends Idemia implements TokenWithPace, ApduEncryptor {
      */
     private final NfcSmartCardReader nfcReader;
 
-    protected Byte authKeyRef = null;
-    protected Byte signKeyRef = null;
+    protected Byte authKeyRef = (byte) 0x81;
+    protected Byte signKeyRef = (byte) 0x9F;
 
-    /**
-     * PACE EC curve spec name, discovered from EF.CardAccess.
-     * Default: secp256r1 (domain param 0x0C).
-     */
-    private String paceEcSpec = "secp256r1";
-    private byte paceDomainParam = 0x0C;
+    protected String paceEcSpec;
+    protected byte paceDomainParam;
 
     /**
      * Initialize ID1 token with NfcSmartCardReader
@@ -176,18 +172,6 @@ class IdemiaWithPace extends Idemia implements TokenWithPace, ApduEncryptor {
             // In case we were successful we notify the card that from now on
             // everything is encrypted
             nfcReader.setApduEncryptor(this);
-            // TODO: Remove after LV card validation
-            try {
-                selectOberthurAid();
-                byte authRef = readKeyRefFromCurrentContext();
-                selectQSCDAid();
-                byte signRef = readKeyRefFromCurrentContext();
-                LoggingUtil.Companion.debugLog(TAG,
-                        String.format("PrKDF-TEST auth=0x%02x sign=0x%02x",
-                                authRef & 0xFF, signRef & 0xFF), null);
-            } catch (Exception e) {
-                LoggingUtil.Companion.errorLog(TAG, "PrKDF-TEST failed", e);
-            }
         } catch (SmartCardReaderException ex) {
             if (ex instanceof ApduResponseException aex) {
                 if ((aex.sw1 == (byte) 0x63) && (aex.sw2 == 0x00)) {
@@ -212,6 +196,38 @@ class IdemiaWithPace extends Idemia implements TokenWithPace, ApduEncryptor {
                 (byte) 0xA0, 0x00, 0x00, 0x00, 0x77, 0x01, 0x08, 0x00,
                 0x07, 0x00, 0x00, (byte) 0xFE, 0x00, 0x00, 0x01, 0x00};
         reader.transmit(CLA_ISO, 0xA4, 0x04, 0x0C, data, null);
+    }
+
+    /**
+     * Read PACE domain parameter and EC curve from EF.CardAccess.
+     * Accessible before PACE, in plaintext.
+     */
+    private void readPaceParametersFromCard() throws SmartCardReaderException {
+        if (paceEcSpec != null) {
+            return;
+        }
+
+        reader.transmit(0x00, 0xA4, 0x02, 0x0C, new byte[]{0x01, 0x1C}, null);
+        byte[] cardAccess = readBinaryFile();
+        byte paramId = parsePaceParameterId(cardAccess);
+
+        if (paramId == 0) {
+            throw new SmartCardReaderException("Failed to read PACE parameters from EF.CardAccess");
+        }
+
+        paceDomainParam = paramId;
+        paceEcSpec = domainParamToCurveName(paramId);
+
+        if (paceEcSpec == null) {
+            throw new SmartCardReaderException(
+                "Unsupported PACE domain parameter: 0x" + Integer.toHexString(paramId & 0xFF)
+            );
+        }
+
+        LoggingUtil.Companion.debugLog(TAG,
+            String.format("PACE parameters read from EF.CardAccess: paramId=0x%02X, curve=%s", paramId, paceEcSpec),
+            null
+        );
     }
 
     /**
@@ -398,25 +414,7 @@ class IdemiaWithPace extends Idemia implements TokenWithPace, ApduEncryptor {
 
         selectMainAid();
 
-        // Read PACE parameters from EF.CardAccess (accessible before PACE, in plaintext)
-        try {
-            reader.transmit(0x00, 0xA4, 0x02, 0x0C, new byte[]{0x01, 0x1C}, null);
-            byte[] cardAccess = readBinaryFile();
-            LoggingUtil.Companion.debugLog(TAG,
-                    "EF.CardAccess: " + Hex.toHexString(cardAccess), null);
-            byte paramId = parsePaceParameterId(cardAccess);
-            if (paramId != 0) {
-                paceDomainParam = paramId;
-                paceEcSpec = domainParamToCurveName(paramId);
-                LoggingUtil.Companion.debugLog(TAG,
-                        String.format("PACE from EF.CardAccess: param=0x%02x, curve=%s",
-                                paramId & 0xFF, paceEcSpec), null);
-            }
-        } catch (Exception e) {
-            LoggingUtil.Companion.debugLog(TAG,
-                    "EF.CardAccess read failed, using defaults", e);
-        }
-
+        readPaceParametersFromCard();
         setMSEAuthenticationTemplate();
 
         byte[] response = getGAGetNonce();
@@ -781,8 +779,12 @@ class IdemiaWithPace extends Idemia implements TokenWithPace, ApduEncryptor {
         selectOberthurAid();
         verifyCode(CodeType.PIN1, pin1);
         byte keyRef = getAuthKeyRef();
+
         LoggingUtil.Companion.debugLog(TAG,
-                String.format("MSE SET auth: algo=FF200800, keyRef=0x%02x", keyRef & 0xFF), null);
+            String.format("MSE SET auth: algo=FF200800, keyRef=0x%02x", keyRef & 0xFF),
+            null
+        );
+
         reader.transmit(0x00, 0x22, 0x41, 0xA4,
                 new byte[] {(byte) 0x80, 0x04, (byte) 0xFF, 0x20, 0x08, 0x00, (byte) 0x84, 0x01, keyRef}, null);
         return reader.transmit(0x00, 0x88, 0x00, 0x00, token, 0x00);
@@ -793,8 +795,12 @@ class IdemiaWithPace extends Idemia implements TokenWithPace, ApduEncryptor {
         selectQSCDAid();
         verifyCode(CodeType.PIN2, pin2);
         byte keyRef = getSignKeyRef();
+
         LoggingUtil.Companion.debugLog(TAG,
-                String.format("MSE SET sign: algo=FF150800, keyRef=0x%02x", keyRef & 0xFF), null);
+            String.format("MSE SET sign: algo=FF150800, keyRef=0x%02x", keyRef & 0xFF),
+            null
+        );
+
         reader.transmit(0x00, 0x22, 0x41, 0xB6,
                 new byte[] {(byte) 0x80, 0x04, (byte) 0xFF, 0x15, 0x08, 0x00, (byte) 0x84, 0x01, keyRef}, null);
         return reader.transmit(0x00, 0x2A, 0x9E, 0x9A, padWithZeroes(hash), 0x00);
@@ -805,62 +811,56 @@ class IdemiaWithPace extends Idemia implements TokenWithPace, ApduEncryptor {
         selectOberthurAid();
         verifyCode(CodeType.PIN1, pin1);
         byte keyRef = getAuthKeyRef();
+
         LoggingUtil.Companion.debugLog(TAG,
-                String.format("MSE SET decrypt: algo=FF300400, keyRef=0x%02x", keyRef & 0xFF), null);
+            String.format("MSE SET decrypt: algo=FF300400, keyRef=0x%02x", keyRef & 0xFF),
+            null
+        );
+
         reader.transmit(0x00, 0x22, 0x41, 0xB8,
                 new byte[] {(byte) 0x80, 0x04, (byte) 0xFF, 0x30, 0x04, 0x00, (byte) 0x84, 0x01, keyRef}, null);
         return reader.transmit(0x00, 0x2A, 0x80, 0x86, concat(new byte[] {0x00}, data), 0x00);
     }
 
     /**
-     * Get the authentication key reference, reading from PrKDF in the current AID context.
-     * Falls back to default (0x81) if PrKDF reading fails.
+     * Get the authentication key reference. If null, attempts dynamic discovery from PrKDF.
      * Cached after first read.
      */
     protected byte getAuthKeyRef() throws SmartCardReaderException {
         if (authKeyRef == null) {
-            try {
-                byte ref = readKeyRefFromCurrentContext();
-                if (ref != 0) {
-                    authKeyRef = ref;
-                    LoggingUtil.Companion.debugLog(TAG,
-                            String.format("PrKDF auth key ref discovered: 0x%02x", authKeyRef & 0xFF), null);
-                } else {
-                    authKeyRef = (byte) 0x81;
-                    LoggingUtil.Companion.debugLog(TAG,
-                            String.format("PrKDF auth key ref not found, using default: 0x%02x", authKeyRef & 0xFF), null);
-                }
-            } catch (Exception e) {
-                LoggingUtil.Companion.errorLog(TAG, "Failed to read auth key ref from PrKDF, using default", e);
-                authKeyRef = (byte) 0x81;
+            byte ref = readKeyRefFromCurrentContext();
+            if (ref != 0) {
+                authKeyRef = ref;
+                LoggingUtil.Companion.debugLog(TAG,
+                    String.format("PrKDF auth key ref discovered: 0x%02x", authKeyRef & 0xFF),
+                    null
+                );
+            } else {
+                throw new SmartCardReaderException("Auth key reference not found in PrKDF");
             }
         }
+
         return authKeyRef;
     }
 
     /**
-     * Get the signing key reference, reading from PrKDF in the current AID context.
-     * Falls back to default (0x9F) if PrKDF reading fails.
+     * Get the signing key reference. If null, attempts dynamic discovery from PrKDF.
      * Cached after first read.
      */
     protected byte getSignKeyRef() throws SmartCardReaderException {
         if (signKeyRef == null) {
-            try {
-                byte ref = readKeyRefFromCurrentContext();
-                if (ref != 0) {
-                    signKeyRef = ref;
-                    LoggingUtil.Companion.debugLog(TAG,
-                            String.format("PrKDF sign key ref discovered: 0x%02x", signKeyRef & 0xFF), null);
-                } else {
-                    signKeyRef = (byte) 0x9F;
-                    LoggingUtil.Companion.debugLog(TAG,
-                            String.format("PrKDF sign key ref not found, using default: 0x%02x", signKeyRef & 0xFF), null);
-                }
-            } catch (Exception e) {
-                LoggingUtil.Companion.errorLog(TAG, "Failed to read sign key ref from PrKDF, using default", e);
-                signKeyRef = (byte) 0x9F;
+            byte ref = readKeyRefFromCurrentContext();
+            if (ref != 0) {
+                signKeyRef = ref;
+                LoggingUtil.Companion.debugLog(TAG,
+                    String.format("PrKDF sign key ref discovered: 0x%02x", signKeyRef & 0xFF),
+                    null
+                );
+            } else {
+                throw new SmartCardReaderException("Sign key reference not found in PrKDF");
             }
         }
+
         return signKeyRef;
     }
 
@@ -1012,13 +1012,13 @@ class IdemiaWithPace extends Idemia implements TokenWithPace, ApduEncryptor {
     }
 
     private static String domainParamToCurveName(byte paramId) {
-        switch (paramId & 0xFF) {
-            case 0x0C: return "secp256r1";
-            case 0x0D: return "brainpoolP256r1";
-            case 0x0F: return "secp384r1";
-            case 0x10: return "brainpoolP384r1";
-            default:   return "secp256r1";
-        }
+        return switch (paramId & 0xFF) {
+            case 0x0C -> "secp256r1";
+            case 0x0D -> "brainpoolP256r1";
+            case 0x0F -> "secp384r1";
+            case 0x10 -> "brainpoolP384r1";
+            default -> null;
+        };
     }
 
 }
