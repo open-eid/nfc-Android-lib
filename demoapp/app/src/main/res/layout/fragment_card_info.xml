@@ -21,7 +21,7 @@
             android:layout_weight="1"
             android:fontFamily="sans-serif-black"
             android:text="@string/first_name"
-            android:textColor="@color/black"
+            android:textColor="@color/text_primary"
             android:textSize="16sp"
             android:textStyle="bold" />
 
@@ -34,7 +34,7 @@
             android:layout_weight="1"
             android:fontFamily="sans-serif-black"
             android:text="@string/last_name"
-            android:textColor="@color/black"
+            android:textColor="@color/text_primary"
             android:textSize="16sp"
             android:textStyle="bold" />
 
@@ -47,7 +47,7 @@
             android:layout_weight="1"
             android:fontFamily="sans-serif-black"
             android:text="@string/personal_code"
-            android:textColor="@color/black"
+            android:textColor="@color/text_primary"
             android:textSize="16sp"
             android:textStyle="bold" />
 
@@ -60,7 +60,7 @@
             android:layout_weight="1"
             android:fontFamily="sans-serif-black"
             android:text="@string/citizenship"
-            android:textColor="@color/black"
+            android:textColor="@color/text_primary"
             android:textSize="16sp"
             android:textStyle="bold" />
 
@@ -73,7 +73,7 @@
             android:layout_weight="1"
             android:fontFamily="sans-serif-black"
             android:text="@string/expiration"
-            android:textColor="@color/black"
+            android:textColor="@color/text_primary"
             android:textSize="16sp"
             android:textStyle="bold" />
 
@@ -86,7 +86,7 @@
             android:layout_weight="1"
             android:fontFamily="sans-serif-black"
             android:text="@string/pin1_counter"
-            android:textColor="@color/black"
+            android:textColor="@color/text_primary"
             android:textSize="16sp"
             android:textStyle="bold" />
 
@@ -99,7 +99,7 @@
             android:layout_weight="1"
             android:fontFamily="sans-serif-black"
             android:text="@string/pin2_counter"
-            android:textColor="@color/black"
+            android:textColor="@color/text_primary"
             android:textSize="16sp"
             android:textStyle="bold" />
 

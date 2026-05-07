@@ -17,7 +17,7 @@
             android:fontFamily="sans-serif-black"
             android:gravity="center_horizontal"
             android:text="@string/add_pin1"
-            android:textColor="@color/black"
+            android:textColor="@color/text_primary"
             android:textSize="20sp" />
 
         <TextView
@@ -27,7 +27,7 @@
             android:fontFamily="sans-serif-light"
             android:gravity="center_horizontal"
             android:text="@string/pin1_info"
-            android:textColor="@color/black"
+            android:textColor="@color/text_primary"
             android:textSize="14sp"
             android:textStyle="bold|italic" />
 

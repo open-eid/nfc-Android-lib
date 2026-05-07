@@ -17,7 +17,7 @@
             android:fontFamily="sans-serif-black"
             android:gravity="center_horizontal"
             android:text="@string/unblock_pin"
-            android:textColor="@color/black"
+            android:textColor="@color/text_primary"
             android:textSize="20sp" />
 
         <RadioGroup
@@ -51,7 +51,7 @@
             android:fontFamily="sans-serif-light"
             android:gravity="center_horizontal"
             android:text="@string/add_puk"
-            android:textColor="@color/black"
+            android:textColor="@color/text_primary"
             android:textSize="14sp"
             android:textStyle="bold" />
 
@@ -75,7 +75,7 @@
             android:fontFamily="sans-serif-light"
             android:gravity="center_horizontal"
             android:text="@string/new_pin"
-            android:textColor="@color/black"
+            android:textColor="@color/text_primary"
             android:textSize="14sp"
             android:textStyle="bold" />
 
