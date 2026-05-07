@@ -7,3 +7,5 @@ environment.properties
 
 libs/id-card-lib/build/
 libs/smart-card-reader-lib/build/
+
+research/

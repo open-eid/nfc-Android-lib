@@ -38,6 +38,7 @@ class HomeFragment : Fragment() {
     private lateinit var authButton: Button
     private lateinit var signatureButton: Button
     private lateinit var cardButton: Button
+    private lateinit var unblockButton: Button
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -52,6 +53,7 @@ class HomeFragment : Fragment() {
         authButton = binding.buttonAuth
         signatureButton = binding.buttonSignature
         cardButton = binding.buttonCardView
+        unblockButton = binding.buttonUnblock
 
         signatureButton.setOnClickListener {
             findNavController().navigate(R.id.action_homeFragment_to_containerFragment)
@@ -64,6 +66,12 @@ class HomeFragment : Fragment() {
         authButton.setOnClickListener {
             val bundle = Bundle()
             bundle.putString("get", "auth")
+            findNavController().navigate(R.id.action_homeFragment_to_canFragment, bundle)
+        }
+
+        unblockButton.setOnClickListener {
+            val bundle = Bundle()
+            bundle.putString("get", "unblock")
             findNavController().navigate(R.id.action_homeFragment_to_canFragment, bundle)
         }
         handleOnBackPressed()

@@ -40,6 +40,7 @@ import androidx.navigation.fragment.findNavController
 import ee.ria.DigiDoc.idcard.CertificateType
 import ee.ria.DigiDoc.idcard.CodeType
 import ee.ria.DigiDoc.idcard.CodeVerificationException
+import ee.ria.DigiDoc.idcard.MaskTechWithPace
 import ee.ria.DigiDoc.idcard.PaceTunnelException
 import ee.ria.DigiDoc.idcard.TokenWithPace
 import ee.ria.DigiDoc.smartcardreader.ApduResponseException
@@ -110,6 +111,7 @@ class CardReaderFragment : Fragment() {
                     "cardInfo" -> readCardData()
                     "signature" -> getSignature()
                     "auth" -> auth()
+                    "unblock" -> unblockPin()
                 }
             }
         }
@@ -120,6 +122,7 @@ class CardReaderFragment : Fragment() {
             "cardInfo" -> readCardData()
             "signature" -> getSignature()
             "auth" -> auth()
+            "unblock" -> unblockPin()
         }
 
         requireActivity().onBackPressedDispatcher.addCallback(requireActivity(), object : OnBackPressedCallback(true) {
@@ -285,6 +288,57 @@ class CardReaderFragment : Fragment() {
                         exceptionToast(ex)
                     }
                     val message =  ex.message ?: "Error communicating with card"
+                    errorLog(logTag, message, ex)
+                } finally {
+                    nfcSmartCardReaderManager.disableNfcReaderMode()
+                }
+            }
+        })
+    }
+
+    /**
+     * PIN unblock workflow — uses PUK to reset a blocked PIN
+     */
+    private fun unblockPin() {
+        checkNfcStatus(nfcSmartCardReaderManager.startDiscovery(requireActivity()) { nfcReader, exc ->
+            requireActivity().runOnUiThread {
+                progressBar.visibility = View.VISIBLE
+                communicationTextView.text = getString(R.string.card_detected)
+            }
+
+            if ((nfcReader != null) && (exc == null)) {
+                try {
+                    val card = TokenWithPace.create(nfcReader)
+
+                    val puk = arguments?.getByteArray("puk")!!
+                    val newPin = arguments?.getByteArray("newPin")!!
+                    val pinType = arguments?.getString("pinType")
+                    val codeType = if (pinType == "PIN2") CodeType.PIN2 else CodeType.PIN1
+
+                    // MaskTech: unblockAndChangeCode handles PUK PACE internally
+                    // (SELECT DF02 before PACE to preserve security context)
+                    if (card !is MaskTechWithPace) {
+                        card.tunnel(dataViewModel.getCan())
+                    }
+
+                    card.unblockAndChangeCode(puk, codeType, newPin)
+
+                    setReaderResult(R.drawable.success)
+                    requireActivity().runOnUiThread {
+                        Toast.makeText(
+                            requireContext(),
+                            getString(R.string.unblock_success),
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        findNavController().popBackStack(R.id.homeFragment, false)
+                    }
+                } catch (ex: SmartCardReaderException) {
+                    setReaderResult(R.drawable.error)
+                    requireActivity().runOnUiThread {
+                        exceptionToast(ex)
+                        findNavController().popBackStack(R.id.unblockFragment, false)
+                    }
+                    val message = ex.message ?: "Error communicating with card"
                     errorLog(logTag, message, ex)
                 } finally {
                     nfcSmartCardReaderManager.disableNfcReaderMode()
