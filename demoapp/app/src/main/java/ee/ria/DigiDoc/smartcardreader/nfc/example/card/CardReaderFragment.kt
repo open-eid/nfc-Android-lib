@@ -40,7 +40,6 @@ import androidx.navigation.fragment.findNavController
 import ee.ria.DigiDoc.idcard.CertificateType
 import ee.ria.DigiDoc.idcard.CodeType
 import ee.ria.DigiDoc.idcard.CodeVerificationException
-import ee.ria.DigiDoc.idcard.MaskTechWithPace
 import ee.ria.DigiDoc.idcard.PaceTunnelException
 import ee.ria.DigiDoc.idcard.TokenWithPace
 import ee.ria.DigiDoc.smartcardreader.ApduResponseException
@@ -314,12 +313,6 @@ class CardReaderFragment : Fragment() {
                     val newPin = arguments?.getByteArray("newPin")!!
                     val pinType = arguments?.getString("pinType")
                     val codeType = if (pinType == "PIN2") CodeType.PIN2 else CodeType.PIN1
-
-                    // MaskTech: unblockAndChangeCode handles PUK PACE internally
-                    // (SELECT DF02 before PACE to preserve security context)
-                    if (card !is MaskTechWithPace) {
-                        card.tunnel(dataViewModel.getCan())
-                    }
 
                     card.unblockAndChangeCode(puk, codeType, newPin)
 
