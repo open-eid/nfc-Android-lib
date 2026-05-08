@@ -45,6 +45,15 @@ object Utils {
     lateinit var container: Container
     lateinit var signature: Signature
     var signatureProfile = "time-stamp"
+
+    /**
+     * When true, [Signature.extendSignatureProfile] is called after the card
+     * signs — adds the XAdES-T timestamp + OCSP, requiring network access to
+     * the CA endpoints (e.g. dd-at.ria.ee). When false, the signature is left
+     * at the BES baseline (no network needed). Toggled from the container UI.
+     */
+    var extendSignature = true
+
     var signatureIsAdded = false
 
     fun addFileContent(

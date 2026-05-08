@@ -2,5 +2,6 @@ package ee.ria.DigiDoc.idcard;
 
 public enum CardType {
     THALES,
-    ID1;
+    ID1,
+    LATVIA_IDEMIA;
 }

@@ -67,6 +67,14 @@ public interface TokenWithPace extends Token {
         if (Arrays.equals(Hex.decode("8031d85365494464b085051012233f"), atr)) {
             return new ThalesWithPace(reader);
         }
+        // Latvian eID cards (newer)
+        if (Arrays.equals(Hex.decode("0012428f536549440f9000"), atr)) {
+            return new LatviaIdemiaWithPace(reader);
+        }
+        // Latvian eID cards (older)
+        if (Arrays.equals(Hex.decode("0012428f54654944320f9000"), atr)) {
+            return new LatviaIdemiaWithPace(reader);
+        }
 
         throw new SmartCardReaderException("ATS not supported");
     }

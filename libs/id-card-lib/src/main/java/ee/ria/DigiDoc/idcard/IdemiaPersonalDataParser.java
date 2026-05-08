@@ -70,8 +70,8 @@ class IdemiaPersonalDataParser {
 
         LocalDate expiryDate = parseExpiryDate(expiryDateString);
 
-        return PersonalData.create(surname, givenNames, citizenship, dateOfBirth,
-                personalCode, documentNumber, expiryDate, CardType.ID1);
+        return PersonalData.create(surname, givenNames, citizenship, null, dateOfBirth,
+                personalCode, documentNumber, expiryDate, null, CardType.ID1);
     }
 
     private static LocalDate parseExpiryDate(String expiryDateString) {

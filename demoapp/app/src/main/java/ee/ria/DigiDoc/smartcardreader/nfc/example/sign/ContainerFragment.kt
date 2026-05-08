@@ -115,6 +115,11 @@ class ContainerFragment : Fragment() {
             addSignatureButton
         )
 
+        binding.checkBoxExtendSignature.isChecked = Utils.extendSignature
+        binding.checkBoxExtendSignature.setOnCheckedChangeListener { _, isChecked ->
+            Utils.extendSignature = isChecked
+        }
+
         backButton.setOnClickListener {
             clearData()
             findNavController().popBackStack(R.id.homeFragment, false)

@@ -5,6 +5,7 @@ annotation = "1.9.1"
 appcompat = "1.7.1"
 autoValue = "1.11.0"
 bouncyCastle = "1.82"
+desugarJdkLibs = "2.1.5"
 constraintlayout = "2.2.1"
 core = "1.17.0"
 dagger = "2.57.2"
@@ -36,6 +37,7 @@ androidx-navigation-runtime = { module = "androidx.navigation:navigation-runtime
 auto-value = { group = "com.google.auto.value", name = "auto-value", version.ref = "autoValue" }
 auto-value-annotations = { group = "com.google.auto.value", name = "auto-value-annotations", version.ref = "autoValue" }
 bcprov-jdk18on = { module = "org.bouncycastle:bcprov-jdk18on", version.ref = "bouncyCastle" }
+desugar-jdk-libs = { module = "com.android.tools:desugar_jdk_libs", version.ref = "desugarJdkLibs" }
 dagger = { module = "com.google.dagger:dagger", version.ref = "dagger" }
 dagger-compiler = { module = "com.google.dagger:dagger-compiler", version.ref = "dagger" }
 fragment-ktx = { module = "androidx.fragment:fragment-ktx", version.ref = "fragmentKtx" }

@@ -19,7 +19,7 @@
             android:layout_weight="2"
             android:fontFamily="sans-serif-black"
             android:gravity="center"
-            android:textColor="@color/black"
+            android:textColor="@color/text_primary"
             android:textSize="20sp" />
 
         <ImageView
@@ -62,7 +62,7 @@
             android:layout_weight="2"
             android:fontFamily="sans-serif-black"
             android:gravity="center"
-            android:textColor="@color/black"
+            android:textColor="@color/text_primary"
             android:textSize="20sp" />
 
     </LinearLayout>

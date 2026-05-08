@@ -3,6 +3,9 @@
 .DS_Store
 build/
 local.properties
+environment.properties
 
 libs/id-card-lib/build/
 libs/smart-card-reader-lib/build/
+
+research/

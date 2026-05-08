@@ -35,7 +35,24 @@ public abstract class PersonalData {
 
     public abstract String givenNames();
 
+    /**
+     * Cardholder's actual citizenship as read from the on-card personal-data
+     * file. Populated for cards that expose this field (Estonian IDEMIA /
+     * Thales). Empty string for cards that don't expose authoritative
+     * citizenship over NFC (e.g. Latvian IDEMIA — see {@link #issuingCountry()}).
+     */
     public abstract String citizenship();
+
+    /**
+     * ISO 3166-1 alpha-2 country code of the certificate issuer (cert subject
+     * RDN {@code C}). Populated for cards where this is parsed during
+     * personalData() — currently Latvian IDEMIA. Null for cards that don't
+     * read the cert as part of personal-data extraction. Note: this is the
+     * issuing country, NOT the cardholder's citizenship; in practice they
+     * coincide for citizen-issued eID, but a foreign resident's card would
+     * still carry the issuer's country code here.
+     */
+    @Nullable public abstract String issuingCountry();
 
     @Nullable public abstract LocalDate dateOfBirth();
 
@@ -43,14 +60,44 @@ public abstract class PersonalData {
 
     public abstract String documentNumber();
 
-    @Nullable public abstract LocalDate expiryDate();
+    /**
+     * Expiry date of the physical document (printed on the card), read from the
+     * personal-data EF. Populated for cards that expose this field — Estonian
+     * IDEMIA / Thales. Null for cards that don't (e.g. Latvian IDEMIA, which
+     * does not expose document expiry over NFC).
+     */
+    @Nullable public abstract LocalDate documentExpiryDate();
+
+    /**
+     * Expiry date of the on-card authentication certificate ({@code notAfter}).
+     * Populated for cards where this is parsed during personalData() — currently
+     * Latvian IDEMIA. Null for cards that don't read the cert as part of
+     * personal-data extraction (Estonian IDEMIA / Thales). Note that the cert
+     * expiry is typically shorter than the document expiry.
+     */
+    @Nullable public abstract LocalDate certExpiryDate();
+
+    /**
+     * @deprecated Replaced by {@link #documentExpiryDate()} (Estonian / Thales)
+     * and {@link #certExpiryDate()} (Latvian). This shim returns the document
+     * expiry when present, falling back to the cert expiry, so existing
+     * callers keep observing the same value as before the split.
+     */
+    @Deprecated
+    @Nullable public LocalDate expiryDate() {
+        LocalDate doc = documentExpiryDate();
+        return doc != null ? doc : certExpiryDate();
+    }
 
     public abstract CardType cardType();
 
     static PersonalData create(String surname, String givenNames, String citizenship,
-                               @Nullable LocalDate dateOfBirth, String personalCode,
-                               String documentNumber, @Nullable LocalDate expiryDate, CardType cardType) {
-        return new AutoValue_PersonalData(surname, givenNames, citizenship, dateOfBirth,
-                personalCode, documentNumber, expiryDate, cardType);
+                               @Nullable String issuingCountry, @Nullable LocalDate dateOfBirth,
+                               String personalCode, String documentNumber,
+                               @Nullable LocalDate documentExpiryDate,
+                               @Nullable LocalDate certExpiryDate, CardType cardType) {
+        return new AutoValue_PersonalData(surname, givenNames, citizenship, issuingCountry,
+                dateOfBirth, personalCode, documentNumber, documentExpiryDate, certExpiryDate,
+                cardType);
     }
 }

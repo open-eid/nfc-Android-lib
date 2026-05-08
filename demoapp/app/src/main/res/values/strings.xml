@@ -9,7 +9,10 @@
     <string name="last_name">Last name: %1$s</string>
     <string name="personal_code">Personal code: %1$s</string>
     <string name="citizenship">Citizenship: %1$s</string>
+    <string name="issuing_country">Issuing country: %1$s</string>
     <string name="expiration">Date of expiry: %1$s</string>
+    <string name="document_expiry">Document expiry: %1$s</string>
+    <string name="cert_expiry">Cert expiry: %1$s</string>
     <string name="cancel">Cancel</string>
     <string name="next">Next</string>
     <string name="back">Back</string>
@@ -21,6 +24,7 @@
     <string name="container_name">Container name</string>
     <string name="container_files">Container files</string>
     <string name="add_file">Add file</string>
+    <string name="extend_signature">Extend signature (timestamp + OCSP — requires network)</string>
     <string name="get_signer_cert">Get signer cert</string>
     <string name="get_signature">Get signature</string>
     <string name="share">Share container</string>
@@ -35,6 +39,14 @@
     <string name="pin2_hint">12345</string>
     <string name="pin1_counter">PIN1 tries left: %1$d</string>
     <string name="pin2_counter">PIN2 tries left: %1$d</string>
+    <string name="unblock">Unblock PIN</string>
+    <string name="unblock_pin">Unblock PIN</string>
+    <string name="pin1_label">PIN 1</string>
+    <string name="pin2_label">PIN 2</string>
+    <string name="add_puk">PUK</string>
+    <string name="puk_hint">12345678</string>
+    <string name="new_pin">New PIN</string>
+    <string name="unblock_success">PIN unblocked successfully</string>
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
 </resources>

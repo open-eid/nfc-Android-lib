@@ -51,6 +51,9 @@
         <action
             android:id="@+id/action_canFragment_to_pin1Fragment"
             app:destination="@id/pin1Fragment" />
+        <action
+            android:id="@+id/action_canFragment_to_unblockFragment"
+            app:destination="@id/unblockFragment" />
     </fragment>
     <fragment
         android:id="@+id/pin1Fragment"
@@ -71,6 +74,15 @@
             app:destination="@id/containerFragment" />
         <action
             android:id="@+id/action_pin2Fragment_to_cardReaderFragment"
+            app:destination="@id/cardReaderFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/unblockFragment"
+        android:name="ee.ria.DigiDoc.smartcardreader.nfc.example.card.UnblockFragment"
+        android:label="fragment_unblock"
+        tools:layout="@layout/fragment_unblock" >
+        <action
+            android:id="@+id/action_unblockFragment_to_cardReaderFragment"
             app:destination="@id/cardReaderFragment" />
     </fragment>
     <fragment

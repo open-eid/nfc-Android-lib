@@ -61,7 +61,7 @@ class CanFragment : Fragment() {
         cancelButton.setOnClickListener {
             if (get.equals("cert")) {
                 findNavController().popBackStack(R.id.containerFragment, false)
-            } else if (get.equals("auth")) {
+            } else if (get.equals("auth") || get.equals("unblock")) {
                 findNavController().popBackStack(R.id.homeFragment,false)
             } else {
                 findNavController().popBackStack()
@@ -75,6 +75,8 @@ class CanFragment : Fragment() {
             } else if (get.equals("auth")) {
                 bundle.putString("get", "auth")
                 findNavController().navigate(R.id.action_canFragment_to_pin1Fragment, bundle)
+            } else if (get.equals("unblock")) {
+                findNavController().navigate(R.id.action_canFragment_to_unblockFragment)
             } else {
                 bundle.putString("get", "cardInfo")
                 findNavController().navigate(R.id.action_canFragment_to_cardReaderFragment, bundle)

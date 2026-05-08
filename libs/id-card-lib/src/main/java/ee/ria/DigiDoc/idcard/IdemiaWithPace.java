@@ -36,6 +36,8 @@ import org.bouncycastle.math.ec.WNafUtil;
 import org.bouncycastle.util.BigIntegers;
 import org.bouncycastle.util.encoders.Hex;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
@@ -45,6 +47,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Locale;
 
 import javax.crypto.BadPaddingException;
@@ -140,6 +143,12 @@ class IdemiaWithPace extends Idemia implements TokenWithPace, ApduEncryptor {
      */
     private final NfcSmartCardReader nfcReader;
 
+    protected Byte authKeyRef = (byte) 0x81;
+    protected Byte signKeyRef = (byte) 0x9F;
+
+    protected String paceEcSpec;
+    protected byte paceDomainParam;
+
     /**
      * Initialize ID1 token with NfcSmartCardReader
      * @param reader
@@ -190,6 +199,64 @@ class IdemiaWithPace extends Idemia implements TokenWithPace, ApduEncryptor {
     }
 
     /**
+     * Legacy PACE parameter ID — secp256r1 with id-PACE-ECDH-GM-AES-CBC-CMAC-256.
+     * Used as a fallback when EF.CardAccess is unreadable or unparsable on this
+     * card model, matching the hardcoded value used before EF.CardAccess parsing
+     * was wired up. Cards that want a different curve must publish it correctly
+     * in EF.CardAccess; we never silently downgrade a *successfully parsed*
+     * value (the unsupported-curve check below still throws).
+     */
+    private static final byte LEGACY_PACE_PARAM_ID = (byte) 0x0C;
+
+    /**
+     * Read PACE domain parameter and EC curve from EF.CardAccess.
+     * Accessible before PACE, in plaintext. Falls back to
+     * {@link #LEGACY_PACE_PARAM_ID} if the file can't be read or parsed.
+     */
+    private void readPaceParametersFromCard() throws SmartCardReaderException {
+        if (paceEcSpec != null) {
+            return;
+        }
+
+        byte paramId = 0;
+        try {
+            reader.transmit(0x00, 0xA4, 0x02, 0x0C, new byte[]{0x01, 0x1C}, null);
+            byte[] cardAccess = readBinaryFile();
+            paramId = parsePaceParameterId(cardAccess);
+        } catch (SmartCardReaderException e) {
+            // EF.CardAccess select/read failed — could be a card variant where
+            // the file isn't visible under the MAIN AID context, ACL-restricted,
+            // or otherwise unreadable. Fall through to the legacy default rather
+            // than failing PACE outright; every card that worked before this
+            // file existed worked with the hardcoded 0x0C / secp256r1 anyway.
+            LoggingUtil.Companion.debugLog(TAG,
+                "EF.CardAccess read failed, using legacy PACE defaults: " + e.getMessage(),
+                null);
+        }
+
+        if (paramId == 0) {
+            paramId = LEGACY_PACE_PARAM_ID;
+        }
+
+        paceDomainParam = paramId;
+        paceEcSpec = domainParamToCurveName(paramId);
+
+        // Only throw when the card explicitly told us it wants a curve we don't
+        // implement. A successful read+parse trumps the legacy default — better
+        // a clear error here than a downstream MAC mismatch.
+        if (paceEcSpec == null) {
+            throw new SmartCardReaderException(
+                "Unsupported PACE domain parameter: 0x" + Integer.toHexString(paramId & 0xFF)
+            );
+        }
+
+        LoggingUtil.Companion.debugLog(TAG,
+            String.format("PACE parameters: paramId=0x%02X, curve=%s", paramId, paceEcSpec),
+            null
+        );
+    }
+
+    /**
      * Set MSE Authentication Template
      *
      * @throws SmartCardReaderException
@@ -197,7 +264,7 @@ class IdemiaWithPace extends Idemia implements TokenWithPace, ApduEncryptor {
     private void setMSEAuthenticationTemplate() throws SmartCardReaderException {
         byte[] data = new byte[] {
                 (byte)0x80, 0x0A, 0x04, 0x00, 0x7F, 0x00, 0x07, 0x02,
-                0x02, 0x04, 0x02, 0x04, (byte)0x83, 0x01, 0x02, (byte)0x84, 0x01, 0x0C};
+                0x02, 0x04, 0x02, 0x04, (byte)0x83, 0x01, 0x02, (byte)0x84, 0x01, paceDomainParam};
         reader.transmit(CLA_ISO, INS_MSE, 0xC1, 0xA4, data, 0x00);
     }
 
@@ -331,6 +398,20 @@ class IdemiaWithPace extends Idemia implements TokenWithPace, ApduEncryptor {
     }
 
     /**
+     * Assert a response is exactly the expected length. Used after validateHeader
+     * to catch malformed PACE GA responses early with a clear message, instead of
+     * surfacing as opaque crypto errors from downstream decode/decrypt steps.
+     */
+    private static void validateResponseLength(byte[] response, int expected, String stage)
+            throws SmartCardReaderException {
+        if (response.length != expected) {
+            throw new SmartCardReaderException(
+                    "Unexpected " + stage + " response length: " + response.length
+                            + " (expected " + expected + ")");
+        }
+    }
+
+    /**
      * Generate private key in range [1, N-1]
      */
     private static BigInteger generateRandomPrivateKey(ECNamedCurveParameterSpec spec) {
@@ -373,23 +454,29 @@ class IdemiaWithPace extends Idemia implements TokenWithPace, ApduEncryptor {
 
         selectMainAid();
 
-        // NB: We could read PACE parameters from EF.CardAccess file here. This step can be
-        // omitted, since the parameters on all currently issued ID cards are fixed. This may
-        // change in the future
-
+        readPaceParametersFromCard();
         setMSEAuthenticationTemplate();
 
         byte[] response = getGAGetNonce();
 
         byte[] gaGetNonceResponseHeader = new byte[] {0x7C, 0x22, (byte)0x80, 0x20};
         validateHeader(response, gaGetNonceResponseHeader);
+        // Encrypted nonce is always 32 bytes for the AES-CBC-CMAC-256 PACE variant
+        // (header byte 0x20 = 32). Catch malformed/truncated responses here so the
+        // failure surfaces with a clear message rather than as a downstream
+        // IllegalBlockSizeException from the AES decrypt.
+        validateResponseLength(response, gaGetNonceResponseHeader.length + 32, "GA Get Nonce");
         byte[] decryptedNonce = decryptNonce(
                 Arrays.copyOfRange(
                         response, gaGetNonceResponseHeader.length, response.length),
                 can);
 
         // generate an EC keypair and exchange public keys with the chip
-        ECNamedCurveParameterSpec spec = ECNamedCurveTable.getParameterSpec("secp256r1");
+        ECNamedCurveParameterSpec spec = ECNamedCurveTable.getParameterSpec(paceEcSpec);
+
+        // Uncompressed point encoding: 0x04 || X || Y, both coords curve-sized.
+        // 65 bytes for the 256-bit curves, 97 bytes for 384-bit.
+        int pointBytes = 1 + 2 * ((spec.getCurve().getFieldSize() + 7) / 8);
 
         BigInteger privateKey = generateRandomPrivateKey(spec);
 
@@ -399,6 +486,7 @@ class IdemiaWithPace extends Idemia implements TokenWithPace, ApduEncryptor {
         // Extract bytes from R-APDU to represent card public key
         byte[] gaMapNonceHeader = new byte[] {0x7C, 0x43, (byte)0x82, 0x41};
         validateHeader(response, gaMapNonceHeader);
+        validateResponseLength(response, gaMapNonceHeader.length + pointBytes, "GA Map Nonce");
         ECPoint cardPublicKey = spec.getCurve().decodePoint(
                 Arrays.copyOfRange(response, gaMapNonceHeader.length, response.length));
 
@@ -415,6 +503,7 @@ class IdemiaWithPace extends Idemia implements TokenWithPace, ApduEncryptor {
         // Extract 65 bytes from R-APDU to represent card public key
         byte[] gaKeyAgreementHeader = new byte[] {0x7C, 0x43, (byte)0x84, 0x41};
         validateHeader(response, gaKeyAgreementHeader);
+        validateResponseLength(response, gaKeyAgreementHeader.length + pointBytes, "GA Key Agreement");
         cardPublicKey = spec.getCurve().decodePoint(
                 Arrays.copyOfRange(response, gaKeyAgreementHeader.length, response.length));
 
@@ -429,11 +518,15 @@ class IdemiaWithPace extends Idemia implements TokenWithPace, ApduEncryptor {
 
         byte[] gaMutualAuthenticationHeader = new byte[] {0x7C, 0x0A, (byte)0x86, 0x08};
         validateHeader(response, gaMutualAuthenticationHeader);
+        validateResponseLength(response, gaMutualAuthenticationHeader.length + MAC_LENGTH,
+                "GA Mutual Authentication");
 
         // verify chip's MAC and return session keys
         MAC = getMAC(getDataForMac(publicKey.getEncoded(false)), keyMAC);
-        if (!Hex.toHexString(response,
-                gaMutualAuthenticationHeader.length, MAC_LENGTH).equals(Hex.toHexString(MAC))) {
+        byte[] cardMac = Arrays.copyOfRange(response,
+                gaMutualAuthenticationHeader.length,
+                gaMutualAuthenticationHeader.length + MAC_LENGTH);
+        if (!Arrays.equals(cardMac, MAC)) {
             throw new SmartCardReaderException("Could not verify chip's MAC.");
         }
         return new byte[][]{keyEnc, keyMAC};
@@ -711,8 +804,8 @@ class IdemiaWithPace extends Idemia implements TokenWithPace, ApduEncryptor {
         LoggingUtil.Companion.debugLog(TAG, String.format("Card MAC: %s, our MAC: %s",
                 Hex.toHexString(cardMac), Hex.toHexString(ourMac)), null);
 
-        if (!Hex.toHexString(cardMac).equals(Hex.toHexString(ourMac))) {
-            throw new RuntimeException("Could not verify chip's MAC.");
+        if (!Arrays.equals(cardMac, ourMac)) {
+            throw new SmartCardReaderException("Could not verify chip's MAC.");
         }
 
         if (response.length - currentByte != 2) {
@@ -727,13 +820,313 @@ class IdemiaWithPace extends Idemia implements TokenWithPace, ApduEncryptor {
      * Increment send sequence counter
      * @param ssc
      */
-    public static void incrementSSC(byte[] ssc) {
+    private static void incrementSSC(byte[] ssc) {
         for (int i = ssc.length - 1; i >= 0; i--) {
             ssc[i]++;
             if (ssc[i] != 0) {
                 break;
             }
         }
+    }
+
+    /**
+     * MSE algorithm-reference template (DO 80) for the auth / sign / decrypt
+     * MSE SET commands. Defaults match Estonian IDEMIA cards (4-byte algo IDs);
+     * subclasses override to swap in card-specific identifiers. The
+     * {@code 84 01 <keyRef>} key-reference DO is appended by the caller.
+     */
+    protected byte[] authMseTemplate() {
+        return new byte[] {(byte) 0x80, 0x04, (byte) 0xFF, 0x20, 0x08, 0x00};
+    }
+
+    protected byte[] signMseTemplate() {
+        return new byte[] {(byte) 0x80, 0x04, (byte) 0xFF, 0x15, 0x08, 0x00};
+    }
+
+    protected byte[] decryptMseTemplate() {
+        return new byte[] {(byte) 0x80, 0x04, (byte) 0xFF, 0x30, 0x04, 0x00};
+    }
+
+    @Override
+    public byte[] authenticate(byte[] pin1, byte[] token) throws SmartCardReaderException {
+        selectOberthurAid();
+        verifyCode(CodeType.PIN1, pin1);
+        byte keyRef = getAuthKeyRef();
+        byte[] template = authMseTemplate();
+        byte[] body = concat(template, new byte[] {(byte) 0x84, 0x01, keyRef});
+
+        LoggingUtil.Companion.debugLog(TAG,
+            String.format("MSE SET auth: template=%s, keyRef=0x%02x",
+                Hex.toHexString(template), keyRef & 0xFF),
+            null
+        );
+
+        reader.transmit(0x00, 0x22, 0x41, 0xA4, body, null);
+        return reader.transmit(0x00, 0x88, 0x00, 0x00, token, 0x00);
+    }
+
+    @Override
+    public byte[] calculateSignature(byte[] pin2, byte[] hash, boolean ecc) throws SmartCardReaderException {
+        selectQSCDAid();
+        verifyCode(CodeType.PIN2, pin2);
+        byte keyRef = getSignKeyRef();
+        byte[] template = signMseTemplate();
+        byte[] body = concat(template, new byte[] {(byte) 0x84, 0x01, keyRef});
+
+        LoggingUtil.Companion.debugLog(TAG,
+            String.format("MSE SET sign: template=%s, keyRef=0x%02x",
+                Hex.toHexString(template), keyRef & 0xFF),
+            null
+        );
+
+        reader.transmit(0x00, 0x22, 0x41, 0xB6, body, null);
+        return reader.transmit(0x00, 0x2A, 0x9E, 0x9A, padWithZeroes(hash), 0x00);
+    }
+
+    @Override
+    public byte[] decrypt(byte[] pin1, byte[] data, boolean ecc) throws SmartCardReaderException {
+        selectOberthurAid();
+        verifyCode(CodeType.PIN1, pin1);
+        byte keyRef = getAuthKeyRef();
+        byte[] template = decryptMseTemplate();
+        byte[] body = concat(template, new byte[] {(byte) 0x84, 0x01, keyRef});
+
+        LoggingUtil.Companion.debugLog(TAG,
+            String.format("MSE SET decrypt: template=%s, keyRef=0x%02x",
+                Hex.toHexString(template), keyRef & 0xFF),
+            null
+        );
+
+        reader.transmit(0x00, 0x22, 0x41, 0xB8, body, null);
+        return reader.transmit(0x00, 0x2A, 0x80, 0x86, concat(new byte[] {0x00}, data), 0x00);
+    }
+
+    /**
+     * Get the authentication key reference. If null, attempts dynamic discovery from PrKDF.
+     * Cached after first read.
+     */
+    protected byte getAuthKeyRef() throws SmartCardReaderException {
+        if (authKeyRef == null) {
+            byte ref = readKeyRefFromCurrentContext();
+            if (ref != 0) {
+                authKeyRef = ref;
+                LoggingUtil.Companion.debugLog(TAG,
+                    String.format("PrKDF auth key ref discovered: 0x%02x", authKeyRef & 0xFF),
+                    null
+                );
+            } else {
+                throw new SmartCardReaderException("Auth key reference not found in PrKDF");
+            }
+        }
+
+        return authKeyRef;
+    }
+
+    /**
+     * Get the signing key reference. If null, attempts dynamic discovery from PrKDF.
+     * Cached after first read.
+     */
+    protected byte getSignKeyRef() throws SmartCardReaderException {
+        if (signKeyRef == null) {
+            byte ref = readKeyRefFromCurrentContext();
+            if (ref != 0) {
+                signKeyRef = ref;
+                LoggingUtil.Companion.debugLog(TAG,
+                    String.format("PrKDF sign key ref discovered: 0x%02x", signKeyRef & 0xFF),
+                    null
+                );
+            } else {
+                throw new SmartCardReaderException("Sign key reference not found in PrKDF");
+            }
+        }
+
+        return signKeyRef;
+    }
+
+    /**
+     * Read the first private key reference from the PrKDF in the currently selected AID context.
+     *
+     * Flow (matching Web eID libelectronic-id):
+     * 1. Select and read EF_OD (0x5031) — Object Directory File
+     * 2. Find tag 0xA0 (private key dir ref) → extract PrKDF file ID
+     * 3. Read PrKDF file
+     * 4. Return first keyReference INTEGER found
+     *
+     * @return key reference byte, or 0 if not found
+     */
+    private byte readKeyRefFromCurrentContext() throws SmartCardReaderException {
+        // Read EF_OD (Object Directory File at 0x5031)
+        reader.transmit(0x00, 0xA4, 0x02, 0x0C, new byte[] {0x50, 0x31}, null);
+        byte[] efOd = readBinaryFile();
+
+        // Find tag 0xA0 (private key directory reference)
+        List<TLV> odEntries = TLV.parseAll(efOd);
+        TLV privKeyDir = TLV.findByTag(odEntries, 0xA0);
+        if (privKeyDir == null || privKeyDir.children == null) {
+            return 0;
+        }
+
+        // Navigate: A0 → 30 → 04 to get PrKDF file ID
+        TLV seq = privKeyDir.findByTag(0x30);
+        if (seq == null) {
+            return 0;
+        }
+        TLV fileIdTlv = seq.findByTag(0x04);
+        if (fileIdTlv == null || fileIdTlv.getValue().length != 2) {
+            return 0;
+        }
+
+        // Select and read PrKDF
+        byte[] fileId = fileIdTlv.getValue();
+        reader.transmit(0x00, 0xA4, 0x02, 0x0C, fileId, null);
+        byte[] prKdfData = readBinaryFile();
+
+        // Parse PrKDF entries and return first key reference found
+        List<TLV> keyEntries = TLV.parseAll(prKdfData);
+        for (TLV entry : keyEntries) {
+            if (entry.children == null || entry.children.size() < 2) {
+                continue;
+            }
+            byte keyRef = extractKeyReference(entry);
+            if (keyRef != 0) {
+                return keyRef;
+            }
+        }
+        return 0;
+    }
+
+    /**
+     * Extract key reference from a PKCS#15 PrivateKeyType entry.
+     *
+     * Structure: SEQUENCE { CommonObjectAttributes, CommonKeyAttributes, TypeAttributes }
+     * CommonKeyAttributes contains: iD, usage, ..., keyReference (INTEGER)
+     *
+     * In DER, key refs >= 0x80 are encoded as 2-byte INTEGERs (e.g., 02 02 00 82).
+     */
+    protected static byte extractKeyReference(TLV entry) {
+        if (entry.children == null || entry.children.size() < 2) {
+            return 0;
+        }
+
+        // Second child SEQUENCE = CommonKeyAttributes
+        TLV commonKeyAttrs = entry.children.get(1);
+        if (commonKeyAttrs.children == null) {
+            return 0;
+        }
+
+        // Find INTEGER (tag 0x02) — this is the keyReference
+        for (TLV child : commonKeyAttrs.children) {
+            if (child.getTag() == 0x02) {
+                byte[] val = child.getValue();
+                if (val.length == 2) {
+                    // 2-byte DER INTEGER (e.g., 00 82 → key ref 0x82)
+                    return val[1];
+                } else if (val.length == 1) {
+                    return val[0];
+                }
+            }
+        }
+        return 0;
+    }
+
+    /**
+     * Read a binary file from the currently selected EF.
+     */
+    protected byte[] readBinaryFile() throws SmartCardReaderException {
+        ByteArrayOutputStream stream = new ByteArrayOutputStream();
+        while (true) {
+            try {
+                stream.write(reader.transmit(0x00, 0xB0, stream.size() >> 8, stream.size(), null, 0x00));
+            } catch (ApduResponseException e) {
+                if (e.sw1 == 0x6B && e.sw2 == 0x00) {
+                    break; // offset out of range = end of file
+                } else if (e.sw1 == 0x6A && e.sw2 == (byte) 0x82) {
+                    break; // file not found
+                } else {
+                    throw e;
+                }
+            } catch (IOException e) {
+                throw new SmartCardReaderException(e);
+            }
+        }
+        return stream.toByteArray();
+    }
+
+    /**
+     * Parse PACEInfo parameterId from EF.CardAccess.
+     *
+     * EF.CardAccess is ASN.1: SET OF SecurityInfo
+     * PACEInfo ::= SEQUENCE { OID protocol, INTEGER version, INTEGER parameterId }
+     *
+     * Multiple SecurityInfo entries may share the { OID, INTEGER, INTEGER } shape
+     * (e.g. ChipAuthenticationInfo); only the entry whose protocol OID matches
+     * id-PACE-ECDH-GM-AES-CBC-CMAC-256 (the mechanism we use in MSE SET AT) is
+     * a valid source for parameterId.
+     *
+     * @return parameterId byte, or 0 if not found
+     */
+    private static final byte[] PACE_PROTOCOL_OID = {
+            0x04, 0x00, 0x7F, 0x00, 0x07, 0x02, 0x02, 0x04, 0x02, 0x04
+    };
+
+    private static byte parsePaceParameterId(byte[] cardAccess) {
+        List<TLV> entries = TLV.parseAll(cardAccess);
+        for (TLV entry : entries) {
+            if (entry.children == null) {
+                continue;
+            }
+            // SET contains SEQUENCEs (SecurityInfo entries)
+            for (TLV child : entry.children) {
+                byte param = readPaceParamFromSecurityInfo(child);
+                if (param != 0) {
+                    return param;
+                }
+            }
+        }
+        // Also check top-level SEQUENCEs (if no outer SET wrapper)
+        for (TLV entry : entries) {
+            byte param = readPaceParamFromSecurityInfo(entry);
+            if (param != 0) {
+                return param;
+            }
+        }
+        return 0;
+    }
+
+    private static byte readPaceParamFromSecurityInfo(TLV securityInfo) {
+        if (securityInfo.children == null || securityInfo.children.size() < 3) {
+            return 0;
+        }
+        TLV oidTlv = securityInfo.children.get(0);
+        if (oidTlv.getTag() != 0x06 || !Arrays.equals(oidTlv.getValue(), PACE_PROTOCOL_OID)) {
+            return 0;
+        }
+        TLV paramTlv = securityInfo.children.get(2);
+        if (paramTlv.getTag() == 0x02 && paramTlv.getValue().length == 1) {
+            return paramTlv.getValue()[0];
+        }
+        return 0;
+    }
+
+    /**
+     * Map a PACE parameterId to a JCA curve name.
+     *
+     * <p>Only 256-bit curves are wired up: every BER prefix and response-header
+     * validator in {@link #establishPace} hard-codes 65-byte point lengths
+     * (`0x41`) and a 79-byte CMAC input (`0x4F`). 384-bit support would
+     * require derive-from-{@code pointBytes} encoding throughout, plus a card
+     * to test against — neither is in scope here.
+     *
+     * <p>For 384-bit parameterIds (`0x0F` `secp384r1`, `0x10`
+     * `brainpoolP384r1`), this returns {@code null}; the caller surfaces the
+     * canonical "Unsupported PACE domain parameter" error.
+     */
+    private static String domainParamToCurveName(byte paramId) {
+        return switch (paramId & 0xFF) {
+            case 0x0C -> "secp256r1";
+            case 0x0D -> "brainpoolP256r1";
+            default -> null;
+        };
     }
 
 }

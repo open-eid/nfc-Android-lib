@@ -17,7 +17,7 @@
             android:fontFamily="sans-serif-black"
             android:gravity="center_horizontal"
             android:padding="50dp"
-            android:textColor="@color/black"
+            android:textColor="@color/text_primary"
             android:textSize="20sp"
             tools:text="User: GivenNames Surname" />
 

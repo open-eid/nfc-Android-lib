@@ -24,7 +24,7 @@
                 android:layout_marginTop="20dp"
                 android:gravity="center"
                 android:text="@string/container_name"
-                android:textColor="@color/black"
+                android:textColor="@color/text_primary"
                 android:textSize="14sp"
                 android:textStyle="bold|italic" />
 
@@ -37,7 +37,7 @@
                 android:hint="@string/container_name"
                 android:importantForAutofill="no"
                 android:inputType="textNoSuggestions"
-                android:textColor="@color/black"
+                android:textColor="@color/text_primary"
                 android:textSize="18sp" />
 
             <TextView
@@ -46,7 +46,7 @@
                 android:layout_marginTop="10dp"
                 android:gravity="center"
                 android:text="@string/container_files"
-                android:textColor="@color/black"
+                android:textColor="@color/text_primary"
                 android:textSize="14sp"
                 android:textStyle="bold|italic" />
 
@@ -75,6 +75,16 @@
                 android:textColor="@color/white"
                 android:textSize="14sp"
                 android:textStyle="bold" />
+
+            <CheckBox
+                android:id="@+id/checkBox_extendSignature"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:checked="true"
+                android:text="@string/extend_signature"
+                android:textColor="@color/text_primary"
+                android:textSize="12sp" />
 
             <Button
                 android:id="@+id/button_get_sign_cert"

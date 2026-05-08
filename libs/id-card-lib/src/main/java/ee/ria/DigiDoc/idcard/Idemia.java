@@ -19,8 +19,6 @@
 
 package ee.ria.DigiDoc.idcard;
 
-import static com.google.common.primitives.Bytes.concat;
-
 import android.util.SparseArray;
 
 import com.google.common.primitives.Bytes;
@@ -37,7 +35,7 @@ import ee.ria.DigiDoc.smartcardreader.ApduResponseException;
 import ee.ria.DigiDoc.smartcardreader.SmartCardReader;
 import ee.ria.DigiDoc.smartcardreader.SmartCardReaderException;
 
-class Idemia implements Token {
+abstract class Idemia implements Token {
 
     private static final Map<CertificateType, byte[]> CERT_MAP = new HashMap<>();
     static {
@@ -126,6 +124,12 @@ class Idemia implements Token {
 
     @Override
     public void unblockAndChangeCode(byte[] pukCode, CodeType type, byte[] newCode) throws SmartCardReaderException {
+        // PUK is associated with the MAIN AID context, so VERIFY PUK must run there.
+        // Make this self-contained (matching the rest of the Token API) instead of
+        // relying on the caller leaving MAIN active — otherwise calls composed after
+        // codeRetryCounter(PIN2)/calculateSignature/etc. would silently fail with a
+        // "wrong PUK" error.
+        selectMainAid();
         verifyCode(CodeType.PUK, pukCode);
         if (type.equals(CodeType.PIN2)) {
             selectQSCDAid();
@@ -143,31 +147,18 @@ class Idemia implements Token {
     }
 
     @Override
-    public byte[] calculateSignature(byte[] pin2, byte[] hash, boolean ecc) throws SmartCardReaderException {
-        selectQSCDAid();
-        verifyCode(CodeType.PIN2, pin2);
-        reader.transmit(0x00, 0x22, 0x41, 0xB6, new byte[] {(byte) 0x80, 0x04, (byte) 0xFF, 0x15, 0x08, 0x00, (byte) 0x84, 0x01, (byte) 0x9F}, null);
-        return reader.transmit(0x00, 0x2A, 0x9E, 0x9A, padWithZeroes(hash), 0x00);
-    }
+    public abstract byte[] calculateSignature(byte[] pin2, byte[] hash, boolean ecc)
+            throws SmartCardReaderException;
 
     @Override
-    public byte[] authenticate(byte[] pin1, byte[] token) throws SmartCardReaderException {
-        selectOberthurAid();
-        verifyCode(CodeType.PIN1, pin1);
-        reader.transmit(0x00, 0x22, 0x41, 0xA4, new byte[] {(byte) 0x80, 0x04, (byte) 0xFF, 0x20, 0x08, 0x00, (byte) 0x84, 0x01, (byte) 0x81}, null);
-        return reader.transmit(0x00, 0x88, 0x00, 0x00, token, 0x00);
-    }
+    public abstract byte[] authenticate(byte[] pin1, byte[] token)
+            throws SmartCardReaderException;
 
     @Override
-    public byte[] decrypt(byte[] pin1, byte[] data, boolean ecc) throws SmartCardReaderException {
-        selectOberthurAid();
-        byte[] prefix = new byte[] {0x00};
-        verifyCode(CodeType.PIN1, pin1);
-        reader.transmit(0x00, 0x22, 0x41, 0xB8, new byte[] {(byte) 0x80, 0x04, (byte) 0xFF, 0x30, 0x04, 0x00, (byte) 0x84, 0x01, (byte) 0x81}, null);
-        return reader.transmit(0x00, 0x2A, 0x80, 0x86, concat(prefix, data), 0x00);
-    }
+    public abstract byte[] decrypt(byte[] pin1, byte[] data, boolean ecc)
+            throws SmartCardReaderException;
 
-    private void verifyCode(CodeType type, byte[] code) throws SmartCardReaderException {
+    protected void verifyCode(CodeType type, byte[] code) throws SmartCardReaderException {
         try {
             reader.transmit(0x00, 0x20, 0x00, Objects.requireNonNull(VERIFY_PIN_MAP.get(type)), code(code), null);
         } catch (ApduResponseException e) {
@@ -191,11 +182,11 @@ class Idemia implements Token {
         reader.transmit(0x00, 0xA4, 0x04, 0x00, new byte[] {(byte) 0xA0, 0x00, 0x00, 0x00, 0x77, 0x01, 0x08, 0x00, 0x07, 0x00, 0x00, (byte) 0xFE, 0x00, 0x00, 0x01, 0x00}, null);
     }
 
-    private void selectQSCDAid() throws SmartCardReaderException {
+    protected void selectQSCDAid() throws SmartCardReaderException {
         reader.transmit(0x00, 0xA4, 0x04, 0x0C, new byte[] {0x51, 0x53, 0x43, 0x44, 0x20, 0x41, 0x70, 0x70, 0x6C, 0x69, 0x63, 0x61, 0x74, 0x69, 0x6F, 0x6E}, null);
     }
 
-    private void selectOberthurAid() throws SmartCardReaderException {
+    protected void selectOberthurAid() throws SmartCardReaderException {
         reader.transmit(0x00, 0xA4, 0x04, 0x0C, new byte[] {(byte) 0xE8, 0x28, (byte) 0xBD, 0x08, 0x0F, (byte) 0xF2, 0x50, 0x4F, 0x54, 0x20, 0x41, 0x57, 0x50}, null);
     }
 
@@ -214,7 +205,7 @@ class Idemia implements Token {
      * @return zero padded hash with 48 byte length or same hash if it's longer than 48 bytes
      * @throws IdCardException when padding the hash fails
      */
-    private static byte[] padWithZeroes(byte[] hash) throws IdCardException {
+    protected static byte[] padWithZeroes(byte[] hash) throws IdCardException {
         if (hash.length >= 48) {
             return hash;
         }
