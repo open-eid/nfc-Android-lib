@@ -109,8 +109,6 @@ class LatviaIdemiaWithPace extends IdemiaWithPace {
             len--;
         }
         String personalCode = new String(record, 0, len, StandardCharsets.UTF_8).trim();
-        LoggingUtil.Companion.debugLog(TAG,
-            "EF 0x5001 personal code: " + personalCode, null);
 
         // Parse auth certificate for remaining fields
         try {
@@ -121,8 +119,6 @@ class LatviaIdemiaWithPace extends IdemiaWithPace {
 
             X500Name subject = X500Name.getInstance(
                 x509.getSubjectX500Principal().getEncoded());
-            LoggingUtil.Companion.debugLog(TAG,
-                "Auth cert subject: " + subject.toString(), null);
 
             String surname = rdnString(subject, BCStyle.SURNAME);
             String givenName = rdnString(subject, BCStyle.GIVENNAME);
@@ -137,10 +133,12 @@ class LatviaIdemiaWithPace extends IdemiaWithPace {
                 .atZone(ZoneOffset.UTC).toLocalDate();
 
             LocalDate dateOfBirth = LatviaPersonalDataParser.parseDateOfBirth(personalCode);
+
+            // No PII in logs — names / personal code / document number stay
+            // out per project convention. Cert expiry isn't identifying on
+            // its own and is useful for triaging "card expired" reports.
             LoggingUtil.Companion.debugLog(TAG,
-                "Parsed: surname=" + surname + ", givenName=" + givenName
-                    + ", issuingCountry=" + issuingCountry + ", documentNumber=" + serialNumber
-                    + ", certExpiryDate=" + certExpiryDate + ", dateOfBirth=" + dateOfBirth, null);
+                "LV personal data parsed, certExpiry=" + certExpiryDate, null);
 
             return PersonalData.create(surname, givenName, "", issuingCountry, dateOfBirth,
                 personalCode, serialNumber, null, certExpiryDate, CardType.LATVIA_IDEMIA);

@@ -24,8 +24,11 @@ import java.util.Arrays;
 import java.util.List;
 
 import ee.ria.DigiDoc.smartcardreader.SmartCardReaderException;
+import ee.ria.DigiDoc.utilsLib.logging.LoggingUtil;
 
 public class TLV {
+    private static final String TAG = TLV.class.getName();
+
     private final int tag;
     private final byte[] value;
     public final List<TLV> children;
@@ -88,21 +91,47 @@ public class TLV {
 
             if (index >= end) break;
 
-            // Parse DER length (1, 2, or 3 bytes)
+            // Parse DER length (1, 2, or 3 bytes). Lenient on malformation:
+            // we stop parsing rather than throw, since callers (PrKDF /
+            // EF.CardAccess walks) treat "didn't find what I wanted" the
+            // same as "couldn't parse." Log so a maintainer triaging a
+            // missing-key-ref or missing-PACEInfo report can tell the two
+            // apart.
+            int lengthOffset = index - 1;
             int lengthByte = data[index++] & 0xFF;
             int length;
             if (lengthByte <= 0x7F) {
                 length = lengthByte;
             } else if (lengthByte == 0x81) {
-                if (index >= end) break;
+                if (index >= end) {
+                    LoggingUtil.Companion.debugLog(TAG,
+                        "TLV: truncated 0x81 length at offset " + lengthOffset
+                            + ", stopping parse", null);
+                    break;
+                }
                 length = data[index++] & 0xFF;
             } else if (lengthByte == 0x82) {
-                if (index + 1 >= end) break;
+                if (index + 1 >= end) {
+                    LoggingUtil.Companion.debugLog(TAG,
+                        "TLV: truncated 0x82 length at offset " + lengthOffset
+                            + ", stopping parse", null);
+                    break;
+                }
                 length = ((data[index++] & 0xFF) << 8) | (data[index++] & 0xFF);
             } else {
+                LoggingUtil.Companion.debugLog(TAG,
+                    String.format("TLV: unsupported length form 0x%02X at offset %d, stopping parse",
+                        lengthByte, lengthOffset),
+                    null);
                 break;
             }
-            if (index + length > end) break;
+            if (index + length > end) {
+                LoggingUtil.Companion.debugLog(TAG,
+                    "TLV: declared length " + length + " at offset " + lengthOffset
+                        + " overruns buffer (remaining " + (end - index) + "), stopping parse",
+                    null);
+                break;
+            }
 
             byte[] value = Arrays.copyOfRange(data, index, index + length);
 

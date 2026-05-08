@@ -199,10 +199,6 @@ class IdemiaWithPace extends Idemia implements TokenWithPace, ApduEncryptor {
     }
 
     /**
-     * Read PACE domain parameter and EC curve from EF.CardAccess.
-     * Accessible before PACE, in plaintext.
-     */
-    /**
      * Legacy PACE parameter ID — secp256r1 with id-PACE-ECDH-GM-AES-CBC-CMAC-256.
      * Used as a fallback when EF.CardAccess is unreadable or unparsable on this
      * card model, matching the hardcoded value used before EF.CardAccess parsing
@@ -212,6 +208,11 @@ class IdemiaWithPace extends Idemia implements TokenWithPace, ApduEncryptor {
      */
     private static final byte LEGACY_PACE_PARAM_ID = (byte) 0x0C;
 
+    /**
+     * Read PACE domain parameter and EC curve from EF.CardAccess.
+     * Accessible before PACE, in plaintext. Falls back to
+     * {@link #LEGACY_PACE_PARAM_ID} if the file can't be read or parsed.
+     */
     private void readPaceParametersFromCard() throws SmartCardReaderException {
         if (paceEcSpec != null) {
             return;
