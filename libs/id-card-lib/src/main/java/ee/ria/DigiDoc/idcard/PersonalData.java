@@ -44,6 +44,18 @@ public record PersonalData(
         @Nullable LocalDate certExpiryDate,
         @NonNull CardType cardType) {
 
+    /**
+     * @deprecated Replaced by {@link #documentExpiryDate()} (Estonian / Thales)
+     * and {@link #certExpiryDate()} (Latvian). This shim returns the document
+     * expiry when present, falling back to the cert expiry, so existing
+     * callers keep observing the same value as before the split.
+     */
+    @Deprecated
+    @Nullable public LocalDate expiryDate() {
+        LocalDate doc = documentExpiryDate();
+        return doc != null ? doc : certExpiryDate();
+    }
+
     static PersonalData create(@NonNull String surname, @NonNull String givenNames,
                                @NonNull String citizenship, @Nullable String issuingCountry,
                                @Nullable LocalDate dateOfBirth, @NonNull String personalCode,
