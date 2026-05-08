@@ -136,17 +136,24 @@ third child (`INTEGER parameterId`) as a single byte:
 > forms aren't produced for files of this size. A minimal porter walker
 > needs at least these three branches.
 
-| `parameterId` | Curve |
-|---|---|
-| `0x0C` | `secp256r1` |
-| `0x0D` | `brainpoolP256r1` |
-| `0x0F` | `secp384r1` |
-| `0x10` | `brainpoolP384r1` |
+| `parameterId` | Curve | Reference impl |
+|---|---|---|
+| `0x0C` | `secp256r1`        | supported |
+| `0x0D` | `brainpoolP256r1`  | supported |
+| `0x0F` | `secp384r1`        | rejected — see note |
+| `0x10` | `brainpoolP384r1`  | rejected — see note |
 
-**Currently observed on LV cards:** `0x0D` (`brainpoolP256r1`) only. The
-other three rows are reference values from the IDEMIA / IAS-ECC family
-and are included so a porter encountering a different card variant can
-look up the curve without re-deriving the table.
+**Currently observed on LV cards:** `0x0D` (`brainpoolP256r1`) only;
+on EE cards `0x0C` (`secp256r1`).
+
+The 384-bit rows are reference values from the IDEMIA / IAS-ECC family
+and are included so a porter encountering a 384-bit variant can look up
+the curve. **The reference implementation in this repo aborts with
+"Unsupported PACE domain parameter" if a 384-bit parameterId is read
+from EF.CardAccess.** The on-wire BER prefixes in §4.4–§4.6 are
+hard-coded for 65-byte points (and the CMAC input for 79-byte length);
+a 384-bit port must derive those from the curve's coordinate byte size
+(see the per-step length notes below).
 
 If no usable `parameterId` is present, abort. The remainder of this spec
 assumes 256-bit curve byte sizes (65-byte uncompressed SEC1 points,

@@ -19,21 +19,13 @@
 
 package ee.ria.DigiDoc.idcard;
 
-import org.bouncycastle.util.encoders.Hex;
-
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-
 import ee.ria.DigiDoc.smartcardreader.SmartCardReader;
 import ee.ria.DigiDoc.smartcardreader.SmartCardReaderException;
-import ee.ria.DigiDoc.utilsLib.logging.LoggingUtil;
 
 /**
  * EstEID token interface.
  */
 public interface Token {
-    String TAG = Token.class.getName();
-
     /**
      * Read personal information of the cardholder.
      *
@@ -126,29 +118,14 @@ public interface Token {
     byte[] decrypt(byte[] pin1, byte[] data, boolean ecc) throws SmartCardReaderException;
 
     /**
-     * Create an instance of Token based on the current card in the reader.
-     *
-     * @param reader Smart card reader instance, must be connected.
-     * @return Token instance.
-     * @throws SmartCardReaderException When card is not supported or reader is not connected.
+     * @deprecated Wired ID-card support has been removed from this library;
+     * use {@link TokenWithPace#create(ee.ria.DigiDoc.smartcardreader.nfc.NfcSmartCardReader)}
+     * over NFC instead. This method is retained as a source-compatibility
+     * stub and now always throws.
      */
+    @Deprecated
     static Token create(SmartCardReader reader) throws SmartCardReaderException {
-        byte[] atr = reader.atr();
-        LoggingUtil.Companion.debugLog(TAG, "ATR: " + (atr == null ? "null" : Hex.toHexString(atr)), null);
-
-        if (atr == null) {
-            throw new SmartCardReaderException("ATR cannot be null");
-        }
-        if (Arrays.equals(Hex.decode("3bdb960080b1fe451f830012233f536549440f9000f1"), atr)) {
-            return new Idemia(reader);
-        } else if (Arrays.equals(Hex.decode("3bdc960080b1fe451f830012233f54654944320f9000c3"), atr)) {
-            return new Idemia(reader);
-        } else if (Arrays.equals(Hex.decode("3bff9600008031fe438031b85365494464b085051012233f1d"), atr)) {
-            Thales thales = new Thales(reader);
-            thales.selectMainAid();
-            return thales;
-        }
-
-        throw new SmartCardReaderException("Unsupported card ATR: " + new String(Hex.encode(atr), StandardCharsets.UTF_8));
+        throw new SmartCardReaderException(
+            "Wired ID-card support has been removed; use TokenWithPace.create() over NFC.");
     }
 }

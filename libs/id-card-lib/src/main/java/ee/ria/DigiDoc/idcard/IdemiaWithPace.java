@@ -1082,12 +1082,23 @@ class IdemiaWithPace extends Idemia implements TokenWithPace, ApduEncryptor {
         return 0;
     }
 
+    /**
+     * Map a PACE parameterId to a JCA curve name.
+     *
+     * <p>Only 256-bit curves are wired up: every BER prefix and response-header
+     * validator in {@link #establishPace} hard-codes 65-byte point lengths
+     * (`0x41`) and a 79-byte CMAC input (`0x4F`). 384-bit support would
+     * require derive-from-{@code pointBytes} encoding throughout, plus a card
+     * to test against — neither is in scope here.
+     *
+     * <p>For 384-bit parameterIds (`0x0F` `secp384r1`, `0x10`
+     * `brainpoolP384r1`), this returns {@code null}; the caller surfaces the
+     * canonical "Unsupported PACE domain parameter" error.
+     */
     private static String domainParamToCurveName(byte paramId) {
         return switch (paramId & 0xFF) {
             case 0x0C -> "secp256r1";
             case 0x0D -> "brainpoolP256r1";
-            case 0x0F -> "secp384r1";
-            case 0x10 -> "brainpoolP384r1";
             default -> null;
         };
     }

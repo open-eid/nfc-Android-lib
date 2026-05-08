@@ -77,6 +77,18 @@ public abstract class PersonalData {
      */
     @Nullable public abstract LocalDate certExpiryDate();
 
+    /**
+     * @deprecated Replaced by {@link #documentExpiryDate()} (Estonian / Thales)
+     * and {@link #certExpiryDate()} (Latvian). This shim returns the document
+     * expiry when present, falling back to the cert expiry, so existing
+     * callers keep observing the same value as before the split.
+     */
+    @Deprecated
+    @Nullable public LocalDate expiryDate() {
+        LocalDate doc = documentExpiryDate();
+        return doc != null ? doc : certExpiryDate();
+    }
+
     public abstract CardType cardType();
 
     static PersonalData create(String surname, String givenNames, String citizenship,
