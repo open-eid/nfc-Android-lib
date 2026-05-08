@@ -70,8 +70,8 @@ class ThalesPersonalDataParser {
 
         LocalDate expiryDate = parseExpiryDate(expiryDateString);
 
-        return PersonalData.create(surname, givenNames, citizenship, dateOfBirth,
-                personalCode, documentNumber, expiryDate, CardType.THALES);
+        return PersonalData.create(surname, givenNames, citizenship, null, dateOfBirth,
+                personalCode, documentNumber, expiryDate, null, CardType.THALES);
     }
 
     private static LocalDate parseExpiryDate(String expiryDateString) {

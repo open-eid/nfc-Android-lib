@@ -19,8 +19,6 @@
 
 package ee.ria.DigiDoc.idcard;
 
-import static com.google.common.primitives.Bytes.concat;
-
 import android.util.SparseArray;
 
 import com.google.common.primitives.Bytes;
@@ -126,6 +124,12 @@ class Idemia implements Token {
 
     @Override
     public void unblockAndChangeCode(byte[] pukCode, CodeType type, byte[] newCode) throws SmartCardReaderException {
+        // PUK is associated with the MAIN AID context, so VERIFY PUK must run there.
+        // Make this self-contained (matching the rest of the Token API) instead of
+        // relying on the caller leaving MAIN active — otherwise calls composed after
+        // codeRetryCounter(PIN2)/calculateSignature/etc. would silently fail with a
+        // "wrong PUK" error.
+        selectMainAid();
         verifyCode(CodeType.PUK, pukCode);
         if (type.equals(CodeType.PIN2)) {
             selectQSCDAid();

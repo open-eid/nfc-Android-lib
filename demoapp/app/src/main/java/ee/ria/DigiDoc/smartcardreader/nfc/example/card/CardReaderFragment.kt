@@ -236,6 +236,17 @@ class CardReaderFragment : Fragment() {
                     }
                     val message =  ex.message ?: "Error communicating with card"
                     errorLog(logTag, message, ex)
+                } catch (ex: Exception) {
+                    // libdigidocpp throws plain RuntimeException for TSA/OCSP
+                    // network failures inside extendSignatureProfile; without
+                    // this catch the exception escapes the binder thread and
+                    // the UI hangs on the spinner. Surface it as an error.
+                    setReaderResult(R.drawable.error)
+                    val message = ex.message ?: "Signature extension failed"
+                    requireActivity().runOnUiThread {
+                        Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show()
+                    }
+                    errorLog(logTag, message, ex)
                 } finally {
                     nfcSmartCardReaderManager.disableNfcReaderMode()
                 }
@@ -248,7 +259,14 @@ class CardReaderFragment : Fragment() {
 
     private fun addSignature(signatureArray: ByteArray) {
         signature.setSignatureValue(signatureArray)
-        signature.extendSignatureProfile(Utils.signatureProfile)
+        if (Utils.extendSignature) {
+            // Adds XAdES-T timestamp + OCSP. Requires network access to the
+            // CA endpoints (e.g. dd-at.ria.ee) — toggled off in the container
+            // UI when offline or when testing card flow without TSA/OCSP.
+            signature.extendSignatureProfile(Utils.signatureProfile)
+        } else {
+            debugLog(logTag, "Skipping signature extension (BES baseline only)")
+        }
         container.save()
         signatureIsAdded = true
     }
@@ -314,6 +332,9 @@ class CardReaderFragment : Fragment() {
                     val pinType = arguments?.getString("pinType")
                     val codeType = if (pinType == "PIN2") CodeType.PIN2 else CodeType.PIN1
 
+                    // VERIFY PUK requires the PACE secure channel; without it the card
+                    // returns 69 85 (Conditions of use not satisfied).
+                    card.tunnel(dataViewModel.getCan())
                     card.unblockAndChangeCode(puk, codeType, newPin)
 
                     setReaderResult(R.drawable.success)
