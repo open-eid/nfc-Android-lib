@@ -19,16 +19,19 @@
 
 package ee.ria.DigiDoc.idcard;
 
-import static com.google.common.primitives.Bytes.concat;
+import org.bouncycastle.asn1.ASN1ObjectIdentifier;
+import org.bouncycastle.asn1.x500.RDN;
+import org.bouncycastle.asn1.x500.X500Name;
+import org.bouncycastle.asn1.x500.style.BCStyle;
+import org.bouncycastle.asn1.x500.style.IETFUtils;
 
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
+import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.time.LocalDate;
-import java.time.ZoneId;
-
-import javax.security.auth.x500.X500Principal;
+import java.time.ZoneOffset;
 
 import ee.ria.DigiDoc.smartcardreader.SmartCardReaderException;
 import ee.ria.DigiDoc.smartcardreader.nfc.NfcSmartCardReader;
@@ -48,9 +51,6 @@ import ee.ria.DigiDoc.utilsLib.logging.LoggingUtil;
 class LatviaIdemiaWithPace extends IdemiaWithPace {
     private static final String TAG = LatviaIdemiaWithPace.class.getName();
 
-    private static final byte ECC_AUTH_ALGO = 0x04;
-    private static final byte ECC_SIGN_ALGO = 0x54;
-
     LatviaIdemiaWithPace(NfcSmartCardReader reader) {
         super(reader);
         authKeyRef = (byte) 0x82;
@@ -58,15 +58,42 @@ class LatviaIdemiaWithPace extends IdemiaWithPace {
     }
 
     /**
+     * LV uses 1-byte algorithm identifiers in the MSE algorithm-reference DO,
+     * vs the 4-byte {@code FF xx xx xx} form used by Estonian IDEMIA:
+     * <ul>
+     *   <li>{@code 0x04} — ECC auth / decrypt</li>
+     *   <li>{@code 0x54} — ECC sign</li>
+     * </ul>
+     */
+    @Override
+    protected byte[] authMseTemplate() {
+        return new byte[] {(byte) 0x80, 0x01, 0x04}; // ECC_AUTH_ALGO
+    }
+
+    @Override
+    protected byte[] signMseTemplate() {
+        return new byte[] {(byte) 0x80, 0x01, 0x54}; // ECC_SIGN_ALGO
+    }
+
+    @Override
+    protected byte[] decryptMseTemplate() {
+        return new byte[] {(byte) 0x80, 0x01, 0x04}; // ECC_AUTH_ALGO
+    }
+
+    /**
      * Read personal data from the auth certificate subject and EF 0x5001 (personal code).
-     *
      * Latvian eID cards store only the personal code in EF files (DF 0x5000 / EF 0x5001).
-     * Name, citizenship, and document number are extracted from the auth certificate subject:
+     * Name, issuing country, and document number are extracted from the auth certificate subject:
      *   - OID 2.5.4.4  (surname)
      *   - OID 2.5.4.42 (givenName)
      *   - OID 2.5.4.5  (serialNumber) — format "PNOLV-{personalCode}"
-     *   - C (2.5.4.6)  (citizenship)
-     * Expiry date comes from the certificate's notAfter.
+     *   - C (2.5.4.6)  — issuing country of the certificate authority. Mapped
+     *     to {@link PersonalData#issuingCountry()}, NOT to citizenship: the
+     *     value is the CA's country (always "LV" here), and a foreign resident
+     *     could in principle hold an LV-issued card. Citizenship is left empty
+     *     because the LV card does not expose it over NFC.
+     * Cert expiry comes from the certificate's notAfter; document expiry is
+     * not exposed by Latvian IDEMIA cards over NFC, so it is left null.
      */
     @Override
     public PersonalData personalData() throws SmartCardReaderException {
@@ -75,7 +102,13 @@ class LatviaIdemiaWithPace extends IdemiaWithPace {
         reader.transmit(0x00, 0xA4, 0x01, 0x0C, new byte[]{0x50, 0x00}, null);
         reader.transmit(0x00, 0xA4, 0x02, 0x0C, new byte[]{0x50, 0x01}, null);
         byte[] record = reader.transmit(0x00, 0xB0, 0x00, 0x00, null, 0x00);
-        String personalCode = new String(record, StandardCharsets.UTF_8).trim();
+        // Strip trailing 0xFF (CardOS unused-space marker on fixed-size EFs)
+        // before UTF-8 decoding — String.trim() only strips ASCII whitespace.
+        int len = record.length;
+        while (len > 0 && record[len - 1] == (byte) 0xFF) {
+            len--;
+        }
+        String personalCode = new String(record, 0, len, StandardCharsets.UTF_8).trim();
         LoggingUtil.Companion.debugLog(TAG,
             "EF 0x5001 personal code: " + personalCode, null);
 
@@ -86,137 +119,59 @@ class LatviaIdemiaWithPace extends IdemiaWithPace {
             X509Certificate x509 = (X509Certificate)
                 cf.generateCertificate(new ByteArrayInputStream(certBytes));
 
-            String subjectDn = x509.getSubjectX500Principal().getName(X500Principal.RFC2253);
+            X500Name subject = X500Name.getInstance(
+                x509.getSubjectX500Principal().getEncoded());
             LoggingUtil.Companion.debugLog(TAG,
-                "Auth cert subject DN: " + subjectDn, null);
+                "Auth cert subject: " + subject.toString(), null);
 
-            String surname = extractOid(subjectDn, "2.5.4.4");
-            String givenName = extractOid(subjectDn, "2.5.4.42");
-            String citizenship = extractOid(subjectDn, "C");
-            if (citizenship.isEmpty()) {
-                citizenship = extractOid(subjectDn, "2.5.4.6");
-            }
-            String serialNumber = extractOid(subjectDn, "2.5.4.5");
-            LoggingUtil.Companion.debugLog(TAG,
-                "Extracted: surname=" + surname + ", givenName=" + givenName
-                    + ", citizenship=" + citizenship + ", serialNumber=" + serialNumber, null);
+            String surname = rdnString(subject, BCStyle.SURNAME);
+            String givenName = rdnString(subject, BCStyle.GIVENNAME);
+            String issuingCountryRaw = rdnString(subject, BCStyle.C);
+            String issuingCountry = issuingCountryRaw.isEmpty() ? null : issuingCountryRaw;
+            String serialNumber = rdnString(subject, BCStyle.SERIALNUMBER);
 
-            // Document number: not available separately, use cert serialNumber field
-            String documentNumber = serialNumber.isEmpty() ? "" : serialNumber;
-
-            LocalDate expiryDate = x509.getNotAfter().toInstant()
-                .atZone(ZoneId.systemDefault()).toLocalDate();
+            // X.509 notAfter is a UTC instant — interpret in UTC so the displayed
+            // date is the same regardless of device timezone, matching openssl
+            // and other PKI-tooling conventions.
+            LocalDate certExpiryDate = x509.getNotAfter().toInstant()
+                .atZone(ZoneOffset.UTC).toLocalDate();
 
             LocalDate dateOfBirth = LatviaPersonalDataParser.parseDateOfBirth(personalCode);
             LoggingUtil.Companion.debugLog(TAG,
-                "Parsed: documentNumber=" + documentNumber + ", expiryDate=" + expiryDate
-                    + ", dateOfBirth=" + dateOfBirth, null);
+                "Parsed: surname=" + surname + ", givenName=" + givenName
+                    + ", issuingCountry=" + issuingCountry + ", documentNumber=" + serialNumber
+                    + ", certExpiryDate=" + certExpiryDate + ", dateOfBirth=" + dateOfBirth, null);
 
-            return PersonalData.create(surname, givenName, citizenship, dateOfBirth,
-                personalCode, documentNumber, expiryDate, CardType.LATVIA);
+            return PersonalData.create(surname, givenName, "", issuingCountry, dateOfBirth,
+                personalCode, serialNumber, null, certExpiryDate, CardType.LATVIA_IDEMIA);
         } catch (SmartCardReaderException e) {
+            // NFC / SM / card-status errors from certificate(): propagate with
+            // their original message and stack so the cause is visible upstream.
             throw e;
-        } catch (Exception e) {
+        } catch (CertificateException e) {
+            // Specific message when DER parsing actually fails — distinct from
+            // every-other-failure case below.
             throw new SmartCardReaderException("Failed to parse auth certificate", e);
+        } catch (Exception e) {
+            // Catch-all for anything else (BC IllegalArgumentException, NPE, etc.)
+            // so nothing escapes uncaught onto the NFC binder thread. The throwable
+            // class name in the message keeps logs readable.
+            throw new SmartCardReaderException(
+                "Unexpected error reading personal data: " + e.getClass().getSimpleName(), e);
         }
     }
 
     /**
-     * Extract a value from an RFC2253 DN string by OID.
-     * Handles both plain text values and hex-encoded (#-prefixed) UTF8String values.
+     * Extract a single RDN value from an X.500 subject by OID, returning "" when absent.
+     * Delegates to BouncyCastle so UTF-8 strings, multi-valued RDNs, escaped commas, and
+     * tag/length variations of DirectoryString are handled correctly.
      */
-    private static String extractOid(String dn, String oid) {
-        String prefix = oid + "=";
-        int start = dn.indexOf(prefix);
-        while (start >= 0) {
-            if (start == 0 || dn.charAt(start - 1) == ',' || dn.charAt(start - 1) == ' ') {
-                break;
-            }
-            start = dn.indexOf(prefix, start + 1);
-        }
-        if (start < 0) {
+    private static String rdnString(X500Name name, ASN1ObjectIdentifier oid) {
+        RDN[] rdns = name.getRDNs(oid);
+        if (rdns == null || rdns.length == 0) {
             return "";
         }
-        start += prefix.length();
-        if (start < dn.length() && dn.charAt(start) == '#') {
-            // Hex-encoded DER value: skip tag+length bytes, decode the rest as UTF-8
-            int end = dn.indexOf(',', start);
-            String hex = (end < 0) ? dn.substring(start + 1) : dn.substring(start + 1, end);
-            // DER: first byte = tag (0c = UTF8String), second byte = length, rest = value
-            if (hex.length() >= 4) {
-                try {
-                    byte[] der = hexToBytes(hex);
-                    int valueOffset = 2; // tag + 1-byte length
-                    if (der.length > 2 && (der[1] & 0xFF) == 0x81) {
-                        valueOffset = 3;
-                    }
-                    return new String(der, valueOffset, der.length - valueOffset, StandardCharsets.UTF_8);
-                } catch (Exception e) {
-                    return hex;
-                }
-            }
-            return "";
-        }
-        int end = dn.indexOf(',', start);
-        return (end < 0) ? dn.substring(start) : dn.substring(start, end);
-    }
-
-    private static byte[] hexToBytes(String hex) {
-        int len = hex.length();
-        byte[] out = new byte[len / 2];
-        for (int i = 0; i < len; i += 2) {
-            out[i / 2] = (byte) ((Character.digit(hex.charAt(i), 16) << 4)
-                + Character.digit(hex.charAt(i + 1), 16));
-        }
-        return out;
-    }
-
-    @Override
-    public byte[] authenticate(byte[] pin1, byte[] token) throws SmartCardReaderException {
-        selectOberthurAid();
-        verifyCode(CodeType.PIN1, pin1);
-        byte keyRef = getAuthKeyRef();
-
-        LoggingUtil.Companion.debugLog(TAG,
-            String.format("MSE SET auth: algo=0x%02x, keyRef=0x%02x", ECC_AUTH_ALGO & 0xFF, keyRef & 0xFF),
-            null
-        );
-
-        reader.transmit(0x00, 0x22, 0x41, 0xA4,
-                new byte[] {(byte) 0x80, 0x01, ECC_AUTH_ALGO, (byte) 0x84, 0x01, keyRef}, null);
-        return reader.transmit(0x00, 0x88, 0x00, 0x00, token, 0x00);
-    }
-
-    @Override
-    public byte[] calculateSignature(byte[] pin2, byte[] hash, boolean ecc) throws SmartCardReaderException {
-        selectQSCDAid();
-        verifyCode(CodeType.PIN2, pin2);
-        byte keyRef = getSignKeyRef();
-
-        LoggingUtil.Companion.debugLog(TAG,
-            String.format("MSE SET sign: algo=0x%02x, keyRef=0x%02x", ECC_SIGN_ALGO & 0xFF, keyRef & 0xFF),
-            null
-        );
-
-        reader.transmit(0x00, 0x22, 0x41, 0xB6,
-                new byte[] {(byte) 0x80, 0x01, ECC_SIGN_ALGO, (byte) 0x84, 0x01, keyRef}, null);
-        return reader.transmit(0x00, 0x2A, 0x9E, 0x9A, padWithZeroes(hash), 0x00);
-    }
-
-    @Override
-    public byte[] decrypt(byte[] pin1, byte[] data, boolean ecc) throws SmartCardReaderException {
-        selectOberthurAid();
-        verifyCode(CodeType.PIN1, pin1);
-        byte keyRef = getAuthKeyRef();
-
-        LoggingUtil.Companion.debugLog(TAG,
-            String.format("MSE SET decrypt: algo=0x%02x, keyRef=0x%02x", ECC_AUTH_ALGO & 0xFF, keyRef & 0xFF),
-            null
-        );
-
-        reader.transmit(0x00, 0x22, 0x41, 0xB8,
-                new byte[] {(byte) 0x80, 0x01, ECC_AUTH_ALGO, (byte) 0x84, 0x01, keyRef}, null);
-        return reader.transmit(0x00, 0x2A, 0x80, 0x86, concat(new byte[] {0x00}, data), 0x00);
+        return IETFUtils.valueToString(rdns[0].getFirst().getValue());
     }
 
 }
