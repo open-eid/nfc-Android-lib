@@ -202,22 +202,47 @@ class IdemiaWithPace extends Idemia implements TokenWithPace, ApduEncryptor {
      * Read PACE domain parameter and EC curve from EF.CardAccess.
      * Accessible before PACE, in plaintext.
      */
+    /**
+     * Legacy PACE parameter ID — secp256r1 with id-PACE-ECDH-GM-AES-CBC-CMAC-256.
+     * Used as a fallback when EF.CardAccess is unreadable or unparsable on this
+     * card model, matching the hardcoded value used before EF.CardAccess parsing
+     * was wired up. Cards that want a different curve must publish it correctly
+     * in EF.CardAccess; we never silently downgrade a *successfully parsed*
+     * value (the unsupported-curve check below still throws).
+     */
+    private static final byte LEGACY_PACE_PARAM_ID = (byte) 0x0C;
+
     private void readPaceParametersFromCard() throws SmartCardReaderException {
         if (paceEcSpec != null) {
             return;
         }
 
-        reader.transmit(0x00, 0xA4, 0x02, 0x0C, new byte[]{0x01, 0x1C}, null);
-        byte[] cardAccess = readBinaryFile();
-        byte paramId = parsePaceParameterId(cardAccess);
+        byte paramId = 0;
+        try {
+            reader.transmit(0x00, 0xA4, 0x02, 0x0C, new byte[]{0x01, 0x1C}, null);
+            byte[] cardAccess = readBinaryFile();
+            paramId = parsePaceParameterId(cardAccess);
+        } catch (SmartCardReaderException e) {
+            // EF.CardAccess select/read failed — could be a card variant where
+            // the file isn't visible under the MAIN AID context, ACL-restricted,
+            // or otherwise unreadable. Fall through to the legacy default rather
+            // than failing PACE outright; every card that worked before this
+            // file existed worked with the hardcoded 0x0C / secp256r1 anyway.
+            LoggingUtil.Companion.debugLog(TAG,
+                "EF.CardAccess read failed, using legacy PACE defaults: " + e.getMessage(),
+                null);
+        }
 
         if (paramId == 0) {
-            throw new SmartCardReaderException("Failed to read PACE parameters from EF.CardAccess");
+            paramId = LEGACY_PACE_PARAM_ID;
         }
 
         paceDomainParam = paramId;
         paceEcSpec = domainParamToCurveName(paramId);
 
+        // Only throw when the card explicitly told us it wants a curve we don't
+        // implement. A successful read+parse trumps the legacy default — better
+        // a clear error here than a downstream MAC mismatch.
         if (paceEcSpec == null) {
             throw new SmartCardReaderException(
                 "Unsupported PACE domain parameter: 0x" + Integer.toHexString(paramId & 0xFF)
@@ -225,7 +250,7 @@ class IdemiaWithPace extends Idemia implements TokenWithPace, ApduEncryptor {
         }
 
         LoggingUtil.Companion.debugLog(TAG,
-            String.format("PACE parameters read from EF.CardAccess: paramId=0x%02X, curve=%s", paramId, paceEcSpec),
+            String.format("PACE parameters: paramId=0x%02X, curve=%s", paramId, paceEcSpec),
             null
         );
     }

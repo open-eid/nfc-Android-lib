@@ -35,7 +35,7 @@ import ee.ria.DigiDoc.smartcardreader.ApduResponseException;
 import ee.ria.DigiDoc.smartcardreader.SmartCardReader;
 import ee.ria.DigiDoc.smartcardreader.SmartCardReaderException;
 
-class Idemia implements Token {
+abstract class Idemia implements Token {
 
     private static final Map<CertificateType, byte[]> CERT_MAP = new HashMap<>();
     static {
@@ -147,19 +147,16 @@ class Idemia implements Token {
     }
 
     @Override
-    public byte[] calculateSignature(byte[] pin2, byte[] hash, boolean ecc) throws SmartCardReaderException {
-        throw new SmartCardReaderException("Signature calculation not supported on this card");
-    }
+    public abstract byte[] calculateSignature(byte[] pin2, byte[] hash, boolean ecc)
+            throws SmartCardReaderException;
 
     @Override
-    public byte[] authenticate(byte[] pin1, byte[] token) throws SmartCardReaderException {
-        throw new SmartCardReaderException("Authentication not supported on this card");
-    }
+    public abstract byte[] authenticate(byte[] pin1, byte[] token)
+            throws SmartCardReaderException;
 
     @Override
-    public byte[] decrypt(byte[] pin1, byte[] data, boolean ecc) throws SmartCardReaderException {
-        throw new SmartCardReaderException("Decryption not supported on this card");
-    }
+    public abstract byte[] decrypt(byte[] pin1, byte[] data, boolean ecc)
+            throws SmartCardReaderException;
 
     protected void verifyCode(CodeType type, byte[] code) throws SmartCardReaderException {
         try {
