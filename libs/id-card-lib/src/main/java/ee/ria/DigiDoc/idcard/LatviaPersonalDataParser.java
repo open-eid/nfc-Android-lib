@@ -45,8 +45,9 @@ class LatviaPersonalDataParser {
             }
             return parseDateOfBirthFromOldCode(codeDigits);
         } catch (Exception e) {
-            LoggingUtil.Companion.errorLog(TAG,
-                "Could not parse DOB from personal code " + personalCode, e);
+            // Personal code is PII — never log the value itself, only that
+            // parsing failed. The exception trace is enough for triage.
+            LoggingUtil.Companion.errorLog(TAG, "Could not parse DOB from personal code", e);
             return null;
         }
     }

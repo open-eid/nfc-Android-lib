@@ -97,7 +97,7 @@ public class TLV {
             // same as "couldn't parse." Log so a maintainer triaging a
             // missing-key-ref or missing-PACEInfo report can tell the two
             // apart.
-            int lengthOffset = index - 1;
+            int lengthOffset = index;
             int lengthByte = data[index++] & 0xFF;
             int length;
             if (lengthByte <= 0x7F) {
