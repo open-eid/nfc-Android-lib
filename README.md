@@ -54,7 +54,7 @@ The demo application (`demoapp/app`) provides a complete reference implementatio
 * **Exception handling** for various error scenarios
 **Prerequisites for testing:**
 * An Android device with NFC capability (NFC-enabled emulators do not support physical NFC cards)
-* An Estonian ID card with NFC support (IDEMIA or Thales)
+* A supported NFC-enabled ID card — Estonian (IDEMIA or Thales) or Latvian (IDEMIA)
 * The card's CAN code (6-digit number printed on the card)
 * PIN1 and/or PIN2 codes (depending on the functionality being tested)
 **Testing steps:**
@@ -183,7 +183,7 @@ be omitted — the platform provides `java.time.*` directly.
 ID card support for Android applications is based on two libraries: `id-card-lib` and `smart-card-reader-lib`.
 
 * `smart-card-reader-lib` enables the use of the ID card over USB or NFC. It provides the low-level smart card reader interfaces and communication layer.
-* `id-card-lib` implements the APDU-based communication protocols required to use the core functionality across different types of ID cards (IDEMIA and Thales).
+* `id-card-lib` implements the APDU-based communication protocols required to use the core functionality across different types of ID cards: Estonian IDEMIA, Estonian Thales, and Latvian IDEMIA.
 Integrating ID card support into an Android application proceeds as follows:
 
 * The developer declares the permissions required for the chosen integration method in the application manifest.
@@ -247,7 +247,16 @@ public interface TokenWithPace extends Token {
 
 The `TokenWithPace` interface enables NFC communication with the ID card. An instance is obtained via
 its `create` factory method, which selects the correct implementation based on the card's ATS (*Answer To Select*). 
-Currently, two NFC-enabled ID card types are supported: IDEMIA (ID1) and Thales, implemented as `ID1WithPace` and `ThalesWithPace`.
+Three NFC-enabled ID card types are currently supported:
+
+| Card | Implementation |
+|---|---|
+| Estonian IDEMIA (ID1) | `IdemiaWithPace` |
+| Estonian Thales | `ThalesWithPace` |
+| Latvian IDEMIA | `LatviaIdemiaWithPace` (extends `IdemiaWithPace`) |
+
+If the card's ATS does not match any of these, `create` throws a `NotSupportedException`
+(see [Exception Handling](#exception-handling)).
 
 After creating the instance, establish the communication channel using the card’s `CAN` code and the `tunnel` method.
 
