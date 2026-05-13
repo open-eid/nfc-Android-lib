@@ -707,7 +707,7 @@ class ThalesWithPace extends Thales implements TokenWithPace, ApduEncryptor {
                 Hex.toHexString(cardMac), Hex.toHexString(ourMac)), null);
 
         if (!Hex.toHexString(cardMac).equals(Hex.toHexString(ourMac))) {
-            throw new RuntimeException("Could not verify chip's MAC.");
+            throw new SmartCardReaderException("Could not verify chip's MAC.");
         }
 
         if (response.length - currentByte != 2) {

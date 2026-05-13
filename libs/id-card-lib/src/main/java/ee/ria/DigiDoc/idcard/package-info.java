@@ -19,7 +19,7 @@
 
 /**
  *
- * Provides interfaces for different versions of ID-cards, both wired and wireless.
+ * Provides interfaces for different versions of ID-cards over NFC.
  *
  */
 package ee.ria.DigiDoc.idcard;

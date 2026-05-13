@@ -44,8 +44,8 @@ public interface TokenWithPace extends Token {
     /**
      * Create an instance of TokenWithPace based on the current card in the NFC-reader.
      * <p>
-     * We detect the card type by historical bytes - a subset of ATS. We call the method
-     * atr() since we inherit from wired interface specific classes.
+     * We detect the card type by historical bytes - a subset of ATS. The method is named
+     * atr() for historical reasons — on NFC, the equivalent is the ATS historical bytes.
      *
      * @param reader NFC Smart card reader instance, must be connected.
      * @return TokenWithPace instance.

@@ -28,7 +28,6 @@ dependencies {
     implementation(libs.androidx.annotation)
     implementation(libs.bcprov.jdk18on)
     implementation(libs.guava)
-    implementation(libs.rxjava)
 
     implementation(project(":libs:card-utils-lib"))
 
