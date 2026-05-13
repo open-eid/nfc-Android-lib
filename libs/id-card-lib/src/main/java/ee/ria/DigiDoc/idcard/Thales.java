@@ -59,6 +59,11 @@ class Thales implements Token {
     }
 
     @Override
+    public CardType cardType() {
+        return CardType.THALES;
+    }
+
+    @Override
     public PersonalData personalData() throws SmartCardReaderException {
         byte[] bytes = new byte[] {(byte) 0xDF,(byte) 0xDD};
         reader.transmit(0x00, 0xA4, 0x08, 0x0C, bytes, null);

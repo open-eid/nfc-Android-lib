@@ -64,6 +64,11 @@ abstract class Idemia implements Token {
     }
 
     @Override
+    public CardType cardType() {
+        return CardType.ID1;
+    }
+
+    @Override
     public PersonalData personalData() throws SmartCardReaderException {
         selectMainAid();
         reader.transmit(0x00, 0xA4, 0x01, 0x0C, new byte[] {0x50, 0x00}, null);

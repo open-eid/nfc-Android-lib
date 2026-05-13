@@ -56,7 +56,7 @@ public interface TokenWithPace extends Token {
         LoggingUtil.Companion.debugLog(TAG, "ATR: " + (atr == null ? "null" : Hex.toHexString(atr)), null);
 
         if (atr == null) {
-            throw new SmartCardReaderException("ATR/ATS cannot be null");
+            throw new NotSupportedException("ATR/ATS cannot be null");
         }
         if (Arrays.equals(Hex.decode("0012233f536549440f9000"), atr)) {
             return new IdemiaWithPace(reader);
@@ -76,6 +76,6 @@ public interface TokenWithPace extends Token {
             return new LatviaIdemiaWithPace(reader);
         }
 
-        throw new SmartCardReaderException("ATS not supported");
+        throw new NotSupportedException("ATS not supported");
     }
 }

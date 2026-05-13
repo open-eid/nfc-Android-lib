@@ -57,6 +57,11 @@ class LatviaIdemiaWithPace extends IdemiaWithPace {
         signKeyRef = (byte) 0x9E;
     }
 
+    @Override
+    public CardType cardType() {
+        return CardType.LATVIA_IDEMIA;
+    }
+
     /**
      * LV uses 1-byte algorithm identifiers in the MSE algorithm-reference DO,
      * vs the 4-byte {@code FF xx xx xx} form used by Estonian IDEMIA:

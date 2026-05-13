@@ -27,6 +27,18 @@ import ee.ria.DigiDoc.smartcardreader.SmartCardReaderException;
  */
 public interface Token {
     /**
+     * Identify which card model this token speaks to.
+     * <p>
+     * Compile-time constant per implementation — no card I/O is performed.
+     * Useful for callers that need to branch behavior (e.g. UI labels,
+     * country-specific certificate handling) without having to call
+     * {@link #personalData()} first or inspect {@link PersonalData#cardType()}.
+     *
+     * @return Card model.
+     */
+    CardType cardType();
+
+    /**
      * Read personal information of the cardholder.
      *
      * @return Personal data of the cardholder.

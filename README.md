@@ -7,6 +7,9 @@
   - [Testing with the Demo App](#testing-with-the-demo-app)  
   - [Using the Libraries in Other Applications](#using-the-libraries-in-other-applications) 
     - [Building the AAR](#building-the-aar) 
+    - [Overriding the AAR Filename](#overriding-the-aar-filename) 
+    - [Integrator Dependencies](#integrator-dependencies) 
+    - [Minimum SDK and Core Library Desugaring](#minimum-sdk-and-core-library-desugaring) 
 - [Overview](#overview) 
 - [NFC Interface](#nfc-interface) 
   - [General Communication Scheme](#general-communication-scheme) 
@@ -76,9 +79,104 @@ The demo application (`demoapp/app`) provides a complete reference implementatio
 * The `.aar` files are located in:
   * `libs/id-card-lib/build/outputs/aar`
   * `libs/smart-card-reader-lib/build/outputs/aar`
+  * `libs/card-utils-lib/build/outputs/aar`
 * Move the resulting `.aar` files to your project's `/libs` directory.
 * Add the corresponding dependencies to your application's `build.gradle` file:
     * `implementation files('app/libs/aar')`
+
+#### Overriding the AAR Filename
+
+By default the build produces `id-card-lib.aar`, `smart-card-reader-lib.aar`, and `card-utils-lib.aar`.
+To stamp a version number and/or a custom suffix into the filename (useful when
+distributing internal builds side-by-side, or when consumers need to pin an
+exact build), create an `environment.properties` file at the repository root:
+
+```properties
+# environment.properties
+version=1.1.4
+suffix=internal
+```
+
+A template is checked in as `environment.properties.example`. Both keys are
+optional and independent:
+
+* `version` only         → `id-card-lib-1.1.4.aar`
+* `suffix` only          → `id-card-lib-internal.aar`
+* both                   → `id-card-lib-1.1.4-internal.aar`
+* file missing / blank   → `id-card-lib.aar` (default)
+
+The override applies to every Android library subproject under `libs/` and is
+wired up in `libs/build.gradle.kts`. `environment.properties` is gitignored, so
+local overrides do not leak into commits.
+
+#### Integrator Dependencies
+
+The three AARs are shipped as flat-file drop-ins (`implementation files(...)`),
+which carries no Maven metadata, so transitive dependencies do **not** resolve
+automatically. The integrator's `build.gradle.kts` must declare them explicitly:
+
+```kotlin
+dependencies {
+    // The three AARs
+    implementation(files("libs/id-card-lib.aar"))
+    implementation(files("libs/smart-card-reader-lib.aar"))
+    implementation(files("libs/card-utils-lib.aar"))
+
+    // Referenced by id-card-lib + smart-card-reader-lib
+    implementation("androidx.annotation:annotation:1.9.1")
+    implementation("org.bouncycastle:bcprov-jdk18on:1.82")
+    implementation("com.google.guava:guava:33.5.0-android")
+
+    // Referenced by smart-card-reader-lib (reactive reader callbacks)
+    implementation("io.reactivex.rxjava3:rxjava:3.1.12")
+
+    // Referenced by card-utils-lib (LoggingUtil + its Dagger-generated factory)
+    implementation("javax.inject:javax.inject:1")
+    implementation("com.google.dagger:dagger:2.57.2")
+    implementation("com.google.dagger:hilt-core:2.57.2")
+    // Only if the integrator also wants Hilt injection for LoggingUtil:
+    // implementation("com.google.dagger:hilt-android:2.57.2")
+
+    // Required for id-card-lib's java.time.* usage when minSdk < 26
+    // (see next section)
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
+}
+```
+
+> [!NOTE]
+> AutoValue and the Hilt compiler are build-time only — the generated classes
+> ship inside the AARs, so consumers do not need to add `auto-value`,
+> `auto-value-annotations`, or `hilt-android-compiler`.
+
+#### Minimum SDK and Core Library Desugaring
+
+The libraries target **`minSdk = 24`** (Android 7.0).
+
+Because `id-card-lib` uses `java.time.*` APIs (`LocalDate`, `Instant`,
+`ZoneOffset`, etc.) which are not part of the Android platform until
+API 26 (Android 8.0), the integrator app must enable **core library
+desugaring** when its `minSdk` is below 26.
+
+```kotlin
+android {
+    compileSdk = 36
+    defaultConfig {
+        minSdk = 24
+    }
+    compileOptions {
+        isCoreLibraryDesugaringEnabled = true
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
+}
+```
+
+For an app whose `minSdk` is already 26 or higher, the desugaring block can
+be omitted — the platform provides `java.time.*` directly.
 
 ## Overview
 
@@ -231,7 +329,9 @@ The following example demonstrates exception handling during the ID card communi
 
 ```kotlin
 private fun exceptionHandler(ex: SmartCardReaderException) {
-    if (ex is CodeVerificationException) {
+    if (ex is NotSupportedException) {
+        ...
+    } else if (ex is CodeVerificationException) {
         ...
     } else if (ex is PaceTunnelException) {
         ...
@@ -250,14 +350,16 @@ private fun exceptionHandler(ex: SmartCardReaderException) {
 ```
 
 * **Line 1:** `ee.ria.DigiDoc.smartcardreader.SmartCardReaderException` – base exception from which all ID card–related exceptions inherit.
-* **Line 2:** `ee.ria.DigiDoc.idcard.CodeVerificationException` – specific exception indicating that the PIN1 or PIN2 used for authorization was incorrect.
+* **Line 2:** `ee.ria.DigiDoc.idcard.NotSupportedException` – thrown by `TokenWithPace.create(...)` when the detected card's ATR/ATS does not match any supported model
+  (for example, attempting to read a non-Estonian / non-Latvian / non-Thales ID card). Catch this case separately to show the user a "card not supported" message rather than a generic communication error.
+* **Line 4:** `ee.ria.DigiDoc.idcard.CodeVerificationException` – specific exception indicating that the PIN1 or PIN2 used for authorization was incorrect.
   The exception includes information on how many attempts remain before the PIN becomes locked.
-* **Line 4:** `ee.ria.DigiDoc.idcard.PaceTunnelException` – specific exception indicating that the establishment of a secure communication channel between the card and the device has failed.
+* **Line 6:** `ee.ria.DigiDoc.idcard.PaceTunnelException` – specific exception indicating that the establishment of a secure communication channel between the card and the device has failed.
   Most likely, the issue is caused by an incorrect CAN code.
-* **Line 6:** `ee.ria.DigiDoc.idcard.IdCardException` – general exception class for ID card-specific errors that don't fall into other categories.
-* **Line 8:** `ee.ria.DigiDoc.smartcardreader.ApduResponseException` – exception indicating an error in the ID card's APDU communication protocol.
-* **Line 11:** `android.nfc.TagLostException` – exception indicating that the NFC connection between the card and the device was lost.
-* **Line 13:** Any other unexpected exception that triggered the `SmartCardReaderException`.   
+* **Line 8:** `ee.ria.DigiDoc.idcard.IdCardException` – general exception class for ID card-specific errors that don't fall into other categories.
+* **Line 10:** `ee.ria.DigiDoc.smartcardreader.ApduResponseException` – exception indicating an error in the ID card's APDU communication protocol.
+* **Line 13:** `android.nfc.TagLostException` – exception indicating that the NFC connection between the card and the device was lost.
+* **Line 15:** Any other unexpected exception that triggered the `SmartCardReaderException`.   
 
 ---
 
