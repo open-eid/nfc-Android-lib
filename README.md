@@ -163,7 +163,7 @@ public interface Token {
     byte[] decrypt(byte[] pin1, byte[] data, boolean ecc) throws SmartCardReaderException, CodeVerificationException;
     void changeCode(CodeType type, byte[] currentCode, byte[] newCode) throws SmartCardReaderException, CodeVerificationException;
     void unblockAndChangeCode(byte[] pukCode, CodeType type, byte[] newCode) throws SmartCardReaderException, CodeVerificationException;
-    int pinChangedFlag() throws SmartCardReaderException;
+    int pinChangedFlag(CodeType type) throws SmartCardReaderException;
     byte[] certificate(CertificateType type);
     byte[] calculateSignature(byte[] pin2, byte[] hash, boolean ecc);
     byte[] authenticate(byte[] pin1, byte[] token);

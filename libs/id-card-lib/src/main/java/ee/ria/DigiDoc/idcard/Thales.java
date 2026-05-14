@@ -126,8 +126,8 @@ class Thales implements Token {
     }
 
     @Override
-    public int pinChangedFlag() throws SmartCardReaderException {
-        byte[] data = getData(CodeType.PIN2);
+    public int pinChangedFlag(CodeType type) throws SmartCardReaderException {
+        byte[] data = getData(type);
         return extractTagValue(data, 0xDF2F);
     }
 
@@ -180,7 +180,7 @@ class Thales implements Token {
 
     @Override
     public byte[] calculateSignature(byte[] pin2, byte[] hash, boolean ecc) throws SmartCardReaderException {
-        if (pinChangedFlag() == 0) {
+        if (pinChangedFlag(CodeType.PIN2) == 0) {
             throw new SmartCardReaderException("PIN2 has not been changed, operation not allowed");
         }
         return sign(CodeType.PIN2, pin2, (byte) 0x05, hash);
