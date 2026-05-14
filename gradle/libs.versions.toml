@@ -1,56 +1,90 @@
 [versions]
-activity = "1.11.0"
+# ------------------------------------------------------------
+# Build tooling — applied as plugins across all modules.
+# ------------------------------------------------------------
 agp = "8.13.0"
-annotation = "1.9.1"
-appcompat = "1.7.1"
-autoValue = "1.11.0"
-bouncyCastle = "1.84"
-desugarJdkLibs = "2.1.5"
-constraintlayout = "2.2.1"
-core = "1.17.0"
-dagger = "2.57.2"
 dependencyCheck = "3.0.4"
-fragmentKtx = "1.8.9"
-guava = "33.5.0-android"
-hamcrest = "3.0"
-javaxInject = "1"
-junit = "4.13.2"
 kotlin = "2.2.20"
 ksp = "2.2.20-2.0.3"
+
+# ------------------------------------------------------------
+# Libs deps (id-card-lib, smart-card-reader-lib, card-utils-lib).
+# ------------------------------------------------------------
+annotation = "1.9.1"
+autoValue = "1.11.0"
+bouncyCastle = "1.84"
+dagger = "2.57.2"
+desugarJdkLibs = "2.1.5"
+guava = "33.5.0-android"
+javaxInject = "1"
+
+# ------------------------------------------------------------
+# Demoapp deps
+# ------------------------------------------------------------
+activity = "1.11.0"
+appcompat = "1.7.1"
+constraintlayout = "2.2.1"
+core = "1.17.0"
+fragmentKtx = "1.8.9"
 lifecycleViewmodel = "2.9.4"
 material = "1.13.0"
-mockitoCore = "5.20.0"
 navigationFragmentKtx = "2.9.5"
 recyclerview = "1.4.0"
+
+# ------------------------------------------------------------
+# Test only
+# ------------------------------------------------------------
+hamcrest = "3.0"
+junitPlatform = "1.11.4"
+jupiter = "5.11.4"
+mockitoCore = "5.20.0"
 truth = "1.4.5"
 
 [libraries]
-androidx-activity = { module = "androidx.activity:activity", version.ref = "activity" }
+# ------------------------------------------------------------
+# Libs deps (id-card-lib, smart-card-reader-lib, card-utils-lib)
+# ------------------------------------------------------------
 androidx-annotation = { group = "androidx.annotation", name = "annotation", version.ref = "annotation" }
+auto-value = { group = "com.google.auto.value", name = "auto-value", version.ref = "autoValue" }
+auto-value-annotations = { group = "com.google.auto.value", name = "auto-value-annotations", version.ref = "autoValue" }
+bcprov-jdk18on = { module = "org.bouncycastle:bcprov-jdk18on", version.ref = "bouncyCastle" }
+dagger = { module = "com.google.dagger:dagger", version.ref = "dagger" }
+dagger-compiler = { module = "com.google.dagger:dagger-compiler", version.ref = "dagger" }
+desugar-jdk-libs = { module = "com.android.tools:desugar_jdk_libs", version.ref = "desugarJdkLibs" }
+google-dagger-hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "dagger" }
+google-dagger-hilt-android-compile = { group = "com.google.dagger", name = "hilt-android-compiler", version.ref = "dagger" }
+google-dagger-hilt-core = { module = "com.google.dagger:hilt-core", version.ref = "dagger" }
+guava = {group = "com.google.guava", name = "guava", version.ref = "guava" }
+javax-inject = { module = "javax.inject:javax.inject", version.ref = "javaxInject" }
+
+# ------------------------------------------------------------
+# Demoapp deps
+# ------------------------------------------------------------
+androidx-activity = { module = "androidx.activity:activity", version.ref = "activity" }
 androidx-appcompat = { module = "androidx.appcompat:appcompat", version.ref = "appcompat" }
 androidx-constraintlayout = { module = "androidx.constraintlayout:constraintlayout", version.ref = "constraintlayout" }
 androidx-core = { module = "androidx.core:core", version.ref = "core" }
 androidx-lifecycle-common = { module = "androidx.lifecycle:lifecycle-common", version.ref = "lifecycleViewmodel" }
 androidx-lifecycle-viewmodel = { module = "androidx.lifecycle:lifecycle-viewmodel", version.ref = "lifecycleViewmodel" }
 androidx-navigation-runtime = { module = "androidx.navigation:navigation-runtime", version.ref = "navigationFragmentKtx" }
-auto-value = { group = "com.google.auto.value", name = "auto-value", version.ref = "autoValue" }
-auto-value-annotations = { group = "com.google.auto.value", name = "auto-value-annotations", version.ref = "autoValue" }
-bcprov-jdk18on = { module = "org.bouncycastle:bcprov-jdk18on", version.ref = "bouncyCastle" }
-desugar-jdk-libs = { module = "com.android.tools:desugar_jdk_libs", version.ref = "desugarJdkLibs" }
-dagger = { module = "com.google.dagger:dagger", version.ref = "dagger" }
-dagger-compiler = { module = "com.google.dagger:dagger-compiler", version.ref = "dagger" }
 fragment-ktx = { module = "androidx.fragment:fragment-ktx", version.ref = "fragmentKtx" }
-google-dagger-hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "dagger" }
-google-dagger-hilt-android-compile = { group = "com.google.dagger", name = "hilt-android-compiler", version.ref = "dagger" }
-google-dagger-hilt-core = { module = "com.google.dagger:hilt-core", version.ref = "dagger" }
-guava = {group = "com.google.guava", name = "guava", version.ref = "guava" }
-hamcrest = { module = "org.hamcrest:hamcrest", version.ref = "hamcrest" }
-javax-inject = { module = "javax.inject:javax.inject", version.ref = "javaxInject" }
-junit = { group = "junit", name = "junit", version.ref = "junit" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
-mockito-core = { group = "org.mockito", name = "mockito-core", version.ref = "mockitoCore" }
 navigation-fragment-ktx = { module = "androidx.navigation:navigation-fragment-ktx", version.ref = "navigationFragmentKtx" }
 recyclerview = { module = "androidx.recyclerview:recyclerview", version.ref = "recyclerview" }
+
+# ------------------------------------------------------------
+# Test deps
+# ------------------------------------------------------------
+bcpkix-jdk18on = { module = "org.bouncycastle:bcpkix-jdk18on", version.ref = "bouncyCastle" }
+hamcrest = { module = "org.hamcrest:hamcrest", version.ref = "hamcrest" }
+junit-jupiter-api = { module = "org.junit.jupiter:junit-jupiter-api", version.ref = "jupiter" }
+junit-jupiter-engine = { module = "org.junit.jupiter:junit-jupiter-engine", version.ref = "jupiter" }
+junit-jupiter-params = { module = "org.junit.jupiter:junit-jupiter-params", version.ref = "jupiter" }
+# Gradle 9 requires the platform launcher on the test runtime classpath
+# even when only Jupiter is in use.
+junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher", version.ref = "junitPlatform" }
+mockito-core = { group = "org.mockito", name = "mockito-core", version.ref = "mockitoCore" }
+mockito-junit-jupiter = { module = "org.mockito:mockito-junit-jupiter", version.ref = "mockitoCore" }
 truth = { group = "com.google.truth", name = "truth", version.ref = "truth" }
 
 [plugins]
