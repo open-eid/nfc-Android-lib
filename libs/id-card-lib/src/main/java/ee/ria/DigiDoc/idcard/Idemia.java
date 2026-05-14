@@ -147,7 +147,7 @@ abstract class Idemia implements Token {
     }
 
     @Override
-    public int pinChangedFlag() {
+    public int pinChangedFlag(CodeType type) {
         return 1;
     }
 

@@ -72,7 +72,7 @@ public interface Token {
     void unblockAndChangeCode(byte[] pukCode, CodeType type, byte[] newCode)
             throws SmartCardReaderException;
 
-    int pinChangedFlag() throws SmartCardReaderException;
+    int pinChangedFlag(CodeType type) throws SmartCardReaderException;
 
     /**
      * Read retry counter for PIN1/PIN2/PUK code.
