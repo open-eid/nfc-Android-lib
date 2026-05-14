@@ -3,6 +3,7 @@
 
 plugins {
     alias(libs.plugins.android.library)
+    jacoco
 }
 
 android {
@@ -39,5 +40,36 @@ dependencies {
     testImplementation(libs.mockito.core)
     testImplementation(libs.truth) {
         exclude(group = "junit", module = "junit")
+    }
+    testImplementation(libs.hamcrest)
+    testImplementation(libs.junit.jupiter.api)
+    testImplementation(libs.junit.jupiter.params)
+    testRuntimeOnly(libs.junit.jupiter.engine)
+    testImplementation(libs.mockito.junit.jupiter)
+}
+
+tasks.withType<Test>().configureEach {
+    useJUnitPlatform()
+    extensions.configure(JacocoTaskExtension::class) {
+        isIncludeNoLocationClasses = true
+        excludes = listOf("jdk.internal.*")
+    }
+}
+
+tasks.register<JacocoReport>("jacocoTestReport") {
+    dependsOn("testDebugUnitTest")
+    classDirectories.setFrom(
+        fileTree("${layout.buildDirectory.get()}/intermediates/javac/debug/compileDebugJavaWithJavac/classes") {
+            exclude("**/R.class", "**/R\$*.class", "**/BuildConfig.*",
+                    "**/Manifest*.*", "**/*Test*.*", "android/**/*.*")
+        }
+    )
+    sourceDirectories.setFrom(files("src/main/java"))
+    executionData.setFrom(
+        fileTree(layout.buildDirectory.get()) { include("**/testDebugUnitTest.exec") }
+    )
+    reports {
+        html.required.set(true)
+        xml.required.set(true)
     }
 }
