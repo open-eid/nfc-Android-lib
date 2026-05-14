@@ -124,11 +124,8 @@ dependencies {
 
     // Referenced by id-card-lib + smart-card-reader-lib
     implementation("androidx.annotation:annotation:1.9.1")
-    implementation("org.bouncycastle:bcprov-jdk18on:1.82")
+    implementation("org.bouncycastle:bcprov-jdk18on:1.84")
     implementation("com.google.guava:guava:33.5.0-android")
-
-    // Referenced by smart-card-reader-lib (reactive reader callbacks)
-    implementation("io.reactivex.rxjava3:rxjava:3.1.12")
 
     // Referenced by card-utils-lib (LoggingUtil + its Dagger-generated factory)
     implementation("javax.inject:javax.inject:1")

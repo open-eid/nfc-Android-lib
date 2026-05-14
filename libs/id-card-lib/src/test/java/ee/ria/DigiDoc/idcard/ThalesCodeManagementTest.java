@@ -61,15 +61,27 @@ public final class ThalesCodeManagementTest {
     }
 
     @Test
-    public void pinChangedFlag_queriesPin2AndExtractsTagDf2f() throws Exception {
+    public void pinChangedFlag_pin2_queriesPin2RefAndExtractsTagDf2f() throws Exception {
         // Response wraps DF 2F 01 01 — pinChangedFlag returns the inner byte (1)
         CommandStubReader stub = new CommandStubReader()
                 .respondTo(0x00, 0xCB, Hex.decode("A004DF2F0101"));
         ThalesWithPace token = new ThalesWithPace(stub.build());
 
-        assertThat(token.pinChangedFlag()).isEqualTo(1);
-        // pinChangedFlag uses the PIN2 reference (0x82) in the GET DATA body
+        assertThat(token.pinChangedFlag(CodeType.PIN2)).isEqualTo(1);
+        // GET DATA body for PIN2: A0 03 83 01 82 (0x82 = PIN2 reference).
         assertThat(stub.captured.get(0).data).isEqualTo(Hex.decode("A003830182"));
+    }
+
+    @Test
+    public void pinChangedFlag_pin1_queriesPin1Ref() throws Exception {
+        // Verifies the CodeType parameter dispatches to the right PIN reference.
+        CommandStubReader stub = new CommandStubReader()
+                .respondTo(0x00, 0xCB, Hex.decode("A004DF2F0101"));
+        ThalesWithPace token = new ThalesWithPace(stub.build());
+
+        assertThat(token.pinChangedFlag(CodeType.PIN1)).isEqualTo(1);
+        // GET DATA body for PIN1: A0 03 83 01 81 (0x81 = PIN1 reference).
+        assertThat(stub.captured.get(0).data).isEqualTo(Hex.decode("A003830181"));
     }
 
     // -------- changeCode --------
