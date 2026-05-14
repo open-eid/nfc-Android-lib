@@ -19,9 +19,11 @@ import org.junit.jupiter.api.Test;
 public final class IdemiaCodeManagementTest {
 
     @Test
-    public void pinChangedFlag_returnsConstant() {
+    public void pinChangedFlag_returnsConstantRegardlessOfCodeType() {
         IdemiaWithPace token = new IdemiaWithPace(new CommandStubReader().build());
-        assertThat(token.pinChangedFlag()).isEqualTo(1);
+        // IDEMIA ignores the CodeType param and always returns 1 — verify for both.
+        assertThat(token.pinChangedFlag(CodeType.PIN1)).isEqualTo(1);
+        assertThat(token.pinChangedFlag(CodeType.PIN2)).isEqualTo(1);
     }
 
     // -------- codeRetryCounter --------
