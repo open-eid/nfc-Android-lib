@@ -40,8 +40,11 @@ class CardInfoFragment : Fragment() {
     private lateinit var givenNameTextView: TextView
     private lateinit var surnameTextView: TextView
     private lateinit var personalCodeTextView: TextView
+    private lateinit var dateOfBirthTextView: TextView
+    private lateinit var documentNumberTextView: TextView
     private lateinit var citizenshipTextView: TextView
     private lateinit var dateOfExpiryTextView: TextView
+    private lateinit var cardTypeTextView: TextView
     private lateinit var pin1TextView: TextView
     private lateinit var pin2TextView: TextView
 
@@ -60,8 +63,11 @@ class CardInfoFragment : Fragment() {
         givenNameTextView = binding.textViewFirstName
         surnameTextView = binding.textViewLastName
         personalCodeTextView = binding.textViewPersonalCode
+        dateOfBirthTextView = binding.textViewDateOfBirth
+        documentNumberTextView = binding.textViewDocumentNumber
         citizenshipTextView = binding.textViewCitizenship
         dateOfExpiryTextView = binding.textViewExpirationDate
+        cardTypeTextView = binding.textViewCardType
         pin1TextView = binding.textViewPin1
         pin2TextView = binding.textViewPin2
 
@@ -84,6 +90,10 @@ class CardInfoFragment : Fragment() {
         surnameTextView.text = getString(R.string.last_name, dataViewModel.getSurname())
         personalCodeTextView.text =
             getString(R.string.personal_code, dataViewModel.getPersonalCode())
+        dateOfBirthTextView.text =
+            getString(R.string.date_of_birth, dataViewModel.getDateOfBirth() ?: "-")
+        documentNumberTextView.text =
+            getString(R.string.document_number, dataViewModel.getDocumentNumber())
         val citizenship = dataViewModel.getCitizenship()
         val issuingCountry = dataViewModel.getIssuingCountry()
         citizenshipTextView.text = when {
@@ -98,9 +108,9 @@ class CardInfoFragment : Fragment() {
             certExpiry != null -> getString(R.string.cert_expiry, certExpiry)
             else -> getString(R.string.expiration, "-")
         }
+        cardTypeTextView.text = getString(R.string.card_type, dataViewModel.getCardType())
 
         pin1TextView.text = getString(R.string.pin1_counter, dataViewModel.getPin1Counter())
         pin2TextView.text = getString(R.string.pin2_counter, dataViewModel.getPin2Counter())
-
     }
 }

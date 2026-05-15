@@ -29,8 +29,11 @@ class DataViewModel : ViewModel() {
     private lateinit var personalCode: String
     private lateinit var citizenship: String
     private var issuingCountry: String? = null
+    private var dateOfBirth: String? = null
+    private lateinit var documentNumber: String
     private var documentExpiryDate: String? = null
     private var certExpiryDate: String? = null
+    private lateinit var cardType: String
     private var containerName: String = ""
 
     private var pin1Counter: Int = 0
@@ -58,8 +61,11 @@ class DataViewModel : ViewModel() {
         this.personalCode = cardData.personalCode()
         this.citizenship = cardData.citizenship()
         this.issuingCountry = cardData.issuingCountry()
+        this.dateOfBirth = cardData.dateOfBirth()?.toString()
+        this.documentNumber = cardData.documentNumber()
         this.documentExpiryDate = cardData.documentExpiryDate()?.toString()
         this.certExpiryDate = cardData.certExpiryDate()?.toString()
+        this.cardType = cardData.cardType().name
     }
 
     fun getCan(): String {
@@ -86,12 +92,24 @@ class DataViewModel : ViewModel() {
         return issuingCountry
     }
 
+    fun getDateOfBirth(): String? {
+        return dateOfBirth
+    }
+
+    fun getDocumentNumber(): String {
+        return documentNumber
+    }
+
     fun getDocumentExpiryDate(): String? {
         return documentExpiryDate
     }
 
     fun getCertExpiryDate(): String? {
         return certExpiryDate
+    }
+
+    fun getCardType(): String {
+        return cardType
     }
 
     fun setPin1Counter(p1: Int) {

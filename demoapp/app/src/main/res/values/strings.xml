@@ -8,11 +8,14 @@
     <string name="first_name">First name: %1$s</string>
     <string name="last_name">Last name: %1$s</string>
     <string name="personal_code">Personal code: %1$s</string>
+    <string name="date_of_birth">Date of birth: %1$s</string>
+    <string name="document_number">Document number: %1$s</string>
     <string name="citizenship">Citizenship: %1$s</string>
     <string name="issuing_country">Issuing country: %1$s</string>
     <string name="expiration">Date of expiry: %1$s</string>
     <string name="document_expiry">Document expiry: %1$s</string>
     <string name="cert_expiry">Cert expiry: %1$s</string>
+    <string name="card_type">Card type: %1$s</string>
     <string name="cancel">Cancel</string>
     <string name="next">Next</string>
     <string name="back">Back</string>

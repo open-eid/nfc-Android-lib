@@ -41,9 +41,22 @@ public final class LatviaPersonalDataParserTest {
 
     @Test
     public void parseDateOfBirth_newFormat_returnsNull() {
-        // Codes from 2017 onward start with "32" and don't encode DOB.
+        // PMLP spec: 1st digit "3", 2nd digit "2"-"9". DOB not encoded.
         assertThat(LatviaPersonalDataParser.parseDateOfBirth("321234-56789")).isNull();
         assertThat(LatviaPersonalDataParser.parseDateOfBirth("32123456789")).isNull();
+        // Whole 3[2-9] range is reserved for the updated format.
+        assertThat(LatviaPersonalDataParser.parseDateOfBirth("331234-56789")).isNull();
+        assertThat(LatviaPersonalDataParser.parseDateOfBirth("391234-56789")).isNull();
+        // Demo-card code observed in the field also resolves to null (no DOB encoded).
+        assertThat(LatviaPersonalDataParser.parseDateOfBirth("326305-17052")).isNull();
+    }
+
+    @Test
+    public void parseDateOfBirth_unparseablePrefix_returnsNull() {
+        // 4X-9X aren't valid old-format days (DD<=31) and aren't updated-format
+        // prefixes (PMLP reserves 3[2-9]) — legacy parser fails, surfaces as null.
+        assertThat(LatviaPersonalDataParser.parseDateOfBirth("411234-56789")).isNull();
+        assertThat(LatviaPersonalDataParser.parseDateOfBirth("991234-56789")).isNull();
     }
 
     @Test

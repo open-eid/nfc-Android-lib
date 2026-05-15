@@ -7,53 +7,14 @@ import org.junit.jupiter.api.Test;
 import java.time.LocalDate;
 
 /**
- * Locks the contract of the deprecated {@link PersonalData#expiryDate()}
- * shim: prefer document expiry, fall back to cert expiry, null if neither.
- * This shim exists so pre-LV callers keep observing the same value after
- * the schema was split.
+ * Pins the {@link PersonalData} schema: every accessor returns what
+ * {@link PersonalData#create} was given. Catches accidental field
+ * renames or argument-order changes in the factory.
  */
 public final class PersonalDataTest {
 
     @Test
-    public void expiryDate_prefersDocumentExpiryWhenPresent() {
-        LocalDate doc = LocalDate.of(2030, 5, 1);
-        LocalDate cert = LocalDate.of(2027, 3, 15);
-        PersonalData pd = PersonalData.create(
-                "Surname", "Given Names", "EST", null,
-                LocalDate.of(1990, 1, 1), "39001011234", "AB1234567",
-                /*documentExpiryDate*/ doc, /*certExpiryDate*/ cert,
-                CardType.ID1);
-
-        assertThat(pd.expiryDate()).isEqualTo(doc);
-    }
-
-    @Test
-    public void expiryDate_fallsBackToCertExpiryWhenNoDocumentExpiry() {
-        // Latvian path: documentExpiry is null, certExpiry carries notAfter.
-        LocalDate cert = LocalDate.of(2027, 3, 15);
-        PersonalData pd = PersonalData.create(
-                "Berzins", "Janis", "", "LV",
-                LocalDate.of(1985, 3, 15), "150385-12345", "LV1234567",
-                /*documentExpiryDate*/ null, /*certExpiryDate*/ cert,
-                CardType.LATVIA_IDEMIA);
-
-        assertThat(pd.expiryDate()).isEqualTo(cert);
-    }
-
-    @Test
-    public void expiryDate_returnsNullWhenNeitherPresent() {
-        PersonalData pd = PersonalData.create(
-                "X", "Y", "EST", null,
-                LocalDate.of(1990, 1, 1), "00000000000", "XX000000",
-                null, null, CardType.ID1);
-
-        assertThat(pd.expiryDate()).isNull();
-    }
-
-    @Test
     public void create_preservesAllFields() {
-        // Round-trip every accessor — locks the schema so a future field
-        // rename or argument-order change in create() fails here.
         LocalDate dob = LocalDate.of(1985, 3, 15);
         LocalDate doc = LocalDate.of(2030, 5, 1);
         LocalDate cert = LocalDate.of(2027, 3, 15);
@@ -72,5 +33,20 @@ public final class PersonalDataTest {
         assertThat(pd.documentExpiryDate()).isEqualTo(doc);
         assertThat(pd.certExpiryDate()).isEqualTo(cert);
         assertThat(pd.cardType()).isEqualTo(CardType.LATVIA_IDEMIA);
+    }
+
+    @Test
+    public void create_acceptsNullableFieldsAsNull() {
+        // EE / Thales path: documentExpiryDate populated, certExpiryDate / issuingCountry null.
+        PersonalData pd = PersonalData.create(
+                "X", "Y", "EST", null,
+                LocalDate.of(1990, 1, 1), "00000000000", "XX000000",
+                /*documentExpiryDate*/ LocalDate.of(2030, 1, 1),
+                /*certExpiryDate*/ null,
+                CardType.ID1);
+
+        assertThat(pd.issuingCountry()).isNull();
+        assertThat(pd.certExpiryDate()).isNull();
+        assertThat(pd.documentExpiryDate()).isEqualTo(LocalDate.of(2030, 1, 1));
     }
 }

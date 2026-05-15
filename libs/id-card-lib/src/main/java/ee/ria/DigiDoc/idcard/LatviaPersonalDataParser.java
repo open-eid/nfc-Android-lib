@@ -20,27 +20,41 @@
 package ee.ria.DigiDoc.idcard;
 
 import java.time.LocalDate;
+import java.util.regex.Pattern;
 
 import ee.ria.DigiDoc.utilsLib.logging.LoggingUtil;
 
 class LatviaPersonalDataParser {
     private static final String TAG = LatviaPersonalDataParser.class.getName();
 
+    /**
+     * Updated (new) Latvian personal code: first digit "3", second digit "2"-"9",
+     * per PMLP (Pilsonības un migrācijas lietu pārvalde):
+     * <a href="https://www.pmlp.gov.lv/en/change-personal-identity-number">spec</a>.
+     * Dash optional.
+     */
+    private static final Pattern UPDATED_FORMAT_PATTERN =
+            Pattern.compile("^3[2-9]\\d{4}-?\\d{5}$");
+
     private LatviaPersonalDataParser() {}
 
     /**
-     * Parse date of birth from Latvian personal code.
-     *
-     * Old format (pre-2017): DDMMYY-CZZZQ where C is century digit (0=18xx, 1=19xx, 2=20xx)
-     * New format (from 2017): starts with "32", DOB not encoded — returns null.
+     * Parse date of birth from a Latvian personal code.
+     * Legacy format (pre-1 July 2017): DDMMYY-CZZZQ where C is century digit
+     * (0=18xx, 1=19xx, 2=20xx).
+     * Updated format (from 1 July 2017): "3X"-prefixed (X=2-9), randomly
+     * generated, DOB not encoded — returns null.
      */
     static LocalDate parseDateOfBirth(String personalCode) {
         if (personalCode == null || personalCode.isEmpty()) {
             return null;
         }
+        if (UPDATED_FORMAT_PATTERN.matcher(personalCode).matches()) {
+            return null;
+        }
         try {
             String codeDigits = personalCode.replace("-", "");
-            if (isNewFormatCode(codeDigits) || codeDigits.length() < 7) {
+            if (codeDigits.length() < 7) {
                 return null;
             }
             return parseDateOfBirthFromOldCode(codeDigits);
@@ -73,10 +87,4 @@ class LatviaPersonalDataParser {
         return LocalDate.of(century + yearShort, month, day);
     }
 
-    /**
-     * New format codes start with "32" and do not encode date of birth.
-     */
-    private static boolean isNewFormatCode(String codeDigits) {
-        return codeDigits.length() >= 2 && codeDigits.startsWith("32");
-    }
 }
