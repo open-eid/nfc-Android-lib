@@ -46,4 +46,15 @@ dependencies {
     implementation(libs.google.dagger.hilt.core)
     implementation(libs.javax.inject)
     ksp(libs.google.dagger.hilt.android.compile)
+
+    testImplementation(libs.junit.jupiter.api)
+    testImplementation(libs.junit.jupiter.params)
+    testRuntimeOnly(libs.junit.jupiter.engine)
+    testRuntimeOnly(libs.junit.platform.launcher)
+    testImplementation(libs.mockito.core)
+    testImplementation(libs.truth)
+}
+
+tasks.withType<Test>().configureEach {
+    useJUnitPlatform()
 }

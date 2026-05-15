@@ -175,6 +175,24 @@ dependencies {
 For an app whose `minSdk` is already 26 or higher, the desugaring block can
 be omitted — the platform provides `java.time.*` directly.
 
+#### Debug Logging
+
+`card-utils-lib` exposes `LoggingUtil.initialize(context, logger, loggingEnabled)`,
+which the other library modules use to emit transport-level traces.
+
+> [!WARNING]
+> **Never enable `loggingEnabled = true` in a production build.** When set,
+> the library writes raw APDU bytes, decrypted card payloads, secure-messaging
+> session MAC values, and (for cert reads) post-decrypt certificate bytes to
+> the Android system log. Anything with `READ_LOGS` permission — or a
+> developer with `adb logcat` access — can recover this data. The logs are
+> intended for protocol debugging during integration only.
+
+Leave `loggingEnabled = false` (the default) in release builds. If you need
+to capture a trace from a customer's device, gate the call behind a debug
+build type or a runtime developer-options flag — do not toggle it in
+production code paths.
+
 ## Overview
 
 ID card support for Android applications is based on two libraries: `id-card-lib` and `smart-card-reader-lib`.

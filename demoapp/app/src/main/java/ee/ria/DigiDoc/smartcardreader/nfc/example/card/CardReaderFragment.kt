@@ -26,6 +26,8 @@ import android.content.IntentFilter
 import android.nfc.NfcAdapter
 import android.nfc.TagLostException
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -66,6 +68,10 @@ import java.security.cert.X509Certificate
  * CardReaderFragment is direct integration point with NFC library
  */
 class CardReaderFragment : Fragment() {
+
+    /** How long the success / error icon stays visible before navigating away. */
+    private val RESULT_ICON_DISPLAY_MS = 1500L
+
     private val logTag = javaClass.simpleName
     private val dataViewModel: DataViewModel by activityViewModels()
     private lateinit var binding: FragmentCardReaderBinding
@@ -185,7 +191,7 @@ class CardReaderFragment : Fragment() {
                     val cert: X509Certificate = cf.generateCertificate(inps) as X509Certificate
 
                     setReaderResult(R.drawable.success)
-                    requireActivity().runOnUiThread {
+                    runOnUiAfterDelay {
                         val bundle = Bundle()
                         bundle.putString("user", cert.subjectDN.toString())
                         findNavController()
@@ -193,7 +199,7 @@ class CardReaderFragment : Fragment() {
                     }
                 } catch (ex: SmartCardReaderException) {
                     setReaderResult(R.drawable.error)
-                    requireActivity().runOnUiThread {
+                    runOnUiAfterDelay {
                         exceptionToast(ex)
                         findNavController().popBackStack(R.id.pin1Fragment, false)
                     }
@@ -225,7 +231,15 @@ class CardReaderFragment : Fragment() {
                     signature = container.prepareWebSignature(signerCert, Utils.signatureProfile)
                     val dataToSign = signature.dataToSign()
                     val pin2 = arguments?.getByteArray("pin2")
-                    val signatureArray = card.calculateSignature(pin2!!, dataToSign!!, true)
+                    if (pin2 == null || dataToSign == null) {
+                        setReaderResult(R.drawable.error)
+                        runOnUiAfterDelay {
+                            Toast.makeText(requireContext(),
+                                "Missing PIN2 or data to sign", Toast.LENGTH_SHORT).show()
+                        }
+                        return@startDiscovery
+                    }
+                    val signatureArray = card.calculateSignature(pin2, dataToSign, true)
                     debugLog(logTag, String.format("%s", Hex.toHexString(signatureArray)))
                     addSignature(signatureArray)
                     setReaderResult(R.drawable.success)
@@ -250,7 +264,7 @@ class CardReaderFragment : Fragment() {
                 } finally {
                     nfcSmartCardReaderManager.disableNfcReaderMode()
                 }
-                requireActivity().runOnUiThread {
+                runOnUiAfterDelay {
                     findNavController().navigate(R.id.action_cardReaderFragment_to_containerFragment)
                 }
             }
@@ -295,12 +309,12 @@ class CardReaderFragment : Fragment() {
                     dataViewModel.setPin2Counter(pin2counter)
 
                     setReaderResult(R.drawable.success)
-                    requireActivity().runOnUiThread {
+                    runOnUiAfterDelay {
                         findNavController().navigate(R.id.action_cardReaderFragment_to_cardInfoFragment)
                     }
                 } catch (ex: SmartCardReaderException) {
                     setReaderResult(R.drawable.error)
-                    requireActivity().runOnUiThread {
+                    runOnUiAfterDelay {
                         findNavController().popBackStack(R.id.canFragment, false)
                         exceptionToast(ex)
                     }
@@ -327,8 +341,16 @@ class CardReaderFragment : Fragment() {
                 try {
                     val card = TokenWithPace.create(nfcReader)
 
-                    val puk = arguments?.getByteArray("puk")!!
-                    val newPin = arguments?.getByteArray("newPin")!!
+                    val puk = arguments?.getByteArray("puk")
+                    val newPin = arguments?.getByteArray("newPin")
+                    if (puk == null || newPin == null) {
+                        setReaderResult(R.drawable.error)
+                        runOnUiAfterDelay {
+                            Toast.makeText(requireContext(),
+                                "Missing PUK or new PIN", Toast.LENGTH_SHORT).show()
+                        }
+                        return@startDiscovery
+                    }
                     val pinType = arguments?.getString("pinType")
                     val codeType = if (pinType == "PIN2") CodeType.PIN2 else CodeType.PIN1
 
@@ -338,7 +360,7 @@ class CardReaderFragment : Fragment() {
                     card.unblockAndChangeCode(puk, codeType, newPin)
 
                     setReaderResult(R.drawable.success)
-                    requireActivity().runOnUiThread {
+                    runOnUiAfterDelay {
                         Toast.makeText(
                             requireContext(),
                             getString(R.string.unblock_success),
@@ -348,7 +370,7 @@ class CardReaderFragment : Fragment() {
                     }
                 } catch (ex: SmartCardReaderException) {
                     setReaderResult(R.drawable.error)
-                    requireActivity().runOnUiThread {
+                    runOnUiAfterDelay {
                         exceptionToast(ex)
                         findNavController().popBackStack(R.id.unblockFragment, false)
                     }
@@ -375,7 +397,16 @@ class CardReaderFragment : Fragment() {
             resultIcon.visibility = View.VISIBLE
             resultIcon.setImageResource(drawable)
         }
-        Thread.sleep(1500)
+    }
+
+    /**
+     * Schedules {@code action} on the main thread {@value RESULT_ICON_DISPLAY_MS} ms
+     * in the future so the result icon stays visible briefly before the
+     * navigation transition begins — without blocking the NFC binder
+     * thread that called us.
+     */
+    private fun runOnUiAfterDelay(action: () -> Unit) {
+        Handler(Looper.getMainLooper()).postDelayed(action, RESULT_ICON_DISPLAY_MS)
     }
 
     private fun exceptionToast(ex: SmartCardReaderException) {

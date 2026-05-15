@@ -57,6 +57,12 @@ class LoggingUtil
     constructor() {
         companion object : Logging {
             private lateinit var logger: Logger
+
+            // @Volatile + write-AFTER-logger ordering: when a reader on another
+            // thread sees isLoggingEnabled == true, the logger field is guaranteed
+            // to have been published, so the lateinit access in the log methods
+            // can't observe an uninitialized state.
+            @Volatile
             private var isLoggingEnabled: Boolean = false
 
             fun initialize(
@@ -64,9 +70,7 @@ class LoggingUtil
                 appLogger: Logger,
                 loggingEnabled: Boolean,
             ) {
-                isLoggingEnabled = loggingEnabled
-
-                if (isLoggingEnabled) {
+                if (loggingEnabled) {
                     logger = appLogger
                     val consoleHandler = ConsoleHandler()
                     consoleHandler.formatter = LogFormatter()
@@ -74,6 +78,7 @@ class LoggingUtil
                     logger.level = java.util.logging.Level.ALL
                     consoleHandler.level = java.util.logging.Level.ALL
                 }
+                isLoggingEnabled = loggingEnabled
             }
 
             override fun errorLog(

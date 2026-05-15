@@ -19,7 +19,6 @@
 
 package ee.ria.DigiDoc.idcard;
 
-import ee.ria.DigiDoc.smartcardreader.SmartCardReader;
 import ee.ria.DigiDoc.smartcardreader.SmartCardReaderException;
 
 /**
@@ -128,16 +127,4 @@ public interface Token {
      * @throws CodeVerificationException When PIN1 code is wrong.
      */
     byte[] decrypt(byte[] pin1, byte[] data, boolean ecc) throws SmartCardReaderException;
-
-    /**
-     * @deprecated Wired ID-card support has been removed from this library;
-     * use {@link TokenWithPace#create(ee.ria.DigiDoc.smartcardreader.nfc.NfcSmartCardReader)}
-     * over NFC instead. This method is retained as a source-compatibility
-     * stub and now always throws.
-     */
-    @Deprecated
-    static Token create(SmartCardReader reader) throws SmartCardReaderException {
-        throw new SmartCardReaderException(
-            "Wired ID-card support has been removed; use TokenWithPace.create() over NFC.");
-    }
 }
