@@ -76,9 +76,8 @@ public final class ThalesPersonalDataReplayTest {
     }
 
     /**
-     * Thales personal-data flow captured 2026-05-14 (logcat session at
-     * 13:33:11). 8 EFs under DF.DDDD: surname, given names, sex,
-     * citizenship, DOB+place, personal code, doc number, doc expiry.
+     * Thales personal-data flow: 8 EFs under DF.DDDD: surname, given names,
+     * sex, citizenship, DOB+place, personal code, doc number, doc expiry.
      *
      * <p>Each {@code readFile} call sees a 2-step exchange: SELECT EF
      * returns an FCI carrying the file size in tag {@code 81 02 ..};
@@ -125,10 +124,9 @@ public final class ThalesPersonalDataReplayTest {
     }
 
     /**
-     * Thales auth-cert read, captured 2026-05-14 (session at 13:33:01).
-     * SELECT cert at {@code AD F1 34 11} returns FCI with size 0x040A;
-     * cert reads in chunks of 0xDF (chip-imposed limit despite Le=0xE5)
-     * with a 0x8E-byte short final chunk.
+     * Thales auth-cert read. SELECT cert at {@code AD F1 34 11} returns FCI
+     * with size 0x040A; cert reads in chunks of 0xDF (chip-imposed limit
+     * despite Le=0xE5) with a 0x8E-byte short final chunk.
      */
     static void loadAuthCertTranscript(ApduReplayReader r) {
         // SELECT auth cert file. FCI carries size 0x040A (1034) in tag 81.

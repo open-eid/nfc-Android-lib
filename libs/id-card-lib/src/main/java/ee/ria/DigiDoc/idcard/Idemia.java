@@ -28,14 +28,20 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
 import ee.ria.DigiDoc.smartcardreader.ApduResponseException;
 import ee.ria.DigiDoc.smartcardreader.SmartCardReader;
 import ee.ria.DigiDoc.smartcardreader.SmartCardReaderException;
+import ee.ria.DigiDoc.utilsLib.logging.LoggingUtil;
 
 abstract class Idemia implements Token {
+
+    private static final String TAG = Idemia.class.getName();
+
+    private static final int READ_BINARY_CHUNK_LE = 0xE5;
 
     private static final Map<CertificateType, byte[]> CERT_MAP = new HashMap<>();
     static {
@@ -81,21 +87,114 @@ abstract class Idemia implements Token {
         return IdemiaPersonalDataParser.parse(data);
     }
 
+    /**
+     * SELECT cert EF with P2 = 0x04 to request the FCP template, then either
+     * <ul>
+     *   <li>FCI fast path: if the FCI declares a file size in tag
+     *       {@code 80}/{@code 81}, READ BINARY exactly that many bytes
+     *       (no 6B 00 probe).</li>
+     *   <li>Canonical fallback: if the FCI lacks a parseable size tag,
+     *       READ BINARY chunked until the card returns SW {@code 6B 00}.</li>
+     * </ul>
+     * Both LV and EE IDEMIA cards return a standard ISO 7816-4 FCP template
+     * containing the size, so the fast path is the default. The fallback
+     * keeps us correct on card variants that respond to {@code P2 = 0x04}
+     * but omit the size tag — would otherwise silently truncate large files.
+     */
     @Override
     public byte[] certificate(CertificateType type) throws SmartCardReaderException {
         selectMainAid();
-        reader.transmit(0x00, 0xA4, 0x09, 0x0C, CERT_MAP.get(type), null);
+        byte[] fci = reader.transmit(0x00, 0xA4, 0x09, 0x04, CERT_MAP.get(type), null);
 
+        Integer size = parseFciSize(fci);
+        if (size != null) {
+            LoggingUtil.Companion.debugLog(TAG, String.format(
+                    "certificate(%s): FCI fast path, declared size=%d bytes",
+                    type, size), null);
+            return readBoundedByFciSize(size);
+        }
+        LoggingUtil.Companion.debugLog(TAG, String.format(
+                "certificate(%s): FCI lacks tag 0x80/0x81 size — falling back to 6B 00 loop",
+                type), null);
+        return readUntilEof();
+    }
+
+    /**
+     * Walk the FCI (possibly wrapped in a {@code 6F}/{@code 62} template,
+     * possibly bare) for the first tag {@code 80} or {@code 81} carrying a
+     * 2-byte big-endian file size. Returns {@code null} if neither tag is
+     * present with a usable value — caller falls back to a {@code 6B 00}-
+     * terminated read.
+     */
+    private Integer parseFciSize(byte[] fci) {
+        TLV r = findTagRecursive(TLV.parseAll(fci), 0x80);
+        if (r == null) {
+            r = findTagRecursive(TLV.parseAll(fci), 0x81);
+        }
+        if (r == null) {
+            return null;
+        }
+        byte[] value = r.getValue();
+        if (value == null || value.length < 2) {
+            return null;
+        }
+        return ((value[0] & 0xFF) << 8) | (value[1] & 0xFF);
+    }
+
+    /**
+     * FCI fast path: read exactly {@code size} bytes in chunks of up to
+     * {@value #READ_BINARY_CHUNK_LE}. A 6B 00 mid-read or zero-length
+     * response is treated as graceful EOF — the card decided to deliver
+     * less than declared, which we tolerate rather than throw.
+     */
+    private byte[] readBoundedByFciSize(int size) throws SmartCardReaderException {
+        ByteArrayOutputStream stream = new ByteArrayOutputStream();
+        while (stream.size() < size) {
+            int offset = stream.size();
+            int le = Math.min(READ_BINARY_CHUNK_LE, size - offset);
+            try {
+                byte[] response = reader.transmit(0x00, 0xB0,
+                        offset >> 8, offset & 0xFF, null, le);
+                stream.write(response);
+                if (response.length == 0) {
+                    break;
+                }
+            } catch (ApduResponseException e) {
+                if (e.sw1 == (byte) 0x6B && e.sw2 == (byte) 0x00) {
+                    break;
+                }
+                throw new SmartCardReaderException(e);
+            } catch (IOException e) {
+                throw new SmartCardReaderException(e);
+            }
+        }
+        return stream.toByteArray();
+    }
+
+    /**
+     * Canonical fallback when FCI lacks a usable size: chunked
+     * {@code READ BINARY} with {@code Le = 0x00} until the card returns
+     * {@code 6B 00} (or {@code 6A 82} — file not found, treated as empty).
+     */
+    private byte[] readUntilEof() throws SmartCardReaderException {
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
         while (true) {
+            int offset = stream.size();
             try {
-                stream.write(reader.transmit(0x00, 0xB0, stream.size() >> 8, stream.size(), null, 0x00));
-            } catch (ApduResponseException e) {
-                if (e.sw1 == 0x6B && e.sw2 == 0x00) {
+                byte[] response = reader.transmit(0x00, 0xB0,
+                        offset >> 8, offset & 0xFF, null, 0x00);
+                stream.write(response);
+                if (response.length == 0) {
                     break;
-                } else {
-                    throw new SmartCardReaderException(e);
                 }
+            } catch (ApduResponseException e) {
+                if (e.sw1 == (byte) 0x6B && e.sw2 == (byte) 0x00) {
+                    break;
+                }
+                if (e.sw1 == (byte) 0x6A && e.sw2 == (byte) 0x82) {
+                    break;
+                }
+                throw new SmartCardReaderException(e);
             } catch (IOException e) {
                 throw new SmartCardReaderException(e);
             }
@@ -199,6 +298,28 @@ abstract class Idemia implements Token {
         byte[] padded = Arrays.copyOf(code, 12);
         Arrays.fill(padded, code.length, padded.length, (byte) 0xFF);
         return padded;
+    }
+
+    /**
+     * Walk {@code records} (and constructed children) depth-first and return
+     * the first TLV matching {@code targetTag}, or {@code null}. Lets us find
+     * the FCI size tag whether the card wraps it in a {@code 6F}/{@code 62}
+     * template or sends it bare.
+     */
+    private static TLV findTagRecursive(List<TLV> records, int targetTag) {
+        if (records == null) {
+            return null;
+        }
+        for (TLV record : records) {
+            if (record.getTag() == targetTag) {
+                return record;
+            }
+            TLV found = findTagRecursive(record.children, targetTag);
+            if (found != null) {
+                return found;
+            }
+        }
+        return null;
     }
 
     /**

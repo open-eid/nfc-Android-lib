@@ -10,8 +10,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
 /**
- * Thales PIN retry + PUK unblock replay (captured 2026-05-14, sessions
- * at 13:34:10–:41 for PIN1 failures, 13:35:06 for PUK unblock).
+ * Thales PIN retry + PUK unblock replay.
  *
  * <p>Thales differs from IDEMIA on three retry-related details that
  * this test pins:

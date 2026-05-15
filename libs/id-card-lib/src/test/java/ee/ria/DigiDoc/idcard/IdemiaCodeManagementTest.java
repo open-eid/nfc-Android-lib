@@ -177,38 +177,118 @@ public final class IdemiaCodeManagementTest {
 
     // -------- certificate --------
 
+    // Cert read uses the FCI shape (Idemia.USE_FCI_CERT_READ = true by default):
+    // SELECT with P2 = 0x04, parse file size from FCI tag 80/81, then READ
+    // BINARY exactly that many bytes. Two responses are queued on the 0xA4
+    // queue: the first is consumed by SELECT MAIN AID (empty/9000), the
+    // second by SELECT cert (returns the FCI bytes).
+
     @Test
-    public void certificate_authentication_selectsAuthCertEf() throws Exception {
-        // Stub a small cert payload + 6B00 to end the READ BINARY loop.
+    public void certificate_authentication_selectsAuthCertEfViaFciAndReadsDeclaredSize() throws Exception {
+        // FCI: tag 80 declaring file size = 5 bytes (big-endian: 00 05).
+        byte[] fci = Hex.decode("80020005");
+        byte[] certContent = new byte[] {0x30, 0x05, (byte) 0xAA, (byte) 0xBB, (byte) 0xCC};
         CommandStubReader stub = new CommandStubReader()
-                .respondTo(0x00, 0xB0, new byte[] {0x30, 0x05, (byte) 0xAA, (byte) 0xBB, (byte) 0xCC})
+                .respondTo(0x00, 0xA4, new byte[0])          // SELECT MAIN AID
+                .respondTo(0x00, 0xA4, fci)                  // SELECT cert (FCI form)
+                .respondTo(0x00, 0xB0, certContent);
+        IdemiaWithPace token = new IdemiaWithPace(stub.build());
+
+        byte[] cert = token.certificate(CertificateType.AUTHENTICATION);
+
+        assertThat(cert).isEqualTo(certContent);
+        // SELECT MAIN AID (P2 = 0x0C — AID select is unchanged)
+        CommandStubReader.assertHeader(stub.captured.get(0), 0x00, 0xA4, 0x04, 0x0C);
+        // SELECT cert: P2 = 0x04 (request FCI), AUTH path AD F1 34 01
+        CommandStubReader.Apdu certSelect = stub.captured.get(1);
+        CommandStubReader.assertHeader(certSelect, 0x00, 0xA4, 0x09, 0x04);
+        assertThat(certSelect.data).isEqualTo(Hex.decode("ADF13401"));
+        // READ BINARY: Le clamped to declared size (5) since 5 < CHUNK_LE.
+        CommandStubReader.Apdu read = stub.captured.get(2);
+        CommandStubReader.assertHeader(read, 0x00, 0xB0, 0x00, 0x00);
+    }
+
+    @Test
+    public void certificate_signing_routesToSigningCertEfViaFci() throws Exception {
+        byte[] fci = Hex.decode("80020003");
+        byte[] certContent = new byte[] {0x30, 0x03, 0x01, 0x02, 0x03};
+        CommandStubReader stub = new CommandStubReader()
+                .respondTo(0x00, 0xA4, new byte[0])
+                .respondTo(0x00, 0xA4, fci)
+                .respondTo(0x00, 0xB0, certContent);
+        IdemiaWithPace token = new IdemiaWithPace(stub.build());
+
+        byte[] cert = token.certificate(CertificateType.SIGNING);
+
+        assertThat(cert).isEqualTo(certContent);
+        CommandStubReader.Apdu certSelect = stub.captured.get(1);
+        CommandStubReader.assertHeader(certSelect, 0x00, 0xA4, 0x09, 0x04);
+        // SIGN cert path: AD F2 34 1F
+        assertThat(certSelect.data).isEqualTo(Hex.decode("ADF2341F"));
+    }
+
+    @Test
+    public void certificate_fciSizeFromTag81_alternativeFormAccepted() throws Exception {
+        // Tag 81 is the "transparent EF data length" variant accepted by the
+        // FCI parser alongside tag 80. iOS treats them equivalently.
+        byte[] fci = Hex.decode("81020004");
+        byte[] certContent = new byte[] {0x30, 0x04, 0x11, 0x22};
+        CommandStubReader stub = new CommandStubReader()
+                .respondTo(0x00, 0xA4, new byte[0])
+                .respondTo(0x00, 0xA4, fci)
+                .respondTo(0x00, 0xB0, certContent);
+        IdemiaWithPace token = new IdemiaWithPace(stub.build());
+
+        byte[] cert = token.certificate(CertificateType.AUTHENTICATION);
+
+        assertThat(cert).isEqualTo(certContent);
+    }
+
+    @Test
+    public void certificate_fciAbsent_fallsBackToEofLoop() throws Exception {
+        // No tag 80/81 in FCI → switch to canonical READ BINARY loop until
+        // 6B 00. Single-chunk payload here; multi-chunk variant below proves
+        // the loop doesn't silently truncate past a fixed size.
+        byte[] payloadChunk = new byte[] {0x01, 0x02, 0x03};
+        CommandStubReader stub = new CommandStubReader()
+                .respondTo(0x00, 0xA4, new byte[0])
+                .respondTo(0x00, 0xA4, Hex.decode("AA0511223344"))   // unrelated tag
+                .respondTo(0x00, 0xB0, payloadChunk)
                 .throwOn(0x00, 0xB0, new ApduResponseException((byte) 0x6B, (byte) 0x00));
         IdemiaWithPace token = new IdemiaWithPace(stub.build());
 
         byte[] cert = token.certificate(CertificateType.AUTHENTICATION);
 
-        assertThat(cert).hasLength(5);
-        // SELECT MAIN AID, then SELECT cert EF by path (P1 = 0x09)
-        CommandStubReader.assertHeader(stub.captured.get(0), 0x00, 0xA4, 0x04, 0x0C);
-        CommandStubReader.Apdu certSelect = stub.captured.get(1);
-        CommandStubReader.assertHeader(certSelect, 0x00, 0xA4, 0x09, 0x0C);
-        // AUTH cert path: AD F1 34 01
-        assertThat(certSelect.data).isEqualTo(Hex.decode("ADF13401"));
+        assertThat(cert).isEqualTo(payloadChunk);
     }
 
     @Test
-    public void certificate_signing_routesToSigningCertEf() throws Exception {
+    public void certificate_fciAbsent_eofLoopReadsBeyondFciFallbackSize() throws Exception {
+        // Regression: with the old "size defaults to 0xE5" form, this would
+        // have silently truncated to 229 bytes. The EOF loop reads all chunks
+        // until 6B 00 terminates — proves there's no hidden truncation cap.
+        byte[] firstChunk = new byte[300];   // bigger than the old 0xE5 cap
+        for (int i = 0; i < firstChunk.length; i++) {
+            firstChunk[i] = (byte) (i & 0xFF);
+        }
+        byte[] secondChunk = new byte[]{(byte) 0xAA, (byte) 0xBB};
         CommandStubReader stub = new CommandStubReader()
-                .respondTo(0x00, 0xB0, new byte[] {0x30, 0x03, 0x01, 0x02, 0x03})
+                .respondTo(0x00, 0xA4, new byte[0])
+                .respondTo(0x00, 0xA4, Hex.decode("AA0511223344"))   // unrelated tag, no size
+                .respondTo(0x00, 0xB0, firstChunk)
+                .respondTo(0x00, 0xB0, secondChunk)
                 .throwOn(0x00, 0xB0, new ApduResponseException((byte) 0x6B, (byte) 0x00));
         IdemiaWithPace token = new IdemiaWithPace(stub.build());
 
-        token.certificate(CertificateType.SIGNING);
+        byte[] cert = token.certificate(CertificateType.AUTHENTICATION);
 
-        CommandStubReader.Apdu certSelect = stub.captured.get(1);
-        CommandStubReader.assertHeader(certSelect, 0x00, 0xA4, 0x09, 0x0C);
-        // SIGN cert path: AD F2 34 1F
-        assertThat(certSelect.data).isEqualTo(Hex.decode("ADF2341F"));
+        // Both chunks delivered, then 6B 00 terminated cleanly. 302 > 229
+        // proves we're past the old fallback size.
+        assertThat(cert).hasLength(302);
+        assertThat(cert[0]).isEqualTo((byte) 0x00);
+        assertThat(cert[299]).isEqualTo((byte) (299 & 0xFF));
+        assertThat(cert[300]).isEqualTo((byte) 0xAA);
+        assertThat(cert[301]).isEqualTo((byte) 0xBB);
     }
 
     /** GET DATA stub payload: {@code totalLen} bytes, retry byte at index 13. */

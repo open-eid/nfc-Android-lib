@@ -10,12 +10,10 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
 /**
- * EE IDEMIA PIN retry + PUK unblock replay, captured 2026-05-14
- * (sessions at 12:16:25–12:16:44 for PIN1 failures, 12:17:45 for PUK
- * unblock). The retry SW → exception mapping lives in
- * {@code Idemia.handleApduResponseException} and is shared between EE
- * and LV; this test exercises it on the EE path so any card-family
- * override that drifts apart fails here.
+ * EE IDEMIA PIN retry + PUK unblock replay. The retry SW → exception
+ * mapping lives in {@code Idemia.handleApduResponseException} and is
+ * shared between EE and LV; this test exercises it on the EE path so
+ * any card-family override that drifts apart fails here.
  */
 public final class EstoniaIdemiaPinRetryReplayTest {
 

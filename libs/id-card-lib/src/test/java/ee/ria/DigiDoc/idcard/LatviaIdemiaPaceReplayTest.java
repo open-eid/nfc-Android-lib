@@ -31,9 +31,8 @@ public final class LatviaIdemiaPaceReplayTest {
     }
 
     /**
-     * LV PACE handshake captured on 2026-05-14 (logcat
-     * session at 12:06:03). Loads in send-order so unconsumed() drops in
-     * order; the replay reader looks up by C-APDU bytes regardless.
+     * LV PACE handshake transcript. Loads in send-order so unconsumed() drops
+     * in order; the replay reader looks up by C-APDU bytes regardless.
      */
     static void loadPaceTranscript(ApduReplayReader r) {
         // SELECT MAIN AID (Idemia LV/EE eID application)

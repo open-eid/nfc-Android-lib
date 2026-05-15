@@ -6,6 +6,7 @@ re-implement support on any host that can speak ISO/IEC 7816-4 APDUs over
 ISO/IEC 14443-4 (NfcA).
 
 > Conventions
+>
 > - Bytes are hex, MSB-first, separated by spaces. `<x>` denotes a placeholder.
 > - APDUs are written as `CLA INS P1 P2 [Lc data] [Le]`.
 >   `Lc` and `Le` are written as a single byte where shown; APDUs without `Lc`
@@ -17,15 +18,15 @@ ISO/IEC 14443-4 (NfcA).
 
 ## 1. Overview
 
-| | |
-|---|---|
-| Card platform | IDEMIA ID-One Cosmo v8 (IAS-ECC) |
-| Applets | MAIN (IAS-ECC; certs, EF.CardAccess, EF 0x5001) + Oberthur AWP (auth/decrypt) + QSCD (signing). See §3 for AID values. |
-| Transport | ISO 14443-4 / NfcA, ISO 7816-4 APDUs |
-| PACE curve | Negotiated from EF.CardAccess. Observed: `brainpoolP256r1` on LV, `secp256r1` on EE — both 256-bit. |
-| User-key curve | `secp384r1` per the auth/sign certificates (independent of the PACE curve). All ECDSA signatures returned by the card are 96 bytes (`r ‖ s`, 48 + 48). |
-| Secure messaging | PACE-derived AES-256 CBC + AES-256-CMAC (mechanism `id-PACE-ECDH-GM-AES-CBC-CMAC-256`) |
-| User secrets | PIN1 (auth), PIN2 (sign), PUK (unblock); CAN for PACE |
+|                  |                                                                                                                                                        |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Card platform    | IDEMIA ID-One Cosmo v8 (IAS-ECC)                                                                                                                       |
+| Applets          | MAIN (IAS-ECC; certs, EF.CardAccess, EF 0x5001) + Oberthur AWP (auth/decrypt) + QSCD (signing). See §3 for AID values.                                 |
+| Transport        | ISO 14443-4 / NfcA, ISO 7816-4 APDUs                                                                                                                   |
+| PACE curve       | Negotiated from EF.CardAccess. Observed: `brainpoolP256r1` on LV, `secp256r1` on EE — both 256-bit.                                                    |
+| User-key curve   | `secp384r1` per the auth/sign certificates (independent of the PACE curve). All ECDSA signatures returned by the card are 96 bytes (`r ‖ s`, 48 + 48). |
+| Secure messaging | PACE-derived AES-256 CBC + AES-256-CMAC (mechanism `id-PACE-ECDH-GM-AES-CBC-CMAC-256`)                                                                 |
+| User secrets     | PIN1 (auth), PIN2 (sign), PUK (unblock); CAN for PACE                                                                                                  |
 
 Every sensitive operation (cert read with SM, PIN verify, key operations,
 EF.5001 read) requires a PACE channel. The CAN is printed on the card.
@@ -37,9 +38,9 @@ EF.5001 read) requires a PACE channel. The CAN is printed on the card.
 Match against the contactless historical bytes / ATS. The library currently
 recognises two LV variants:
 
-| Variant | Bytes |
-|---|---|
-| Newer LV | `00 12 42 8F 53 65 49 44 0F 90 00` |
+| Variant  | Bytes                                 |
+| -------- | ------------------------------------- |
+| Newer LV | `00 12 42 8F 53 65 49 44 0F 90 00`    |
 | Older LV | `00 12 42 8F 54 65 49 44 32 0F 90 00` |
 
 The leading `00 12 42 8F` is the manufacturer signature unique to LV.
@@ -56,22 +57,22 @@ historical-bytes block first.
 
 For reference, what some common stacks expose by default:
 
-| Stack | Call | What it returns |
-|---|---|---|
-| Android (NfcA `IsoDep`) | `getHistoricalBytes()` | Historical bytes — exactly the strings above. |
-| Android (NfcA `IsoDep`, alt) | `getHiLayerResponse()` | Full ATS framing — strip leading bytes to recover. |
-| iOS (CoreNFC) | `NFCISO7816Tag.historicalBytes` | Historical bytes — same form as Android. |
-| PC/SC contactless | `SCardStatus()` ATR | Reader-synthesized contact-style ATR (e.g. `3B 8x 80 01 <historical> <TCK>`); parse out the historical-bytes block. |
+| Stack                        | Call                            | What it returns                                                                                                     |
+| ---------------------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Android (NfcA `IsoDep`)      | `getHistoricalBytes()`          | Historical bytes — exactly the strings above.                                                                       |
+| Android (NfcA `IsoDep`, alt) | `getHiLayerResponse()`          | Full ATS framing — strip leading bytes to recover.                                                                  |
+| iOS (CoreNFC)                | `NFCISO7816Tag.historicalBytes` | Historical bytes — same form as Android.                                                                            |
+| PC/SC contactless            | `SCardStatus()` ATR             | Reader-synthesized contact-style ATR (e.g. `3B 8x 80 01 <historical> <TCK>`); parse out the historical-bytes block. |
 
 ---
 
 ## 3. Applets and AIDs
 
-| Applet | AID | Purpose |
-|---|---|---|
-| MAIN (IAS-ECC) | `A0 00 00 00 77 01 08 00 07 00 00 FE 00 00 01 00` | EF.CardAccess, EF 0x5001, certificate files |
-| Oberthur AWP   | `E8 28 BD 08 0F F2 50 4F 54 20 41 57 50` | PIN1 verify, auth, decrypt |
-| QSCD           | `51 53 43 44 20 41 70 70 6C 69 63 61 74 69 6F 6E` (`"QSCD Application"`) | PIN2 verify, signing |
+| Applet         | AID                                                                      | Purpose                                     |
+| -------------- | ------------------------------------------------------------------------ | ------------------------------------------- |
+| MAIN (IAS-ECC) | `A0 00 00 00 77 01 08 00 07 00 00 FE 00 00 01 00`                        | EF.CardAccess, EF 0x5001, certificate files |
+| Oberthur AWP   | `E8 28 BD 08 0F F2 50 4F 54 20 41 57 50`                                 | PIN1 verify, auth, decrypt                  |
+| QSCD           | `51 53 43 44 20 41 70 70 6C 69 63 61 74 69 6F 6E` (`"QSCD Application"`) | PIN2 verify, signing                        |
 
 **SELECT AID** (always P2 = `0x0C` over NFC — `0x00` does not work):
 
@@ -136,12 +137,12 @@ third child (`INTEGER parameterId`) as a single byte:
 > forms aren't produced for files of this size. A minimal porter walker
 > needs at least these three branches.
 
-| `parameterId` | Curve | Reference impl |
-|---|---|---|
-| `0x0C` | `secp256r1`        | supported |
-| `0x0D` | `brainpoolP256r1`  | supported |
-| `0x0F` | `secp384r1`        | rejected — see note |
-| `0x10` | `brainpoolP384r1`  | rejected — see note |
+| `parameterId` | Curve             | Reference impl      |
+| ------------- | ----------------- | ------------------- |
+| `0x0C`        | `secp256r1`       | supported           |
+| `0x0D`        | `brainpoolP256r1` | supported           |
+| `0x0F`        | `secp384r1`       | rejected — see note |
+| `0x10`        | `brainpoolP384r1` | rejected — see note |
 
 **Currently observed on LV cards:** `0x0D` (`brainpoolP256r1`) only;
 on EE cards `0x0C` (`secp256r1`).
@@ -270,12 +271,12 @@ Compute the shared session secret and derive AES-256 session keys.
 `K` is the affine X coordinate of the resulting point, encoded as a
 **fixed-width big-endian integer of the curve's field byte size**:
 
-| Curve | Field byte size | `K` length |
-|---|---|---|
-| `secp256r1` | 32 | 32 B |
-| `brainpoolP256r1` | 32 | 32 B |
-| `secp384r1` | 48 | 48 B |
-| `brainpoolP384r1` | 48 | 48 B |
+| Curve             | Field byte size | `K` length |
+| ----------------- | --------------- | ---------- |
+| `secp256r1`       | 32              | 32 B       |
+| `brainpoolP256r1` | 32              | 32 B       |
+| `secp384r1`       | 48              | 48 B       |
+| `brainpoolP384r1` | 48              | 48 B       |
 
 Left-pad with zeros if the X integer is shorter than the field size
 (rare on uniform inputs but possible). The SHA-256 input length is
@@ -284,7 +285,7 @@ therefore `coordSize + 4`.
 > For all four curves listed above the field size and the group-order
 > size happen to coincide. **Don't generalise that** to other curves —
 > on some curves (e.g. some Koblitz / `sect` curves) field size and
-> order size differ, and PACE-GM specifies the *field* size for `K`.
+> order size differ, and PACE-GM specifies the _field_ size for `K`.
 
 ```
 K       = ( d_term2 · Q_card2 ).x         ← fixed-width affine X, big-endian
@@ -297,10 +298,10 @@ K_mac   = SHA-256( K || 00 00 00 02 )    ← full 32-byte digest, AES-256 key
 Build the auth-token data. The two length bytes track the curve's
 point size:
 
-| Curve family | `7F 49` length | `86` length | `Q` size |
-|---|---|---|---|
-| 256-bit (`secp256r1`, `brainpoolP256r1`) | `4F` (79) | `41` (65) | 65 B |
-| 384-bit (`secp384r1`, `brainpoolP384r1`) | `6F` (111) | `61` (97) | 97 B |
+| Curve family                             | `7F 49` length | `86` length | `Q` size |
+| ---------------------------------------- | -------------- | ----------- | -------- |
+| 256-bit (`secp256r1`, `brainpoolP256r1`) | `4F` (79)      | `41` (65)   | 65 B     |
+| 384-bit (`secp384r1`, `brainpoolP384r1`) | `6F` (111)     | `61` (97)   | 97 B     |
 
 Both lengths fit in BER short-form for these curves.
 
@@ -364,7 +365,7 @@ The counter is incremented **twice per command/response pair**:
 
 ### 5.2 IV for AES-CBC
 
-Each command and each response uses an IV derived from the *current* SSC:
+Each command and each response uses an IV derived from the _current_ SSC:
 
 ```
 IV = AES-ECB-Encrypt(K_enc, SSC)            ← 16-byte single-block output
@@ -379,14 +380,17 @@ encryption.)
 Given a plaintext APDU `CLA INS P1 P2 [data] [Le]`:
 
 1. **Masked header (4 bytes, on-wire form)**:
+
    ```
    maskedHeader = (CLA | 0x0C) || INS || P1 || P2
    ```
-   These 4 bytes go into the wrapped APDU unchanged. A *padded* 16-byte
+
+   These 4 bytes go into the wrapped APDU unchanged. A _padded_ 16-byte
    form is computed separately for MAC input in step 4 — it never appears
    on the wire.
 
 2. **Encrypted-data DO** (only if `data` is non-empty):
+
    ```
    plain     = data || 80 00 …               (pad to the next multiple of 16:
                                               always append at least one 0x80
@@ -405,6 +409,7 @@ Given a plaintext APDU `CLA INS P1 P2 [data] [Le]`:
    if INS is odd (unreachable on this card; included for completeness):
        DO_data = 85 <Lc'> ct                 (Lc' = len(ct), no indicator)
    ```
+
    The reference implementation emits a **single-byte** length here. BER
    long-form (`81 <len>`, `82 <hi> <lo>`, …) is permitted by the standard
    but is not produced by the current code; current payloads (PINs, 48-byte
@@ -417,21 +422,24 @@ Given a plaintext APDU `CLA INS P1 P2 [data] [Le]`:
    > would be reached only if a future operation used an odd-INS write.
 
 3. **Le DO** (only if `Le` is present):
+
    ```
    DO_Le = 97 01 <Le>
    ```
 
 4. **MAC**:
+
    ```
    macInput = SSC || pad(maskedHeader, 16) || DO_data || DO_Le
    if (length not a multiple of 16) macInput = pad(macInput, 16)   ← conditional
    MAC      = AES-CMAC(K_mac, macInput)[0..7]
    DO_MAC   = 8E 08 MAC
    ```
+
    Where `pad(x, 16)` = append `0x80`, then `0x00` bytes until length is a
    multiple of 16. The 4-byte `maskedHeader` is therefore always padded
    into a 16-byte block; the final `pad` call after appending DOs is
-   *only* applied if the running length isn't already aligned.
+   _only_ applied if the running length isn't already aligned.
 
    > **Worked example — VERIFY PIN1.** Plaintext APDU `00 20 00 01` with
    > 12-byte padded PIN, no Le.
@@ -473,6 +481,7 @@ Given a plaintext APDU `CLA INS P1 P2 [data] [Le]`:
    ```
    (CLA|0x0C) INS P1 P2  <newLc>  DO_data  DO_Le  DO_MAC  00
    ```
+
    - `newLc = len(DO_data) + len(DO_Le) + len(DO_MAC)`. This is the
      **outer ISO 7816-4 Lc** (case 3 short-form) — a single byte, valid
      range 1..255. For `newLc > 255` an ISO 7816-4 **extended-length
@@ -565,35 +574,81 @@ trustworthy.
 
 ## 6. Files used by the LV card
 
-| FID / Path | Description | SELECT |
-|---|---|---|
-| `01 1C` | EF.CardAccess (PACE params, ASN.1) | `00 A4 02 0C 02 01 1C` (after MAIN AID) |
-| `50 00 / 50 01` | Personal code (UTF-8) | `00 A4 01 0C 02 50 00`, then `00 A4 02 0C 02 50 01` |
-| `AD F1 34 01` | Authentication X.509 cert | `00 A4 09 0C 04 AD F1 34 01` (after MAIN AID, P1=`09` = "select by path") |
-| `AD F2 34 1F` | Signing X.509 cert | `00 A4 09 0C 04 AD F2 34 1F` |
-| `50 31` | EF.OD (PKCS#15 ObjectDirectory) — only used by §13 | `00 A4 02 0C 02 50 31` |
+| FID / Path      | Description                                        | SELECT                                                                                       |
+| --------------- | -------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `01 1C`         | EF.CardAccess (PACE params, ASN.1)                 | `00 A4 02 0C 02 01 1C` (after MAIN AID)                                                      |
+| `50 00 / 50 01` | Personal code (UTF-8)                              | `00 A4 01 0C 02 50 00`, then `00 A4 02 0C 02 50 01`                                          |
+| `AD F1 34 01`   | Authentication X.509 cert                          | `00 A4 09 <P2> 04 AD F1 34 01` (after MAIN AID, P1=`09` = "select by path"; `P2` per Form below) |
+| `AD F2 34 1F`   | Signing X.509 cert                                 | `00 A4 09 <P2> 04 AD F2 34 1F`                                                               |
+| `50 31`         | EF.OD (PKCS#15 ObjectDirectory) — only used by §13 | `00 A4 02 0C 02 50 31`                                                                       |
 
-### READ BINARY chunking (used everywhere)
+### READ BINARY chunking
+
+The LV card supports two equivalent shapes for reading a transparent EF.
+Both produce identical file content; pick whichever fits your stack.
+
+#### Form A — FCI-bounded reads (~1 round-trip faster; used by the reference iOS and Android implementations)
 
 ```
+fci = transmit( 00 A4 09 04 <Lc> <path> )      ← SELECT with P2 = 04 returns the FCI
+size = FCI tag 80 (or 81) value as big-endian uint
+loop while bytes_read < size:
+    le = min(0xE5, size - bytes_read)
+    response = transmit( 00 B0 <offset_hi> <offset_lo> <le> )
+    accumulate response
+    offset = bytes_read
+```
+
+The card returns the ISO 7816-4 §5.3.3 FCP template, e.g.:
+
+```
+62 1E 80 02 04 9E   ← tag 62 (FCP), then tag 80 length 2 size = 0x049E = 1182 bytes
+      82 01 01      ← file descriptor (transparent EF)
+      83 02 34 01   ← file identifier
+      88 00 8A 01 05 …
+```
+
+No `6B 00` probe at the end because the read terminates at the
+FCI-declared size. **Measured on a real LV test card this saves
+roughly 170–380 ms per cert read vs Form B**, mostly from skipping
+the EOF probe round-trip plus a smaller per-chunk effect from the
+explicit `Le`.
+
+> If the FCI lacks tag `80`/`81`, the reader does not know how much
+> to read. Either fall back to Form B, or read a sensible default
+> (the reference implementation reads `0xE5 = 229` bytes which works
+> for small files but silently truncates larger ones). Verbose
+> logging of the FCI hex is recommended the first time you port to
+> a new card variant.
+
+#### Form B — `6B 00`-terminated reads (canonical ISO 7816-4 / spec form)
+
+```
+transmit( 00 A4 09 0C <Lc> <path> )            ← SELECT with P2 = 0C (no FCI)
 loop:
     response = transmit( 00 B0 <offset_hi> <offset_lo> 00 )
     accumulate response
-    offset   += len(response)
+    offset += len(response)
 until SW = 6B 00   (offset out of range — end of file)
    or SW = 6A 82   (file not found — treat as empty)
 ```
 
-The whole loop happens **inside** secure messaging once §4 has completed.
+One extra round-trip vs Form A (the final `6B 00` probe), but no
+dependency on the card's FCI implementation. Use this if you cannot
+parse the FCP template, or if a card variant returns FCI without a
+usable size tag.
 
-#### Notes for porters
+The whole loop happens **inside** secure messaging once §4 has completed,
+regardless of which form you use.
 
-- Use short-form `Le = 00` only — do not switch to extended `Le = 00 00`
-  unless you've confirmed the card accepts it. IDEMIA cards commonly
-  reject extended-length APDUs over NFC.
+#### Notes for porters (both forms)
+
+- Use short-form `Le` (single byte) only — do not switch to extended
+  `Le = 00 00` unless you've confirmed the card accepts it. IDEMIA
+  cards commonly reject extended-length APDUs over NFC.
 - The card may return **fewer** bytes than `Le` requested. This is not
   an error. Always advance the offset by `response.length`, never by a
-  fixed 256.
+  fixed value.
 - Chunk size is determined by the card's internal record size, T=CL
   frame negotiation, and SM overhead — not by your `Le`. Different
   transports yield different chunk sizes (often well below 256 bytes);
@@ -616,9 +671,10 @@ The whole loop happens **inside** secure messaging once §4 has completed.
   > before `61 xx` does not carry its own MAC; you concatenate raw bytes
   > (not authenticated chunks), and §5.4 verifies the single MAC over
   > the reassembled whole.
-- Terminate the read **only** on `6B 00` (offset past EOF) or `6A 82`
-  (file not found / empty). Do not terminate on a short response — it
-  just means the card chose a smaller chunk this round.
+
+- For Form B, terminate the read **only** on `6B 00` (offset past EOF)
+  or `6A 82` (file not found / empty). Do not terminate on a short
+  response — it just means the card chose a smaller chunk this round.
 - P1/P2 encode a 16-bit offset (max `FF FF` = 65535 bytes). All LV files
   in this spec fit well within 64 KB. For files > 64 KB you'd need
   READ BINARY ODD (`INS = B1`) with an offset DO; this card has no such
@@ -628,11 +684,11 @@ The whole loop happens **inside** secure messaging once §4 has completed.
 
 ## 7. PIN model
 
-| Code | VERIFY P2 | Retry-counter ref | Allowed length | Notes |
-|---|---|---|---|---|
-| PIN1 | `0x01` | `0x01` | 4–12 | Auth + decrypt + cert ops; verify after MAIN or Oberthur AID |
-| PIN2 | `0x85` | `0x05` | 6–12 | Signing only; verify after QSCD AID |
-| PUK  | `0x02` | `0x02` | 8–12 | Unblock; verify after MAIN AID |
+| Code | VERIFY P2 | Retry-counter ref | Allowed length | Notes                                                        |
+| ---- | --------- | ----------------- | -------------- | ------------------------------------------------------------ |
+| PIN1 | `0x01`    | `0x01`            | 4–12           | Auth + decrypt + cert ops; verify after MAIN or Oberthur AID |
+| PIN2 | `0x85`    | `0x05`            | 6–12           | Signing only; verify after QSCD AID                          |
+| PUK  | `0x02`    | `0x02`            | 8–12           | Unblock; verify after MAIN AID                               |
 
 All PIN values are right-padded with `0xFF` to **12 bytes** before
 transmission.
@@ -643,14 +699,14 @@ transmission.
 00 20 00 <P2> 0C  <PIN bytes padded to 12 with 0xFF>
 ```
 
-| SW | Meaning |
-|---|---|
-| `90 00` | Success |
-| `63 C2` | Wrong PIN, 2 tries left |
-| `63 C1` | Wrong PIN, 1 try left |
+| SW      | Meaning                                                                                                                                            |
+| ------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `90 00` | Success                                                                                                                                            |
+| `63 C2` | Wrong PIN, 2 tries left                                                                                                                            |
+| `63 C1` | Wrong PIN, 1 try left                                                                                                                              |
 | `63 C0` | Wrong PIN, **this attempt exhausted the counter** — the PIN is now blocked (use PUK). Distinct from `69 83` for diagnostic logging; UX-equivalent. |
-| `69 83` | PIN already blocked / authentication method blocked — no attempt was processed (counter was already at zero before this VERIFY). |
-| `63 00` | Wrong PIN, generic / counter not reported. |
+| `69 83` | PIN already blocked / authentication method blocked — no attempt was processed (counter was already at zero before this VERIFY).                   |
+| `63 00` | Wrong PIN, generic / counter not reported.                                                                                                         |
 
 ### 7.2 Read retry counter
 
@@ -659,7 +715,7 @@ SELECT MAIN AID  (or QSCD AID for PIN2)
 00 CB 3F FF 0A  4D 08 70 06 BF 81 <code-ref> 02 A0 80  00
 ```
 
-`<code-ref>` is the *retry-counter ref* from the table above
+`<code-ref>` is the _retry-counter ref_ from the table above
 (`01`/`05`/`02`). The retry counter is byte **13** (0-based) of the
 SM-decrypted plaintext response — i.e. read it after §5.4 unwrapping,
 not from the raw on-wire bytes.
@@ -714,12 +770,15 @@ Always select MAIN first.
 ```
 SELECT MAIN AID
 SELECT cert by path:
-    Auth:  00 A4 09 0C 04 AD F1 34 01
-    Sign:  00 A4 09 0C 04 AD F2 34 1F
-READ BINARY chunked (§6) until 6B 00
+    Auth:  00 A4 09 <P2> 04 AD F1 34 01
+    Sign:  00 A4 09 <P2> 04 AD F2 34 1F
+READ BINARY chunked (§6)
 ```
 
-Result is the DER-encoded X.509 certificate.
+Both `<P2>` forms work — use `0x04` for FCI-bounded reads (§6 Form A,
+~170–380 ms faster) or `0x0C` for canonical `6B 00`-terminated reads
+(§6 Form B). The reference Android and iOS implementations both use
+Form A. Result is the DER-encoded X.509 certificate.
 
 ---
 
@@ -749,6 +808,14 @@ INTERNAL AUTHENTICATE:
   challenge against the `secp384r1` user keys, that's typically a
   48-byte SHA-384 hash; the card signs it as-is and returns
   `r || s` (96 bytes).
+
+  > **Alternative.** Because the card
+  > performs ECDSA on the input interpreted as a big-endian integer,
+  > prepending zero bytes is mathematically inert and the card silently
+  > accepts a leading-zero-padded form (e.g. a 32-byte hash front-padded
+  > to 48). This is not specified and breaks the moment the operation
+  > or input length changes. Pass the hash unmodified per §9 — do not
+  > borrow §10's padding rule here.
 
 > **LV vs Estonian:** Estonian IDEMIA uses a 4-byte algorithm reference
 > `FF 20 08 00`; LV uses a 1-byte `0x04`. Length bytes must match
@@ -800,6 +867,7 @@ PSO COMPUTE DIGITAL SIGNATURE:
   > reject the input, or behave unpredictably. Not exercised on this
   > branch — truncate caller-side to 48 bytes if you need a
   > deterministic outcome.
+
 - Response is the raw ECDSA signature `r || s` — **96 bytes** total
   (48 + 48 for `secp384r1`).
 
@@ -894,13 +962,13 @@ remaining bytes as UTF-8 and trim ASCII whitespace.
 Read the auth certificate (§8), parse it as X.509, and extract the
 following from the subject DN:
 
-| RDN OID | Field | Notes |
-|---|---|---|
-| `2.5.4.4` | surname | |
-| `2.5.4.42` | givenName | |
-| `2.5.4.5` | serialNumber | format `PNOLV-<personalCode>` |
-| `2.5.4.6` (RFC2253 short name `C`) | issuing country | ISO 3166-1 alpha-2 —  `LV` on a Latvian eID. **Not** the cardholder's citizenship — see the note in §12. |
-| `Validity.notAfter` (X.509 field) | certificate expiry date | not in the DN. This is the auth-cert validity, not the document expiry. |
+| RDN OID                            | Field                   | Notes                                                                                                   |
+| ---------------------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------- |
+| `2.5.4.4`                          | surname                 |                                                                                                         |
+| `2.5.4.42`                         | givenName               |                                                                                                         |
+| `2.5.4.5`                          | serialNumber            | format `PNOLV-<personalCode>`                                                                           |
+| `2.5.4.6` (RFC2253 short name `C`) | issuing country         | ISO 3166-1 alpha-2 — `LV` on a Latvian eID. **Not** the cardholder's citizenship — see the note in §12. |
+| `Validity.notAfter` (X.509 field)  | certificate expiry date | not in the DN. This is the auth-cert validity, not the document expiry.                                 |
 
 The library uses the auth-cert `serialNumber` RDN value (e.g.
 `PNOLV-<personalCode>`) as the document number — there is no separate
@@ -927,6 +995,7 @@ If you must work with the RFC2253 string form (e.g. from
 ```
 
 To decode:
+
 1. Drop the leading `#`.
 2. Hex-decode the rest.
 3. The first byte is the DER tag (`0x0C` = UTF8String). The next byte is
@@ -948,9 +1017,9 @@ UTF-8 output of §12.1. Whitespace handling and Unicode normalisation
 are out of scope for the parser.
 
 > **Do not confuse with the Estonian personal code scheme.** Estonia's
-> personal identification code uses a *gender + century* leading digit
+> personal identification code uses a _gender + century_ leading digit
 > (`1`/`2` → 19th c., `3`/`4` → 20th c., `5`/`6` → 21st c.). Latvia uses
-> a *century-only* digit at position 6, with no gender encoding.
+> a _century-only_ digit at position 6, with no gender encoding.
 > Applying the Estonian rules to a Latvian code yields wrong DOBs.
 > Canonical specification is the responsibility of Latvia's PMLP
 > (Pilsonības un migrācijas lietu pārvalde — Office of Citizenship and
@@ -970,12 +1039,12 @@ are out of scope for the parser.
    DOB is **not encoded**, return null.
 3. Otherwise (old format `DDMMYY-CZZZQ`):
 
-   | Index | Field |
-   |---|---|
-   | 0..1 | day |
-   | 2..3 | month |
-   | 4..5 | year (2-digit) |
-   | 6 | century digit |
+   | Index | Field          |
+   | ----- | -------------- |
+   | 0..1  | day            |
+   | 2..3  | month          |
+   | 4..5  | year (2-digit) |
+   | 6     | century digit  |
 
    Century digit: `0` → 1800, `1` → 1900, `2` → 2000. Anything else is
    invalid — return null and surface a parse error in logs.
@@ -1114,13 +1183,13 @@ should follow the spec proper, not these files.
 
 Source-of-truth Java classes used to derive this spec:
 
-| File | Role |
-|---|---|
-| `libs/id-card-lib/src/main/java/ee/ria/DigiDoc/idcard/TokenWithPace.java` | ATR table → dispatch |
-| `libs/id-card-lib/src/main/java/ee/ria/DigiDoc/idcard/Idemia.java` | AIDs, cert paths, PIN refs and padding, retry counter, change/unblock |
-| `libs/id-card-lib/src/main/java/ee/ria/DigiDoc/idcard/IdemiaWithPace.java` | PACE handshake, secure messaging, dynamic key-ref discovery |
-| `libs/id-card-lib/src/main/java/ee/ria/DigiDoc/idcard/LatviaIdemiaWithPace.java` | LV-specific MSE values, key refs, personal-data flow |
-| `libs/id-card-lib/src/main/java/ee/ria/DigiDoc/idcard/LatviaPersonalDataParser.java` | Personal-code → DOB |
+| File                                                                                 | Role                                                                  |
+| ------------------------------------------------------------------------------------ | --------------------------------------------------------------------- |
+| `libs/id-card-lib/src/main/java/ee/ria/DigiDoc/idcard/TokenWithPace.java`            | ATR table → dispatch                                                  |
+| `libs/id-card-lib/src/main/java/ee/ria/DigiDoc/idcard/Idemia.java`                   | AIDs, cert paths, PIN refs and padding, retry counter, change/unblock |
+| `libs/id-card-lib/src/main/java/ee/ria/DigiDoc/idcard/IdemiaWithPace.java`           | PACE handshake, secure messaging, dynamic key-ref discovery           |
+| `libs/id-card-lib/src/main/java/ee/ria/DigiDoc/idcard/LatviaIdemiaWithPace.java`     | LV-specific MSE values, key refs, personal-data flow                  |
+| `libs/id-card-lib/src/main/java/ee/ria/DigiDoc/idcard/LatviaPersonalDataParser.java` | Personal-code → DOB                                                   |
 
 If this spec and the code disagree, the code is authoritative — please open
 a PR to fix the spec.

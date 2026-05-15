@@ -40,8 +40,7 @@ public final class ThalesPaceReplayTest {
     }
 
     /**
-     * Thales PACE handshake + post-tunnel SELECT MAIN AID, captured
-     * 2026-05-14 (logcat session at 13:33:00). Shared with the
+     * Thales PACE handshake + post-tunnel SELECT MAIN AID. Shared with the
      * downstream Thales replay tests (cert read, sign flows, PIN retry)
      * so they all chain off the same captured chip session.
      */

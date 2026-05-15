@@ -36,9 +36,8 @@ public final class EstoniaIdemiaPaceReplayTest {
     }
 
     /**
-     * EE PACE handshake captured on 2026-05-14 (logcat
-     * session at 12:15:28). Shared with the higher-level EE replay tests
-     * (cert read, sign flows, PIN retry) — same chip session, same
+     * EE PACE handshake transcript. Shared with the higher-level EE replay
+     * tests (cert read, sign flows, PIN retry) — same chip session, same
      * ephemerals, so all post-PACE tests can prepend this.
      */
     static void loadPaceTranscript(ApduReplayReader r) {
