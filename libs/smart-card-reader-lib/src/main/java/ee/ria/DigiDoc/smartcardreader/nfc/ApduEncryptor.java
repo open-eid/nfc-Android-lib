@@ -42,8 +42,10 @@ public interface ApduEncryptor {
      * @param le - optional LE
      * @return - encrypted C-APDU according to Secure Messaging specification
      * @throws GeneralSecurityException
+     * @throws SmartCardReaderException - SM payload exceeds the supported length encoding
      */
-    byte[] encryptAndMac(int cla, int ins, int p1, int p2, byte[] data, Integer le) throws GeneralSecurityException;
+    byte[] encryptAndMac(int cla, int ins, int p1, int p2, byte[] data, Integer le)
+            throws GeneralSecurityException, SmartCardReaderException;
 
     /**
      * decryptAndVerify takes encrypted R-APDU as input it is expected to validate the

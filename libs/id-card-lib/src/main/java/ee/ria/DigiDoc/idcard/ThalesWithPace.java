@@ -530,7 +530,7 @@ class ThalesWithPace extends Thales implements TokenWithPace, ApduEncryptor {
      * @throws GeneralSecurityException
      */
     public byte[] encryptAndMac(int cla, int ins, int p1, int p2, byte[] data, Integer le)
-            throws GeneralSecurityException {
+            throws GeneralSecurityException, SmartCardReaderException {
         LoggingUtil.Companion.debugLog(TAG, String.format("C-APDU to encrypt: 0x%02X 0x%02X 0x%02X 0x%02X",
                 (byte)cla, (byte)ins, (byte)p1, (byte)p2), null);
 
@@ -541,14 +541,12 @@ class ThalesWithPace extends Thales implements TokenWithPace, ApduEncryptor {
         byte[] do97 = getDo97(le);
         byte[] do8e = getDo8e(maskedHeader, do8587, do97);
 
-        byte newLength = 0;
-        newLength += (byte) do8587.length;
-        newLength += (byte) do97.length;
-        newLength += (byte) do8e.length;
+        int newLength = do8587.length + do97.length + do8e.length;
+        SmApduLength.requireSingleByteLc(newLength);
 
         byte[] result = concat(
                 maskedHeader,
-                new byte[] {newLength},
+                new byte[] {(byte) newLength},
                 do8587,
                 do97,
                 do8e,
@@ -609,7 +607,8 @@ class ThalesWithPace extends Thales implements TokenWithPace, ApduEncryptor {
     @NonNull
     private byte[] getDo8587(int ins, byte[] data) throws
             NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException,
-            BadPaddingException, IllegalBlockSizeException, InvalidAlgorithmParameterException {
+            BadPaddingException, IllegalBlockSizeException, InvalidAlgorithmParameterException,
+            SmartCardReaderException {
         byte[] do8587 = new byte[]{};
 
         if (data != null && data.length > 0) {
@@ -617,9 +616,12 @@ class ThalesWithPace extends Thales implements TokenWithPace, ApduEncryptor {
             paddedData = pad(data, BLOCK_SIZE);
             byte[] dataEncrypted = encryptData(paddedData);
             if (ins % 2 == 0) {
-                do8587 = concat(new byte[]{DO87, (byte) (dataEncrypted.length + 1), 0x01},
+                int innerLength = dataEncrypted.length + 1;
+                SmApduLength.requireShortBerLength(innerLength, "DO87");
+                do8587 = concat(new byte[]{DO87, (byte) innerLength, 0x01},
                         dataEncrypted);
             } else {
+                SmApduLength.requireShortBerLength(dataEncrypted.length, "DO85");
                 do8587 = concat(new byte[]{DO85, (byte) dataEncrypted.length}, dataEncrypted);
             }
         }
