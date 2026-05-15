@@ -172,7 +172,12 @@ class ThalesWithPace extends Thales implements TokenWithPace, ApduEncryptor {
             }
             throw ex;
         } catch (Exception ex) {
-            throw new SmartCardReaderException("Could not establish tunnel", ex);
+            // Include the cause's simple class name in the message so integrator
+            // logs can distinguish e.g. a BouncyCastle IllegalArgumentException
+            // (bad EC point) from an NPE (missing card response) at a glance.
+            // The full cause stays attached via the second arg.
+            throw new SmartCardReaderException(
+                    "Could not establish tunnel: " + ex.getClass().getSimpleName(), ex);
         }
         selectMainAid();
     }
@@ -708,7 +713,7 @@ class ThalesWithPace extends Thales implements TokenWithPace, ApduEncryptor {
         LoggingUtil.Companion.debugLog(TAG, String.format("Card MAC: %s, our MAC: %s",
                 Hex.toHexString(cardMac), Hex.toHexString(ourMac)), null);
 
-        if (!Hex.toHexString(cardMac).equals(Hex.toHexString(ourMac))) {
+        if (!Arrays.equals(cardMac, ourMac)) {
             throw new SmartCardReaderException("Could not verify chip's MAC.");
         }
 

@@ -33,6 +33,21 @@ import ee.ria.DigiDoc.utilsLib.logging.LoggingUtil;
 public interface TokenWithPace extends Token {
     String TAG = TokenWithPace.class.getName();
 
+    // ATS historical-byte patterns used to identify card generation. The
+    // trailing ASCII bytes encode the chip family: "SeID" (newer generation,
+    // 53 65 49 44) and "TeID2" (older Te+ID 2.x generation, 54 65 49 44 32).
+    // The 23 3f / 42 8f bytes encode the issuer country (EE vs LV).
+    /** Estonian IDEMIA, newer "SeID" historical bytes. */
+    byte[] ATS_EE_IDEMIA_SEID = Hex.decode("0012233f536549440f9000");
+    /** Estonian IDEMIA, older "TeID2" historical bytes. */
+    byte[] ATS_EE_IDEMIA_TEID2 = Hex.decode("0012233f54654944320f9000");
+    /** Estonian Thales (single known ATS as of writing). */
+    byte[] ATS_EE_THALES = Hex.decode("8031d85365494464b085051012233f");
+    /** Latvian IDEMIA, newer "SeID" historical bytes. */
+    byte[] ATS_LV_IDEMIA_SEID = Hex.decode("0012428f536549440f9000");
+    /** Latvian IDEMIA, older "TeID2" historical bytes. */
+    byte[] ATS_LV_IDEMIA_TEID2 = Hex.decode("0012428f54654944320f9000");
+
     /**
      * Method to execute the PACE key-exchange, to allow for encrypted
      * communication between card and the application
@@ -58,21 +73,13 @@ public interface TokenWithPace extends Token {
         if (atr == null) {
             throw new NotSupportedException("ATR/ATS cannot be null");
         }
-        if (Arrays.equals(Hex.decode("0012233f536549440f9000"), atr)) {
+        if (Arrays.equals(ATS_EE_IDEMIA_SEID, atr) || Arrays.equals(ATS_EE_IDEMIA_TEID2, atr)) {
             return new IdemiaWithPace(reader);
         }
-        if (Arrays.equals(Hex.decode("0012233f54654944320f9000"), atr)) {
-            return new IdemiaWithPace(reader);
-        }
-        if (Arrays.equals(Hex.decode("8031d85365494464b085051012233f"), atr)) {
+        if (Arrays.equals(ATS_EE_THALES, atr)) {
             return new ThalesWithPace(reader);
         }
-        // Latvian eID cards (newer)
-        if (Arrays.equals(Hex.decode("0012428f536549440f9000"), atr)) {
-            return new LatviaIdemiaWithPace(reader);
-        }
-        // Latvian eID cards (older)
-        if (Arrays.equals(Hex.decode("0012428f54654944320f9000"), atr)) {
+        if (Arrays.equals(ATS_LV_IDEMIA_SEID, atr) || Arrays.equals(ATS_LV_IDEMIA_TEID2, atr)) {
             return new LatviaIdemiaWithPace(reader);
         }
 

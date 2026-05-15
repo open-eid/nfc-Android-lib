@@ -180,7 +180,12 @@ class IdemiaWithPace extends Idemia implements TokenWithPace, ApduEncryptor {
             }
             throw ex;
         } catch (Exception ex) {
-            throw new SmartCardReaderException("Could not establish tunnel", ex);
+            // Include the cause's simple class name in the message so integrator
+            // logs can distinguish e.g. a BouncyCastle IllegalArgumentException
+            // (bad EC point) from an NPE (missing card response) at a glance.
+            // The full cause stays attached via the second arg.
+            throw new SmartCardReaderException(
+                    "Could not establish tunnel: " + ex.getClass().getSimpleName(), ex);
         }
     }
 

@@ -24,16 +24,16 @@ import ee.ria.DigiDoc.idcard.PersonalData
 
 class DataViewModel : ViewModel() {
     private var can: String = ""
-    private lateinit var givenNames: String
-    private lateinit var surname: String
-    private lateinit var personalCode: String
-    private lateinit var citizenship: String
+    private var givenNames: String = ""
+    private var surname: String = ""
+    private var personalCode: String = ""
+    private var citizenship: String = ""
     private var issuingCountry: String? = null
     private var dateOfBirth: String? = null
-    private lateinit var documentNumber: String
+    private var documentNumber: String = ""
     private var documentExpiryDate: String? = null
     private var certExpiryDate: String? = null
-    private lateinit var cardType: String
+    private var cardType: String = ""
     private var containerName: String = ""
 
     private var pin1Counter: Int = 0

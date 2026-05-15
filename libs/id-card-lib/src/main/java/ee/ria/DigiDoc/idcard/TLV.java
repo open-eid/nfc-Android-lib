@@ -166,27 +166,6 @@ public class TLV {
         return parseTLVRecursive(data, 0, data.length);
     }
 
-    /** @noinspection unused*/
-    public static List<TLV> sequenceOfRecords(byte[] data) {
-        List<TLV> result = new ArrayList<>();
-        if (data == null) return result;
-
-        int index = 0;
-        while (index + 2 <= data.length) {
-            int tag = data[index] & 0xFF;
-            int length = data[index + 1] & 0xFF;
-
-            if (index + 2 + length > data.length) break;
-
-            byte[] value = new byte[length];
-            System.arraycopy(data, index + 2, value, 0, length);
-            result.add(new TLV(tag, value, new ArrayList<>()));
-
-            index += 2 + length;
-        }
-        return result;
-    }
-
     public byte[] encode() throws SmartCardReaderException {
         if (value.length > 255) {
             throw new SmartCardReaderException("Only single-byte length supported");
