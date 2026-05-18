@@ -25,6 +25,7 @@ import ee.ria.DigiDoc.idcard.CodeType
 import ee.ria.DigiDoc.idcard.CodeVerificationException
 import ee.ria.DigiDoc.idcard.PaceTunnelException
 import ee.ria.DigiDoc.idcard.TokenWithPace
+import ee.ria.DigiDoc.idcard.TokenWithPaceConfig
 import ee.ria.DigiDoc.smartcardreader.ApduResponseException
 import ee.ria.DigiDoc.smartcardreader.CardConnectionLostException
 import ee.ria.DigiDoc.smartcardreader.SmartCardReaderException
@@ -127,7 +128,7 @@ class CardReaderFragment : Fragment() {
             if ((nfcReader != null) && (exc == null)) {
                 try {
                     // Create card session over NFC
-                    val card = TokenWithPace.create(nfcReader)
+                    val card = TokenWithPace.create(nfcReader, TokenWithPaceConfig.allowAll())
                     // Establish PACE tunnel with previously captured CAN
                     card.tunnel(dataViewModel.getCan())
                     // Get auth certificate
@@ -200,7 +201,7 @@ class CardReaderFragment : Fragment() {
 
             if ((nfcReader != null) && (exc == null)) {
                 try {
-                    val card = TokenWithPace.create(nfcReader)
+                    val card = TokenWithPace.create(nfcReader, TokenWithPaceConfig.allowAll())
                     card.tunnel(dataViewModel.getCan())
                     val signerCert = card.certificate(CertificateType.SIGNING)
                     debugLog(logTag, Base64.toBase64String(signerCert))
@@ -264,7 +265,7 @@ class CardReaderFragment : Fragment() {
             }
             if ((nfcReader != null) && (exc == null)) {
                 try {
-                    val card = TokenWithPace.create(nfcReader)
+                    val card = TokenWithPace.create(nfcReader, TokenWithPaceConfig.allowAll())
                     card.tunnel(dataViewModel.getCan())
                     val cardData = card.personalData()
                     debugLog(logTag, cardData.toString())
