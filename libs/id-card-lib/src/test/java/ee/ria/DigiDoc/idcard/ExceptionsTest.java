@@ -64,7 +64,7 @@ public final class ExceptionsTest {
                 org.mockito.Mockito.mock(ee.ria.DigiDoc.smartcardreader.nfc.NfcSmartCardReader.class,
                     org.mockito.Mockito.withSettings().mockMaker(org.mockito.MockMakers.SUBCLASS));
             org.mockito.Mockito.when(r.atr()).thenReturn(null);
-            TokenWithPace.create(r);
+            TokenWithPace.create(r, TokenWithPaceConfig.allowAll());
         });
         assertThat(ex).isInstanceOf(SmartCardReaderException.class);
         assertThat(ex).hasMessageThat().contains("ATR/ATS cannot be null");

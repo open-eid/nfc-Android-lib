@@ -255,13 +255,14 @@ The implementation of the `NfcSmartCardReaderCallback` interface is responsible 
 ```java
 public interface TokenWithPace extends Token {
     void tunnel(String can) throws SmartCardReaderException;
-    static TokenWithPace create(NfcSmartCardReader reader) throws SmartCardReaderException {
+    static TokenWithPace create(NfcSmartCardReader reader, TokenWithPaceConfig config) throws SmartCardReaderException {
     }
 }
 ```
 
 The `TokenWithPace` interface enables NFC communication with the ID card. An instance is obtained via
-its `create` factory method, which selects the correct implementation based on the card's ATS (*Answer To Select*). 
+its `create` factory method, which selects the correct implementation based on the card's ATS (*Answer To Select*)
+and the `TokenWithPaceConfig` allow-list passed by the integrator.
 Three NFC-enabled ID card types are currently supported:
 
 | Card | Implementation |
@@ -298,11 +299,15 @@ The functions are defined in the `Token` interface.
 Below is an example of reading the personal data file from the ID card when an instance of `NfcSmartCardReaderManager` has already been created.
 
 ```kotlin
+private val tokenConfig = TokenWithPaceConfig.Builder()
+    .allow(CardType.ID1, CardType.THALES)
+    .build()
+
 private fun readCardData() {
     checkNfcStatus(nfcSmartCardReaderManager.startDiscovery(requireActivity()) { nfcReader, exc ->
         if ((nfcReader != null) && (exc == null)) {
             try {
-                val card = TokenWithPace.create(nfcReader)
+                val card = TokenWithPace.create(nfcReader, tokenConfig)
                 card.tunnel(dataViewModel.getCan())
                 val cardData = card.personalData()
             } catch (ex: SmartCardReaderException) {
@@ -315,13 +320,14 @@ private fun readCardData() {
 }
 ```
 
-* **Line 2:** Uses the `startDiscovery` method, which internally uses `android.nfc.NfcAdapter.enableReaderMode` to detect NFC tags. The returned `NfcStatus` value is processed.  
-* **Line 3:** The `startDiscovery` method relies on the `NfcSmartCardReaderCallback` interface; if no exception is present and an `NfcSmartCardReader` instance exists, processing continues.  
-* **Line 5:** Creates an instance implementing the `TokenWithPace` interface.  
-* **Line 6:** Uses the card’s `CAN` code to establish a secure NFC connection between the card and the device.  
-* **Line 7:** Uses ID card functionality to read the personal data file.  
-* **Line 8:** Any of the above operations may result in a `SmartCardReaderException`.  
-* **Line 11:** Stops waiting for NFC tags. 
+* **Lines 1–3:** Configure which card types the app accepts. The `TokenWithPaceConfig` is **required**; passing only the card types you actually support is recommended so that a future library release that adds another country/variant cannot silently widen the set of cards your app reads. To opt in to every supported type explicitly, use `TokenWithPaceConfig.allowAll()`.
+* **Line 6:** Uses the `startDiscovery` method, which internally uses `android.nfc.NfcAdapter.enableReaderMode` to detect NFC tags. The returned `NfcStatus` value is processed.
+* **Line 7:** The `startDiscovery` method relies on the `NfcSmartCardReaderCallback` interface; if no exception is present and an `NfcSmartCardReader` instance exists, processing continues.
+* **Line 9:** Creates an instance implementing the `TokenWithPace` interface. The card's ATS historical bytes are matched against the library's supported set; if the detected `CardType` is not in `tokenConfig.allowedCardTypes()`, a `NotSupportedException` is thrown immediately (no PACE handshake is attempted).
+* **Line 10:** Uses the card's `CAN` code to establish a secure NFC connection between the card and the device.
+* **Line 11:** Uses ID card functionality to read the personal data file.
+* **Line 12:** Any of the above operations may result in a `SmartCardReaderException`.
+* **Line 15:** Stops waiting for NFC tags.
 
 ### NFC Interface Status
 
@@ -374,8 +380,10 @@ private fun exceptionHandler(ex: SmartCardReaderException) {
 ```
 
 * **Line 1:** `ee.ria.DigiDoc.smartcardreader.SmartCardReaderException` – base exception from which all ID card–related exceptions inherit.
-* **Line 2:** `ee.ria.DigiDoc.idcard.NotSupportedException` – thrown by `TokenWithPace.create(...)` when the detected card's ATR/ATS does not match any supported model
-  (for example, attempting to read a non-Estonian / non-Latvian / non-Thales ID card). Catch this case separately to show the user a "card not supported" message rather than a generic communication error.
+* **Line 2:** `ee.ria.DigiDoc.idcard.NotSupportedException` – thrown by `TokenWithPace.create(...)` when either:
+  (a) the detected card's ATR/ATS does not match any supported model (e.g. attempting to read a non-Estonian / non-Latvian / non-Thales ID card), or
+  (b) the detected `CardType` is not in the `TokenWithPaceConfig.allowedCardTypes()` passed to `create()` — for example, an integrator scoped to `{ID1, THALES}` will get this when tapping a `LATVIA_IDEMIA` card.
+  Catch this case separately to show the user a "card not supported" message rather than a generic communication error.
 * **Line 4:** `ee.ria.DigiDoc.idcard.CodeVerificationException` – specific exception indicating that the PIN1 or PIN2 used for authorization was incorrect.
   The exception includes information on how many attempts remain before the PIN becomes locked.
 * **Line 6:** `ee.ria.DigiDoc.idcard.PaceTunnelException` – specific exception indicating that the establishment of a secure communication channel between the card and the device has failed.
