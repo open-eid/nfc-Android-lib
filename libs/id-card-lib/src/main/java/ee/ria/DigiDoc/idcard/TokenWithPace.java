@@ -6,6 +6,7 @@ package ee.ria.DigiDoc.idcard;
 import org.bouncycastle.util.encoders.Hex;
 
 import java.util.Arrays;
+import java.util.Set;
 
 import ee.ria.DigiDoc.smartcardreader.SmartCardReaderException;
 import ee.ria.DigiDoc.smartcardreader.nfc.NfcSmartCardReader;
@@ -28,40 +29,59 @@ public interface TokenWithPace extends Token {
     void tunnel(String can) throws SmartCardReaderException;
 
     /**
-     * Create an instance of TokenWithPace based on the current card in the NFC-reader.
-     * <p>
-     * We detect the card type by historical bytes - a subset of ATS. We call the method
-     * atr() since we inherit from wired interface specific classes.
+     * Detect the card by ATS historical bytes and return the matching
+     * implementation. The method is named {@code atr()} on the reader
+     * for historical reasons — on NFC, the equivalent is the ATS
+     * historical bytes.
      *
-     * @param reader NFC Smart card reader instance, must be connected.
-     * @return TokenWithPace instance.
-     * @throws SmartCardReaderException When card is not supported or reader is not connected.
+     * @param reader connected NFC reader.
+     * @param config required restriction on accepted card types. Use
+     *               {@link TokenWithPaceConfig#allowAll()} to opt in to
+     *               every supported card type.
+     * @return matching TokenWithPace implementation.
+     * @throws NotSupportedException if the ATS is unknown, or the detected
+     *         card type is not in {@code config.allowedCardTypes()}.
+     * @throws SmartCardReaderException on reader I/O failure.
      */
-    static TokenWithPace create(NfcSmartCardReader reader) throws SmartCardReaderException {
+    static TokenWithPace create(
+            NfcSmartCardReader reader,
+            TokenWithPaceConfig config
+    ) throws SmartCardReaderException {
         byte[] atr = reader.atr();
-        LoggingUtil.Companion.debugLog(TAG, "ATR: " + (atr == null ? "null" : Hex.toHexString(atr)), null);
+        Set<CardType> allowed = config.allowedCardTypes();
+
+        LoggingUtil.Companion.debugLog(TAG,
+                "ATR: " + (atr == null ? "null" : Hex.toHexString(atr)), null);
 
         if (atr == null) {
             throw new NotSupportedException("ATR/ATS cannot be null");
         }
-        if (Arrays.equals(Hex.decode("0012233f536549440f9000"), atr)) {
-            return new IdemiaWithPace(reader);
-        }
-        if (Arrays.equals(Hex.decode("0012233f54654944320f9000"), atr)) {
-            return new IdemiaWithPace(reader);
-        }
-        if (Arrays.equals(Hex.decode("8031d85365494464b085051012233f"), atr)) {
-            return new ThalesWithPace(reader);
-        }
-        // Latvian eID cards (newer)
-        if (Arrays.equals(Hex.decode("0012428f536549440f9000"), atr)) {
-            return new LatviaIdemiaWithPace(reader);
-        }
-        // Latvian eID cards (older)
-        if (Arrays.equals(Hex.decode("0012428f54654944320f9000"), atr)) {
-            return new LatviaIdemiaWithPace(reader);
+
+        CardType detected = detectCardType(atr);
+
+        if (!allowed.contains(detected)) {
+            throw new NotSupportedException("Card type " + detected + " not in allowed config " + allowed);
         }
 
+        return switch (detected) {
+            case ID1 -> new IdemiaWithPace(reader);
+            case THALES -> new ThalesWithPace(reader);
+            case LATVIA_IDEMIA -> new LatviaIdemiaWithPace(reader);
+        };
+    }
+
+    private static CardType detectCardType(byte[] atr) throws NotSupportedException {
+        if (Arrays.equals(Hex.decode("0012233f536549440f9000"), atr)
+                || Arrays.equals(Hex.decode("0012233f54654944320f9000"), atr)) {
+            return CardType.ID1;
+        }
+        if (Arrays.equals(Hex.decode("8031d85365494464b085051012233f"), atr)) {
+            return CardType.THALES;
+        }
+        if (Arrays.equals(Hex.decode("0012428f536549440f9000"), atr)
+                || Arrays.equals(Hex.decode("0012428f54654944320f9000"), atr)) {
+            return CardType.LATVIA_IDEMIA;
+        }
         throw new NotSupportedException("ATS not supported");
     }
 }
