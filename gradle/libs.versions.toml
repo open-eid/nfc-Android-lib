@@ -21,7 +21,6 @@ material = "1.13.0"
 mockitoCore = "5.20.0"
 navigationFragmentKtx = "2.9.5"
 recyclerview = "1.4.0"
-rxjava = "3.1.12"
 truth = "1.4.5"
 
 [libraries]
@@ -50,7 +49,6 @@ material = { group = "com.google.android.material", name = "material", version.r
 mockito-core = { group = "org.mockito", name = "mockito-core", version.ref = "mockitoCore" }
 navigation-fragment-ktx = { module = "androidx.navigation:navigation-fragment-ktx", version.ref = "navigationFragmentKtx" }
 recyclerview = { module = "androidx.recyclerview:recyclerview", version.ref = "recyclerview" }
-rxjava = { group = "io.reactivex.rxjava3", name = "rxjava", version.ref = "rxjava" }
 truth = { group = "com.google.truth", name = "truth", version.ref = "truth" }
 
 [plugins]

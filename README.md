@@ -77,21 +77,23 @@ The demo application (`demoapp/app`) provides a complete reference implementatio
   * `libs/id-card-lib/build/outputs/aar`
   * `libs/smart-card-reader-lib/build/outputs/aar`
 * Move the resulting `.aar` files to your project's `/libs` directory.
-* Add the corresponding dependencies to your application's `build.gradle` file:
-    * `implementation files('app/libs/aar')`
+* Add the dependencies to your application's `build.gradle` file:
+    * `implementation files('app/libs/id-card-lib.aar')`
+    * `implementation files('app/libs/smart-card-reader-lib.aar')`
 
 ## Overview
 
 ID card support for Android applications is based on two libraries: `id-card-lib` and `smart-card-reader-lib`.
 
-* `smart-card-reader-lib` enables the use of the ID card over USB or NFC. It provides the low-level smart card reader interfaces and communication layer.
+* `smart-card-reader-lib` enables the use of the ID card over NFC. It provides the NFC smart card reader interface and communication layer.
 * `id-card-lib` implements the APDU-based communication protocols required to use the core functionality across different types of ID cards (IDEMIA and Thales).
+
 Integrating ID card support into an Android application proceeds as follows:
 
-* The developer declares the permissions required for the chosen integration method in the application manifest.
-* The developer creates a manager specific to the selected integration method.
-* Using the manager, the developer detects the ID card and creates a card instance via the appropriate `factory` method.
-* The developer establishes a secure communication channel between the card and the device using the card’s corresponding CAN code.
+* The developer declares the NFC permission in the application manifest.
+* The developer creates an `NfcSmartCardReaderManager` instance.
+* Using the manager, the developer detects the ID card and creates a card instance via `TokenWithPace.create()`.
+* The developer establishes a secure communication channel between the card and the device using the card’s CAN code.
 * The developer communicates with the card instance to use the desired functionalities—authentication, digital signing, etc.
 
 An example of using the NFC interface can be found in the demo application: `CardReaderFragment.kt`. The example is written in Kotlin, but the library can also be used in Java applications. The sample app additionally depends on the `libdigidocpp` library, which enables the creation of signed ASiC-E containers; however, this dependency is not required for using the ID card via NFC. 
@@ -149,7 +151,7 @@ public interface TokenWithPace extends Token {
 
 The `TokenWithPace` interface enables NFC communication with the ID card. An instance is obtained via
 its `create` factory method, which selects the correct implementation based on the card's ATS (*Answer To Select*). 
-Currently, two NFC-enabled ID card types are supported: IDEMIA (ID1) and Thales, implemented as `ID1WithPace` and `ThalesWithPace`.
+Currently, two NFC-enabled ID card types are supported: IDEMIA and Thales, implemented as `IdemiaWithPace` and `ThalesWithPace`.
 
 After creating the instance, establish the communication channel using the card’s `CAN` code and the `tunnel` method.
 
@@ -263,27 +265,19 @@ private fun exceptionHandler(ex: SmartCardReaderException) {
 
 ### Specifics of the NFC Interface
 
-In general, using the ID card over **USB** and **NFC** interfaces is quite similar —  
-the main functions are the same, and the APDU protocol is largely identical.  
-However, the NFC interface has certain characteristics that may require adjustments in the application UI or communication flow.
+The NFC interface has certain characteristics that require attention in the application UI and communication flow.
 
-1. When the ID card is connected to a smart card reader via the device’s USB port,  
-   it becomes immediately visible to the system, and certain functionalities — such as reading personal data or checking PIN retry counters — are available right away.  
-   The card can remain inserted for long periods and does not require the user to hold it in place.  
-   The user has time to interact with the device and enter any necessary information.
-
-   When using the ID card via NFC, the user must know the NFC antenna’s location on the device and physically hold the card against it.  
+1. The user must know the NFC antenna’s location on the device and physically hold the card against it.  
    This is often inconvenient and unstable.  
    Additionally, the card cannot be accessed before a secure channel is established using the correct CAN code —  
    for example, it is not possible to read PIN retry counters or display warnings to the user beforehand.  
    While the user is holding the card near the NFC interface, it can be difficult to operate the device otherwise (e.g., to enter PIN or CAN codes).
 
-2. When using the ID card via a USB smart card reader, the APDU protocol operates in plaintext.  
-   Over the NFC interface, the APDU protocol is **encrypted and authenticated**.  
-   Furthermore, the card may enforce additional restrictions — not all functionalities are available over NFC.
+2. Over NFC, the APDU protocol is **encrypted and authenticated** using Secure Messaging.  
+   The card may also enforce additional restrictions — not all functionalities are available over NFC.
 
-3. The **CAN** is a six-digit, card-specific number required for communication with the card over NFC.  
+3. The **CAN** is a six-digit, card-specific number required to establish the PACE tunnel over NFC.  
    Unlike PIN codes, the CAN cannot be changed or locked.  
    As a protection mechanism against brute-force attempts, IDEMIA cards introduce a delay:  
    after 10 consecutive incorrect CAN entries, the card enforces a **30-second delay** before the next CAN validation.  
-   Once the correct CAN is entered, normal operation resumes immediately. 
+   Once the correct CAN is entered, normal operation resumes immediately.

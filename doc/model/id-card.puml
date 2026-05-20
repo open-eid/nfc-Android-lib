@@ -2,18 +2,17 @@
 
 left to right direction
 
-abstract class ee.ria.DigiDoc.idcard.EstEIDToken
 abstract class ee.ria.DigiDoc.idcard.PersonalData
 abstract class ee.ria.DigiDoc.smartcardreader.SmartCardReader
-class ee.ria.DigiDoc.idcard.AlgorithmUtils
 class ee.ria.DigiDoc.idcard.CodeVerificationException
-class ee.ria.DigiDoc.idcard.EstEIDv3d4
-class ee.ria.DigiDoc.idcard.EstEIDv3d5
-class ee.ria.DigiDoc.idcard.ID1
-class ee.ria.DigiDoc.idcard.ID1PersonalDataParser
-class ee.ria.DigiDoc.idcard.ID1WithPace
 class ee.ria.DigiDoc.idcard.IdCardException
+class ee.ria.DigiDoc.idcard.Idemia
+class ee.ria.DigiDoc.idcard.IdemiaPersonalDataParser
+class ee.ria.DigiDoc.idcard.IdemiaWithPace
 class ee.ria.DigiDoc.idcard.PaceTunnelException
+class ee.ria.DigiDoc.idcard.Thales
+class ee.ria.DigiDoc.idcard.ThalesPersonalDataParser
+class ee.ria.DigiDoc.idcard.ThalesWithPace
 class ee.ria.DigiDoc.smartcardreader.ApduResponseException
 class ee.ria.DigiDoc.smartcardreader.SmartCardReaderException
 class ee.ria.DigiDoc.smartcardreader.nfc.NfcSmartCardReader
@@ -39,28 +38,30 @@ package org.bouncycastle <<External>> {
   package util {}
 }
 
+enum ee.ria.DigiDoc.idcard.CardType
 enum ee.ria.DigiDoc.idcard.CertificateType
 enum ee.ria.DigiDoc.idcard.CodeType
 interface ee.ria.DigiDoc.idcard.Token
 interface ee.ria.DigiDoc.idcard.TokenWithPace
-interface ee.ria.DigiDoc.smartcardreader.SmartCardReaderManager
 interface ee.ria.DigiDoc.smartcardreader.nfc.ApduEncryptor
 
 
-ee.ria.DigiDoc.idcard.EstEIDToken ..> ee.ria.DigiDoc.smartcardreader.SmartCardReader
-ee.ria.DigiDoc.idcard.EstEIDToken ..> ee.ria.DigiDoc.idcard.AlgorithmUtils
-ee.ria.DigiDoc.idcard.EstEIDToken -up-|> ee.ria.DigiDoc.idcard.Token
-ee.ria.DigiDoc.idcard.EstEIDv3d4 -up-|> ee.ria.DigiDoc.idcard.EstEIDToken
-ee.ria.DigiDoc.idcard.EstEIDv3d4 ..> ee.ria.DigiDoc.smartcardreader.SmartCardReader
-ee.ria.DigiDoc.idcard.EstEIDv3d5 -up-|> ee.ria.DigiDoc.idcard.EstEIDToken
-ee.ria.DigiDoc.idcard.EstEIDv3d5 ..> ee.ria.DigiDoc.smartcardreader.SmartCardReader
-ee.ria.DigiDoc.idcard.ID1 ..> ee.ria.DigiDoc.smartcardreader.SmartCardReader
-ee.ria.DigiDoc.idcard.ID1 -up-|> ee.ria.DigiDoc.idcard.Token
-ee.ria.DigiDoc.idcard.ID1WithPace -up-|> ee.ria.DigiDoc.idcard.ID1
-ee.ria.DigiDoc.idcard.ID1WithPace ..> ee.ria.DigiDoc.smartcardreader.nfc.NfcSmartCardReader
-ee.ria.DigiDoc.idcard.ID1WithPace -up-|> ee.ria.DigiDoc.idcard.TokenWithPace
-ee.ria.DigiDoc.idcard.ID1WithPace -up-|> ee.ria.DigiDoc.smartcardreader.nfc.ApduEncryptor
+ee.ria.DigiDoc.idcard.Thales -up-|> ee.ria.DigiDoc.idcard.Token
+ee.ria.DigiDoc.idcard.Thales ..> ee.ria.DigiDoc.smartcardreader.SmartCardReader
+ee.ria.DigiDoc.idcard.Thales ..> ee.ria.DigiDoc.idcard.ThalesPersonalDataParser
+ee.ria.DigiDoc.idcard.ThalesWithPace -up-|> ee.ria.DigiDoc.idcard.Thales
+ee.ria.DigiDoc.idcard.ThalesWithPace -up-|> ee.ria.DigiDoc.idcard.TokenWithPace
+ee.ria.DigiDoc.idcard.ThalesWithPace -up-|> ee.ria.DigiDoc.smartcardreader.nfc.ApduEncryptor
+ee.ria.DigiDoc.idcard.ThalesWithPace ..> ee.ria.DigiDoc.smartcardreader.nfc.NfcSmartCardReader
+ee.ria.DigiDoc.idcard.Idemia -up-|> ee.ria.DigiDoc.idcard.Token
+ee.ria.DigiDoc.idcard.Idemia ..> ee.ria.DigiDoc.smartcardreader.SmartCardReader
+ee.ria.DigiDoc.idcard.Idemia ..> ee.ria.DigiDoc.idcard.IdemiaPersonalDataParser
+ee.ria.DigiDoc.idcard.IdemiaWithPace -up-|> ee.ria.DigiDoc.idcard.Idemia
+ee.ria.DigiDoc.idcard.IdemiaWithPace -up-|> ee.ria.DigiDoc.idcard.TokenWithPace
+ee.ria.DigiDoc.idcard.IdemiaWithPace -up-|> ee.ria.DigiDoc.smartcardreader.nfc.ApduEncryptor
+ee.ria.DigiDoc.idcard.IdemiaWithPace ..> ee.ria.DigiDoc.smartcardreader.nfc.NfcSmartCardReader
 ee.ria.DigiDoc.idcard.Token ..> ee.ria.DigiDoc.smartcardreader.SmartCardReader
 ee.ria.DigiDoc.idcard.TokenWithPace ..> ee.ria.DigiDoc.smartcardreader.nfc.NfcSmartCardReader
 ee.ria.DigiDoc.idcard.TokenWithPace -up-|> ee.ria.DigiDoc.idcard.Token
+ee.ria.DigiDoc.idcard.PersonalData ..> ee.ria.DigiDoc.idcard.CardType
 @enduml
