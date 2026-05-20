@@ -61,10 +61,10 @@ import ee.ria.DigiDoc.smartcardreader.nfc.NfcSmartCardReader;
 import ee.ria.DigiDoc.utilsLib.logging.LoggingUtil;
 
 /**
- * ID1WithPace extends ID1 APDU protocol with Secure Messaging and PACE capabilities
+ * IdemiaWithPace extends Idemia APDU protocol with Secure Messaging and PACE capabilities
  * enabling the use over NFC. It must implement the ApduEncryptor interface so that
  * NfcSmartCardReader class has an oracle to encrypt C-APDUs and decrypt R-APDUs
- * so that the ID1 APDU protocol can remain mostly unchanged
+ * so that the Idemia APDU protocol can remain mostly unchanged
  * @noinspection FieldCanBeLocal, SameParameterValue
  */
 class IdemiaWithPace extends Idemia implements TokenWithPace, ApduEncryptor {

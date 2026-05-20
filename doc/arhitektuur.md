@@ -14,7 +14,7 @@ NFC-ID teek on arendatud m-valimiste projektis lähtudes vajadusest kasutada ID-
 
 Eesti ID-kaardil on olemas NFC liides, mille vahendusel on kättesaadav kogu ID-kaardi funktsionaalsus. Android ja iOS nutiseadmetel on sageli olemas NFC liides, mis võimaldaks ID-kaarti nendel seadmetel kasutada.
 
-ID-kaart on juba kasutatav Android ja iOS nutiseadmetel, hetkel nõuab see nutiseadme USB porti kiipkaardilugeja ühendamist, mis on kasutajatele ebamugav. Rakendused, mis praegu ID-kaarti kasutavad, peavad ise realiseerima suhtlusprotokolli ID-kaardiga USB kaardilugeja ja APDU tasandil.
+ID-kaart on juba kasutatav Android ja iOS nutiseadmetel, ent see on seni nõudnud nutiseadmega eraldi kiipkaardilugeja ühendamist, mis on kasutajatele ebamugav. Sellisel viisil ID-kaarti kasutavad rakendused peavad ise realiseerima suhtlusprotokolli ID-kaardiga kaardilugeja ja APDU tasandil.
 
 Eesti ID-kaardi kasutamiseks üle NFC liidese on tehtud teostatavusuuring, mille põhjal ei ole takistusi NFC lubamiseks. - [Analysis of the Possibility to Use ID1 Card's NFC Interface for Authentication and Electronic Signing](https://www.ria.ee/media/1350/download). Uuring kirjeldab ka võimalikku arhitektuuri NFC toe loomiseks, mis tähendab eraldi eID rakenduse loomist vältimaks olukorda, kus kolmandad osapooled lõppkasutajalt PIN koode küsima hakkavad.
 
@@ -28,7 +28,7 @@ m-valimiste projejkti raames on eesmärk luua tarkvarateek, mis võimaldab kasut
 
 Hetkel ID-kaarti kasutavate rakenduste hulgas on https://github.com/open-eid/MOPP-Android ja https://github.com/open-eid/MOPP-iOS. Nende rakenduste jaoks vajalik funktsionaalsus on mõnevõrra erinev m-valimiste vajadustest, samas on nende rakenduste lähtekoodis juba olemas ID-kaardiga suhtlemise abstraktsioonid (näiteks `ee.ria.DigiDoc.idcard.Token`), mida on mõistlik loodava teegi juures arvestada.
 
-Otsides analooge väljastpoolt Eesti eID maastikku, leiame Yubikey tokenid - mitmerakenduselised USB tokenid, mille funktsionaalsus on kasutatav ka üle NFC liidese. Üheks paljudest rakendustest on PIV (*Personal Identity Verification*), mis on võrreldav ID-kaardiga. Yubikeyl on olemas näiterakendus ja teek mh. Android platvormile (https://github.com/Yubico/yubikit-android), mis kirjeldab võtmete kasutamist nii üle USB kui NFC liidese. Võrreldes Eesti rakendustega on siin täiendav abstraktsioon - suhtluskanal kaardiga võib olla USB või NFC.
+Otsides analooge väljastpoolt Eesti eID maastikku, leiame Yubikey tokenid - mitmerakenduselised tokenid, mille funktsionaalsus on kasutatav ka üle NFC liidese. Üheks paljudest rakendustest on PIV (*Personal Identity Verification*), mis on võrreldav ID-kaardiga. Yubikeyl on olemas näiterakendus ja teek mh. Android platvormile (https://github.com/Yubico/yubikit-android), mis kirjeldab võtmete kasutamist üle NFC liidese.
 
 ## Arhitektuurselt olulised nõudmised
 
@@ -122,7 +122,7 @@ Android platvormi NFC tugi on kirjeldatud [platvormi dokumentatsioonis](https://
 
 #### Ühilduvus RIA MOPP-Android rakendusega
 
-RIA MOPP-Android rakendus realiseerib APDU protokolli 3 erineva ID-kaardi versiooni jaoks, neist IDEMIA ID1 kaart toetab ka NFC liidest. RIA MOPP-Android rakendus kasutab kaarte USB porti ühendatud kiipkaardilugeja abil ning võimaldab ID-kaardi funktsionaalsust kasutada nutiseadmest. On mõistlik taaskasutada antud rakenduse arhitektuuri:
+RIA MOPP-Android rakendus realiseerib APDU protokolli mitme ID-kaardi versiooni jaoks, neist IDEMIA ja Thales kaardid toetavad ka NFC liidest. On mõistlik taaskasutada antud rakenduse arhitektuuri:
 
 * ID-kaardi APDU protokoll on spetsiifline protokoll, mille korduvimplementeerimine ei ole mõttekas. Kasulik on ära kasutada kogunenud teadmist ID-kaardiga suhtlemise kohta, mis alati ei ole saadaolevast dokumentatsioonist üheselt leitav.
 * Lähtudes olemasolevatest liidestustest on lihtsam tagada NFC toe rakendatavus nt. RIA MOPP-Android rakendusse.
@@ -131,11 +131,9 @@ Tuleb pidada silmas, et 100% ühilduvuse saavutamine ei osutunud võimalikuks. L
 
 #### smart-card-reader-lib
 
-![](./model/smart-card-reader.png)
-
 `smart-card-reader-lib` on RIA MOPP-Android päritolu. Algselt oli tegu teegiga, mis pakkus abstraktset `SmartCardReader` liidest ning `SmartCardReaderManager` klassi, mis Android API vahendusel USB ühendusi monitooris ning ID-kaardi ühendumise tuvastas. Teek sisaldas tuge ACS ja Identiv kaardilugejatele.
 
-NFC liidese loomise käigus refaktoreeriti USB liidese spetsiifiline kood eraldi alamteeki ning selle kõrvale loodi NFC spetsiifiline alamteek, mis realiseerib klassid `NfcSmartCardReaderManager` ja `NfcSmartCardReader`. Mõlemad alamteegid - USB ja NFC - jagavad `SmartCardReader` abstraktsiooni ja erindeid. Tulenevalt tehnoloogilistest eripäradest ei osutunud otstarbekaks haldurklasside - `UsbSmartCardReaderManager` ja `NfcSmartCardReaderManager` vaheline abstraktsioonide jagamine. Ilmselt on ka teegi kasutajal oluline teha vahet USB ja NFC liidese vahel, kuna need tingivad ka erinevad kasutajakogemused - USB kaardilugejas võib kaart olla pikalt ning rakendus saab sellega suhelda. NFC ühenduse hoidmine eeldab kasutajalt füüsilist pingutust ning kaardiga suhelda saab alles peale PACE tunneli loomist.
+USB liidese spetsiifiline kood ning ACS ja Identiv kaardilugejate tugi on teegist eemaldatud. Teek realiseerib ainult NFC-spetsiifilised klassid `NfcSmartCardReaderManager` ja `NfcSmartCardReader`, mis jagavad `SmartCardReader` abstraktsiooni ja erindeid. NFC ühenduse hoidmine eeldab kasutajalt füüsilist pingutust ning kaardiga suhelda saab alles peale PACE tunneli loomist.
 
 Klass `NfcSmartCardReaderManager` on liidestumise alguspunkt integreerijale - selle klassi instantsi abil tuvastatakse seadme NFC toe olemasolu ning olek ja reageeritakse NFC võimelise ID-kaardi ilmumisele seadme kuuldeulatusse. Viimaseks otstarbeks on realiseeritud Android NFC liidese spetsiifilised *callbackid* ning integraator peab enda koodis keskenduma ennekõike ID-kaardi funktsionaalsuse kasutamisele, mitte Androidi ja ID-kaardi septsiifikale.
 
@@ -147,19 +145,19 @@ Klass `NfcSmartCardReader` realiseerib `SmartCardReader` liidese. Siin luuakse I
 
 `id-card-lib` on RIA MOPP-Android päritolu. Kui rakendus on `smart-card-reader-lib` abil saanud `SmartCardReader` instantsi, siis antud teegi *factory*  meetodeid kasutades luuakse juba konkreetset tüüpi ID-kaardi suhtlusprotokolli realiseerivad klassid, mis muuhulgas implementeerivad `Token` liidest.
 
-USB ühenduse korral kasutab liidese `Token` *factory* meetod kaardi ATR väärtust konkreetse instantseeritava alamklassi tuvastamiseks. NFC ühenduse korral tuleb tuvastada kaardi ATS väärtus ning edasise suhtlemise jätkamiseks luua PACE protokolli kasutades autenditud ja krüpteeritud suhtluskanal kaardi ja seadme vahele. Selleks on `Token` liidesest päritud `TokenWithPace` liides, mille *factory* meetod tuvastab vaid NFC võimelisi kaarte ning mis kirjeldab meetodi `tunnel`, mida liidest implementeeriv klass peab realiseerima.
+NFC ühenduse korral tuleb tuvastada kaardi ATS väärtus ning edasise suhtlemise jätkamiseks luua PACE protokolli kasutades autenditud ja krüpteeritud suhtluskanal kaardi ja seadme vahele. Selleks on `Token` liidesest päritud `TokenWithPace` liides, mille *factory* meetod tuvastab NFC võimelisi kaarte ATS väärtuse põhjal ning kirjeldab meetodi `tunnel`, mida liidest implementeeriv klass peab realiseerima.
 
-`Token` liidest realiseerivad klassid `EstEIDv3d4` ja `EstEIDv3d5` ning `ID1`. Neist viimane kirjeldab IDEMIA ID1 kaardi APDU protokolli.
+`Token` liidest realiseerivad klassid `Thales` ja `Idemia`. Neist viimane kirjeldab IDEMIA kaardi APDU protokolli.
 
-`TokenWithPace` liidest realiseerib klass `ID1WithPace`, mis on klassi `ID1` alamklass ning täiendavalt realiseerib `ApduEncryptor` liidese, olles valmis `smart-card-reader-lib'i` klassile `NfcSmartCardReader` *Secure Messaging* sõnumite krüpteerimis-/dekrüpteerimisteenust pakkuma. 
+`TokenWithPace` liidest realiseerivad klassid `ThalesWithPace` ja `IdemiaWithPace`, mis on vastavate baasklasside alamklassid ning täiendavalt realiseerivad `ApduEncryptor` liidese, olles valmis `smart-card-reader-lib'i` klassile `NfcSmartCardReader` *Secure Messaging* sõnumite krüpteerimis-/dekrüpteerimisteenust pakkuma.
 
-Klass `ID1WithPace` realiseerib ID-kaardi aspektid, mis on vajalikud NFC ühenduse vahendusel kasutamiseks:
+Klassid `ThalesWithPace` ja `IdemiaWithPace` realiseerivad ID-kaardi aspektid, mis on vajalikud NFC ühenduse vahendusel kasutamiseks:
 
 * PACE protokolli abil kaardi ja seadme vahele turvalise suhtluskanali loomine
 * C-APDU sõnumite krüpteerimine ja MACimine - DO85, DO87, DO97 ning DO8E andmeobjektide loomine
 * R-APDU sõnumite dekrüpteerimine ja verifitseerimine - DO85, DO87, DO99 ning DO8E andmeobjektide töötlemine
 
-Väärib märkimist, et vaid üks `ID1` klassi meetod on vajanud ülelaadimist APDU protokolli täpsustamiseks, kuna kaardi käitumine NFC ühenduse korral erineb käitumisest kaardilugejaga ühenduse korral, siiski tuleb öelda, et kuigi kõik klassi `ID1` poolt pakutavad funktsioonid on `ID1WithPace` poolt SM sõnumiteks teisendatavad, ei pruugi kogu kaardi funktsionaalsus olla üle NFC toetatud - nt. PUK koodide muutmine vms.
+Kuigi kõik baasklasside poolt pakutavad funktsioonid on `WithPace` klasside poolt SM sõnumiteks teisendatavad, ei pruugi kogu kaardi funktsionaalsus olla üle NFC toetatud - nt. PUK koodide muutmine vms.
 
 
 
@@ -187,7 +185,7 @@ Anname loetelu erinevatest materjalidest, mis on NFC-ID teegi arendamisel releva
 
 -   Yubico: <https://github.com/Yubico/yubikit-android/>
 
-    Yubikey USB tokenitel on ka NFC liides ning nende Android rakendus on hea näide tokeni kasutamisest nii USB kui NFC ühenduse kaudu.
+    Yubikey tokenitel on ka NFC liides ning nende Android rakendus on hea näide tokeni kasutamisest üle NFC ühenduse.
 
 -   Open eCard: <https://github.com/ecsec/open-ecard/>
 
