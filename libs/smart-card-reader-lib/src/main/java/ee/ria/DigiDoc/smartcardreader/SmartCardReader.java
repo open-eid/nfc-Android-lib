@@ -19,7 +19,7 @@
 
 package ee.ria.DigiDoc.smartcardreader;
 
-import static com.google.common.primitives.Bytes.concat;
+import static org.bouncycastle.util.Arrays.concatenate;
 import static java.util.Arrays.copyOf;
 import static java.util.Arrays.copyOfRange;
 
@@ -60,7 +60,7 @@ public abstract class SmartCardReader implements AutoCloseable {
                     le));
         } else if (data.length < 256) {
             response = transmit(SmartCardReader.appendLe(
-                    concat(
+                    concatenate(
                             new byte[] {(byte) cla, (byte) ins, (byte) p1, (byte) p2,
                                     (byte) data.length},
                             data),
@@ -69,7 +69,7 @@ public abstract class SmartCardReader implements AutoCloseable {
             int remaining = data.length;
             while (remaining >= 256) {
                 transmit(SmartCardReader.appendLe(
-                        concat(
+                        concatenate(
                                 new byte[] {0x10, (byte) ins, (byte) p1, (byte) p2, (byte) 0xFF},
                                 copyOfRange(data, data.length - remaining,
                                         data.length - remaining + 255)),
@@ -77,7 +77,7 @@ public abstract class SmartCardReader implements AutoCloseable {
                 remaining -= 255;
             }
             response = transmit(SmartCardReader.appendLe(
-                    concat(
+                    concatenate(
                             new byte[] {(byte) cla, (byte) ins, (byte) p1, (byte) p2,
                                     (byte) remaining},
                             copyOfRange(data, data.length - remaining, data.length)),
@@ -89,7 +89,7 @@ public abstract class SmartCardReader implements AutoCloseable {
         if (sw1 == (byte) 0x90 && sw2 == 0x00) {
             return copyOf(response, response.length - 2);
         } else if (sw1 == 0x61) {
-            return concat(
+            return concatenate(
                     copyOf(response, response.length - 2),
                     transmit(0x00, 0xC0, 0x00, 0x00, null, (int) sw2));
         }
@@ -100,7 +100,7 @@ public abstract class SmartCardReader implements AutoCloseable {
         if (le == null) {
             return apdu;
         } else {
-            return concat(apdu, new byte[] {le.byteValue()});
+            return concatenate(apdu, new byte[] {le.byteValue()});
         }
     }
 }

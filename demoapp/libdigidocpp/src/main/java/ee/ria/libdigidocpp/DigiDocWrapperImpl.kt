@@ -28,9 +28,8 @@ import java.io.IOException
 import java.util.zip.ZipEntry
 import java.util.zip.ZipException
 import java.util.zip.ZipInputStream
-import javax.inject.Inject
 
-class DigiDocWrapperImpl @Inject constructor(private val context: Context) : DigiDocWrapper {
+class DigiDocWrapperImpl(private val context: Context) : DigiDocWrapper {
 
     override fun schemaDirectory() : String {
         return File(context.cacheDir.absolutePath + File.separator + SCHEMA_DIR).canonicalPath

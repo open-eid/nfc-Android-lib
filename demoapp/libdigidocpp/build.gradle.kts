@@ -2,17 +2,15 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.android.library)
-    alias(libs.plugins.jetbrains.kotlin.android)
-    alias(libs.plugins.ksp)
 }
 
 android {
     namespace = "ee.ria.libdigidocpp"
-    compileSdk = 36
-    testOptions.targetSdk = 36
-    lint.targetSdk = 36
+    compileSdk = 37
+    testOptions.targetSdk = 37
+    lint.targetSdk = 37
     defaultConfig {
-        minSdk = 26
+        minSdk = 34
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("consumer-rules.pro")
@@ -23,7 +21,7 @@ android {
 
     sourceSets {
         named("main") {
-            java.srcDir("include")
+            java.directories.add("include")
         }
     }
 
@@ -38,19 +36,13 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
-
-    kotlin {
-        compilerOptions {
-            jvmTarget = JvmTarget.JVM_17
-        }
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
     }
 }
 
-dependencies {
-    implementation(libs.dagger)
-    implementation(libs.javax.inject)
-    ksp(libs.dagger.compiler)
+kotlin {
+    compilerOptions {
+        jvmTarget = JvmTarget.JVM_21
+    }
 }
