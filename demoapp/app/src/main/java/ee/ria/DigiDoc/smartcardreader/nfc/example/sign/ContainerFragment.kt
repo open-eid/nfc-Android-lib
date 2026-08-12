@@ -49,11 +49,15 @@ import ee.ria.DigiDoc.smartcardreader.nfc.example.util.Utils.filesToCache
 import ee.ria.DigiDoc.smartcardreader.nfc.example.util.Utils.getContainerFilesList
 import ee.ria.DigiDoc.smartcardreader.nfc.example.util.Utils.signatureIsAdded
 import ee.ria.DigiDoc.smartcardreader.nfc.example.viewmodel.DataViewModel
+import ee.ria.DigiDoc.utilsLib.logging.LoggingUtil.Companion.errorLog
 import ee.ria.libdigidocpp.Container
 import java.io.File
+import java.io.IOException
 import java.util.Locale
 
 class ContainerFragment : Fragment() {
+
+    private val logTag = javaClass.simpleName
 
     private val dataViewModel: DataViewModel by activityViewModels()
     private lateinit var binding: FragmentContainerBinding
@@ -121,7 +125,17 @@ class ContainerFragment : Fragment() {
         }
         addFileButton.setOnClickListener { addFile() }
         addSignatureButton.setOnClickListener {
-            filesToCache(requireContext().cacheDir.absolutePath)
+            try {
+                filesToCache(requireContext().cacheDir.absolutePath)
+            } catch (ex: IOException) {
+                errorLog(logTag, "Unable to prepare data files", ex)
+                Toast.makeText(
+                    requireContext(),
+                    "Unable to prepare data files.",
+                    Toast.LENGTH_SHORT
+                ).show()
+                return@setOnClickListener
+            }
             createContainer()
             dataViewModel.setContainerName(containerNameEditText.text.toString())
             val bundle = Bundle()
@@ -213,7 +227,7 @@ class ContainerFragment : Fragment() {
                 throw Exception("Not enough free space.")
             }
         } catch (ex: Exception) {
-            ex.printStackTrace()
+            errorLog(logTag, "Unable to create container", ex)
         }
     }
 

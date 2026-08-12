@@ -19,11 +19,9 @@
 
 package ee.ria.DigiDoc.idcard;
 
-import static com.google.common.primitives.Bytes.concat;
+import static org.bouncycastle.util.Arrays.concatenate;
 
 import android.util.SparseArray;
-
-import com.google.common.primitives.Bytes;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -118,7 +116,7 @@ class Idemia implements Token {
             selectMainAid();
         }
         try {
-            reader.transmit(0x00, 0x24, 0x00, Objects.requireNonNull(VERIFY_PIN_MAP.get(type)), Bytes.concat(code(currentCode), code(newCode)), null);
+            reader.transmit(0x00, 0x24, 0x00, Objects.requireNonNull(VERIFY_PIN_MAP.get(type)), concatenate(code(currentCode), code(newCode)), null);
         } catch (ApduResponseException e) {
             handleApduResponseException(type, e);
         }
@@ -164,7 +162,7 @@ class Idemia implements Token {
         byte[] prefix = new byte[] {0x00};
         verifyCode(CodeType.PIN1, pin1);
         reader.transmit(0x00, 0x22, 0x41, 0xB8, new byte[] {(byte) 0x80, 0x04, (byte) 0xFF, 0x30, 0x04, 0x00, (byte) 0x84, 0x01, (byte) 0x81}, null);
-        return reader.transmit(0x00, 0x2A, 0x80, 0x86, concat(prefix, data), 0x00);
+        return reader.transmit(0x00, 0x2A, 0x80, 0x86, concatenate(prefix, data), 0x00);
     }
 
     private void verifyCode(CodeType type, byte[] code) throws SmartCardReaderException {

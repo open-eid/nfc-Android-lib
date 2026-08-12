@@ -76,17 +76,29 @@ The demo application (`demoapp/app`) provides a complete reference implementatio
 * The `.aar` files are located in:
   * `libs/id-card-lib/build/outputs/aar`
   * `libs/smart-card-reader-lib/build/outputs/aar`
+  * `libs/card-utils-lib/build/outputs/aar`
 * Move the resulting `.aar` files to your project's `/libs` directory.
-* Add the dependencies to your application's `build.gradle` file:
-    * `implementation files('app/libs/id-card-lib.aar')`
-    * `implementation files('app/libs/smart-card-reader-lib.aar')`
+* Add the dependencies to your application's `build.gradle.kts` file:
+    * `implementation(files("app/libs/id-card-lib.aar"))`
+    * `implementation(files("app/libs/smart-card-reader-lib.aar"))`
+    * `implementation(files("app/libs/card-utils-lib.aar"))`
+
+All three `.aar` files are required. 
+
+Your application must declare these dependencies:
+
+```kotlin
+implementation("org.bouncycastle:bcprov-jdk18on:1.85")
+implementation("org.jetbrains.kotlin:kotlin-stdlib")
+```
 
 ## Overview
 
-ID card support for Android applications is based on two libraries: `id-card-lib` and `smart-card-reader-lib`.
+ID card support for Android applications is based on three libraries: `id-card-lib`, `smart-card-reader-lib` and `card-utils-lib`.
 
 * `smart-card-reader-lib` enables the use of the ID card over NFC. It provides the NFC smart card reader interface and communication layer.
 * `id-card-lib` implements the APDU-based communication protocols required to use the core functionality across different types of ID cards (IDEMIA and Thales).
+* `card-utils-lib` provides the logging utility used by the other two libraries.
 
 Integrating ID card support into an Android application proceeds as follows:
 

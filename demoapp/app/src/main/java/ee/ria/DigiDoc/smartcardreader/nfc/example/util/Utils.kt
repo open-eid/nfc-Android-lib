@@ -23,24 +23,21 @@ import android.app.Activity
 import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
-import android.database.Cursor
 import android.net.Uri
 import android.provider.OpenableColumns
-import com.google.common.io.Files
-import ee.ria.DigiDoc.utilsLib.logging.LoggingUtil.Companion.debugLog
+import ee.ria.DigiDoc.utilsLib.logging.LoggingUtil.Companion.errorLog
 import ee.ria.libdigidocpp.Container
 import ee.ria.libdigidocpp.Signature
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
-import java.io.InputStream
-import java.io.OutputStream
 
 object Utils {
 
     val origin = "ivxv.valimised.ee:443"
     private val logTag = javaClass.simpleName
     const val SIGNATURE_CONTAINER_EXTENSION = "asice"
+    private const val DEFAULT_MIME_TYPE = "application/octet-stream"
     private val containerFiles: MutableList<FileData> = mutableListOf()
     lateinit var container: Container
     lateinit var signature: Signature
@@ -70,94 +67,91 @@ object Utils {
     }
 
     fun getFileNameAndSize(uri: Uri, context: Context): Pair<String, Long> {
-        var fileName: String = uri.lastPathSegment!!
+        var fileName: String = uri.lastPathSegment ?: ""
         var fileSize: Long = 0
         if (uri.scheme.equals("content")) {
             try {
-                val cursor: Cursor? = context.contentResolver.query(uri, null, null, null, null)!!
-                if (cursor != null && cursor.moveToFirst()) {
-                    val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-                    if (nameIndex >= 0) {
-                        fileName = cursor.getString(nameIndex)
+                context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                    if (cursor.moveToFirst()) {
+                        val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                        if (nameIndex >= 0) {
+                            fileName = cursor.getString(nameIndex)
+                        }
+                        val sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE)
+                        if (sizeIndex >= 0) {
+                            fileSize = cursor.getLong(sizeIndex)
+                        }
                     }
-                    val sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE)
-                    if (sizeIndex >= 0) {
-                        fileSize = cursor.getLong(sizeIndex)
-                    }
-                    cursor.close()
                 }
             } catch (exception: Exception) {
-                exception.printStackTrace()
+                errorLog(logTag, "Unable to read file name and size", exception)
             }
         }
         return Pair(fileName, fileSize)
     }
 
-    fun removeFileExtension(fileName: String): String {
-        val index = fileName.lastIndexOf(".")
-        return fileName.substring(0, index)
-    }
+    fun removeFileExtension(fileName: String): String = fileName.substringBeforeLast('.')
 
     fun signatureContainerFile(fileName: String, filesDir: File): File {
         val containerDir = createContainersDir(filesDir)
         val containerFile = File(containerDir, fileName)
-        if (containerFile.canonicalPath.startsWith(containerDir.canonicalPath)) {
-            Files.createParentDirs(containerFile)
-        } else {
+        if (!containerFile.canonicalFile.toPath().startsWith(containerDir.canonicalFile.toPath())) {
             throw IOException("Invalid file path")
+        }
+        val parent = containerFile.parentFile
+        if (parent != null && !parent.isDirectory && !parent.mkdirs()) {
+            throw IOException("Unable to create container parent directories")
         }
         return containerFile
     }
 
     private fun createContainersDir(filesDir: File): File {
         val dir = File(filesDir, "containers")
-        if (dir.mkdirs()) {
-            debugLog(logTag, String.format("Directories created for %s", dir.path))
+        if (!dir.isDirectory && !dir.mkdirs()) {
+            throw IOException("Unable to create containers directory")
         }
         return dir
     }
 
-    fun getFilesFromCache(cacheDir: String): MutableList<File> {
-        val fileList: MutableList<File> = mutableListOf()
-        for (file in File("$cacheDir/datafiles").listFiles()!!) {
-            fileList.add(file)
-        }
-        return fileList
-    }
+    fun getFilesFromCache(cacheDir: String): MutableList<File> =
+        File("$cacheDir/datafiles").listFiles()?.toMutableList() ?: mutableListOf()
 
     fun filesToCache(cacheDir: String) {
         val datafilesDir = createDataFilesDir(File(cacheDir))
-        Files.createParentDirs(datafilesDir)
         for (fileData in containerFiles) {
             val cacheFile = File(datafilesDir, fileData.getFileName())
-            if (cacheFile.canonicalPath.startsWith(File(cacheDir).canonicalPath)) {
-                try {
-                    val inp: InputStream =
-                        fileData.getContentResolver()
-                            .openInputStream(fileData.getFileIntent().data!!)!!
-                    val outputStream: OutputStream = FileOutputStream(cacheFile)
-                    inp.copyTo(outputStream, DEFAULT_BUFFER_SIZE)
-                    inp.close()
-                    outputStream.close()
-                } catch (ex: Exception) {
-                    ex.printStackTrace()
-                }
+            if (!cacheFile.canonicalFile.toPath().startsWith(File(cacheDir).canonicalFile.toPath())) {
+                errorLog(logTag, "Data file resolves outside the cache directory, skipping")
+                continue
+            }
+            val uri = fileData.getFileIntent().data
+            if (uri == null) {
+                errorLog(logTag, "Data file has no URI, skipping")
+                continue
+            }
+            try {
+                fileData.getContentResolver().openInputStream(uri)?.use { input ->
+                    FileOutputStream(cacheFile).use { output ->
+                        input.copyTo(output, DEFAULT_BUFFER_SIZE)
+                    }
+                } ?: errorLog(logTag, "Could not open data file, skipping")
+            } catch (ex: Exception) {
+                errorLog(logTag, "Unable to cache data file", ex)
             }
         }
     }
 
     private fun createDataFilesDir(cacheDir: File): File {
         val dir = File(cacheDir, "datafiles")
-        if (dir.mkdirs()) {
-            debugLog(logTag, String.format("Directories created for %s", dir.path))
+        if (!dir.isDirectory && !dir.mkdirs()) {
+            throw IOException("Unable to create $dir")
         }
         return dir
     }
 
     fun getMimeType(index: Int): String {
-        val uri = containerFiles[index].getFileIntent().data
-        val contentResolver = containerFiles[index].getContentResolver()
-        return contentResolver.getType(uri!!)!!
+        val uri = containerFiles[index].getFileIntent().data ?: return DEFAULT_MIME_TYPE
+        return containerFiles[index].getContentResolver().getType(uri) ?: DEFAULT_MIME_TYPE
     }
 
     fun checkFreeSpace(container: Container, activity: Activity): Boolean {

@@ -4,30 +4,24 @@ plugins {
 
 android {
     namespace = "ee.ria.DigiDoc.smartcardreader"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
-        minSdk = 26
+        minSdk = 34
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
-
-    lint {
-        lintConfig = file("../lint.xml")
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
     }
 }
 
 dependencies {
     implementation(libs.androidx.annotation)
     implementation(libs.bcprov.jdk18on)
-    implementation(libs.guava)
 
     implementation(project(":libs:card-utils-lib"))
 
-    testImplementation(libs.hamcrest)
     testImplementation(libs.junit)
     testImplementation(libs.mockito.core)
     testImplementation(libs.truth)

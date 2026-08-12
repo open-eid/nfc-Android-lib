@@ -100,24 +100,13 @@ class MainActivity : AppCompatActivity() {
     private fun getAppVersion(context: Context): StringBuilder {
         val versionName = StringBuilder()
         try {
-            versionName.append(
-                context.packageManager.getPackageInfo(
-                    context.packageName,
-                    0
-                ).versionName
+            val packageInfo = context.packageManager.getPackageInfo(
+                context.packageName,
+                PackageManager.PackageInfoFlags.of(0)
             )
+            versionName.append(packageInfo.versionName)
                 .append(".")
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                versionName.append(
-                    context.packageManager.getPackageInfo(context.packageName, 0).longVersionCode
-                )
-            } else {
-                @Suppress("DEPRECATION")
-                versionName.append(
-                    context.packageManager.getPackageInfo(context.packageName, 0).versionCode
-                )
-            }
+                .append(packageInfo.longVersionCode)
         } catch (e: PackageManager.NameNotFoundException) {
             e.printStackTrace()
         }

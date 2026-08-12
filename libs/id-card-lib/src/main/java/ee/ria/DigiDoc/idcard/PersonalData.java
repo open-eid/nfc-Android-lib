@@ -19,38 +19,29 @@
 
 package ee.ria.DigiDoc.idcard;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-
-import com.google.auto.value.AutoValue;
 
 import java.time.LocalDate;
 
 /**
  * Personal data file contents.
  */
-@AutoValue
-public abstract class PersonalData {
+public record PersonalData(
+        @NonNull String surname,
+        @NonNull String givenNames,
+        @NonNull String citizenship,
+        @Nullable LocalDate dateOfBirth,
+        @NonNull String personalCode,
+        @NonNull String documentNumber,
+        @Nullable LocalDate expiryDate,
+        @NonNull CardType cardType) {
 
-    public abstract String surname();
-
-    public abstract String givenNames();
-
-    public abstract String citizenship();
-
-    @Nullable public abstract LocalDate dateOfBirth();
-
-    public abstract String personalCode();
-
-    public abstract String documentNumber();
-
-    @Nullable public abstract LocalDate expiryDate();
-
-    public abstract CardType cardType();
-
-    static PersonalData create(String surname, String givenNames, String citizenship,
-                               @Nullable LocalDate dateOfBirth, String personalCode,
-                               String documentNumber, @Nullable LocalDate expiryDate, CardType cardType) {
-        return new AutoValue_PersonalData(surname, givenNames, citizenship, dateOfBirth,
+    static PersonalData create(@NonNull String surname, @NonNull String givenNames,
+                               @NonNull String citizenship, @Nullable LocalDate dateOfBirth,
+                               @NonNull String personalCode, @NonNull String documentNumber,
+                               @Nullable LocalDate expiryDate, @NonNull CardType cardType) {
+        return new PersonalData(surname, givenNames, citizenship, dateOfBirth,
                 personalCode, documentNumber, expiryDate, cardType);
     }
 }

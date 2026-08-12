@@ -2,30 +2,21 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.android.library)
-    alias(libs.plugins.google.dagger)
-    alias(libs.plugins.jetbrains.kotlin.android)
-    alias(libs.plugins.ksp)
 }
 
 android {
     namespace = "ee.ria.DigiDoc.utilsLib"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
-        minSdk = 26
+        minSdk = 34
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
-
-    kotlin {
-        compilerOptions {
-            jvmTarget = JvmTarget.JVM_17
-        }
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
     }
 
     buildFeatures {
@@ -40,10 +31,8 @@ android {
     }
 }
 
-dependencies {
-    implementation(libs.dagger)
-    implementation(libs.google.dagger.hilt.android)
-    implementation(libs.google.dagger.hilt.core)
-    implementation(libs.javax.inject)
-    ksp(libs.google.dagger.hilt.android.compile)
+kotlin {
+    compilerOptions {
+        jvmTarget = JvmTarget.JVM_21
+    }
 }

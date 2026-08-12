@@ -19,7 +19,7 @@
 
 package ee.ria.DigiDoc.idcard;
 
-import static com.google.common.primitives.Bytes.concat;
+import static org.bouncycastle.util.Arrays.concatenate;
 
 import android.annotation.SuppressLint;
 
@@ -219,7 +219,7 @@ class IdemiaWithPace extends Idemia implements TokenWithPace, ApduEncryptor {
      */
     private byte[] getGAMapNonce(byte[] publicKey) throws SmartCardReaderException {
         byte[] prefix = new byte[] {0x7c, 0x43, (byte)0x81, 0x41};
-        byte[] data = concat(prefix, publicKey);
+        byte[] data = concatenate(prefix, publicKey);
         return reader.transmit(CLA_CHAIN, INS_GA, 0x00, 0x00, data, 0x00);
     }
 
@@ -232,7 +232,7 @@ class IdemiaWithPace extends Idemia implements TokenWithPace, ApduEncryptor {
      */
     private byte[] getGAKeyAgreement(byte[] publicKey) throws SmartCardReaderException {
         byte[] prefix = new byte[] {0x7c, 0x43, (byte)0x83, 0x41};
-        byte[] data = concat(prefix, publicKey);
+        byte[] data = concatenate(prefix, publicKey);
         return reader.transmit(CLA_CHAIN, INS_GA, 0x00, 0x00, data, 0x00);
     }
 
@@ -244,7 +244,7 @@ class IdemiaWithPace extends Idemia implements TokenWithPace, ApduEncryptor {
      */
     private byte[] getGAMutualAuthentication(byte[] mac) throws SmartCardReaderException {
         byte[] prefix = new byte[] {0x7C, 0x0A, (byte)0x85, 0x08};
-        byte[] data = concat(prefix, mac);
+        byte[] data = concatenate(prefix, mac);
         return reader.transmit(CLA_ISO, INS_GA, 0x00, 0x00, data, 0x00);
     }
 
@@ -257,7 +257,7 @@ class IdemiaWithPace extends Idemia implements TokenWithPace, ApduEncryptor {
         byte[] prefix = new byte[] {
                 0x7f, 0x49, 0x4f, 0x06, 0x0a, 0x04, 0x00, 0x7f,
                 0x00, 0x07, 0x02, 0x02, 0x04, 0x02, 0x04, (byte)0x86, 0x41};
-        return concat(prefix, publicKey);
+        return concatenate(prefix, publicKey);
     }
 
     /**
@@ -269,7 +269,7 @@ class IdemiaWithPace extends Idemia implements TokenWithPace, ApduEncryptor {
      */
     private byte[] createKey(byte[] basis, byte lastByte) throws NoSuchAlgorithmException {
         byte[] padding = new byte[] {0x00, 0x00, 0x00, lastByte};
-        byte[] padded = concat(basis, padding);
+        byte[] padded = concatenate(basis, padding);
         MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
         return messageDigest.digest(padded);
     }
@@ -300,7 +300,7 @@ class IdemiaWithPace extends Idemia implements TokenWithPace, ApduEncryptor {
      * @return MAC
      */
     private byte[] getMAC(byte[] data, byte[] keyMAC) {
-        BlockCipher blockCipher = new AESEngine();
+        BlockCipher blockCipher = AESEngine.newInstance();
         CMac cmac = new CMac(blockCipher);
         cmac.init(new KeyParameter(keyMAC));
         cmac.update(data, 0, data.length);
@@ -552,14 +552,14 @@ class IdemiaWithPace extends Idemia implements TokenWithPace, ApduEncryptor {
         newLength += (byte) do97.length;
         newLength += (byte) do8e.length;
 
-        byte[] result = concat(
+        byte[] result = concatenate(new byte[][] {
                 maskedHeader,
                 new byte[] {newLength},
                 do8587,
                 do97,
                 do8e,
                 new byte[] {0x00}
-        );
+        });
         incrementSSC(ssc);
         LoggingUtil.Companion.debugLog(TAG, String.format("Encrypted C-APDU: %s", toHexString(result)), null);
         return result;
@@ -576,12 +576,12 @@ class IdemiaWithPace extends Idemia implements TokenWithPace, ApduEncryptor {
     @NonNull
     private byte[] getDo8e(byte[] maskedHeader, byte[] do8587, byte[] do97) {
         byte[] paddedMaskedHeader = pad(maskedHeader, BLOCK_SIZE);
-        byte[] macData = concat(ssc, paddedMaskedHeader, do8587, do97);
+        byte[] macData = concatenate(ssc, paddedMaskedHeader, do8587, do97);
         byte[] paddedMacData = macData;
         if (macData.length % BLOCK_SIZE != 0) {
             paddedMacData = pad(macData, BLOCK_SIZE);
         }
-        return concat(new byte[] {DO8E, MAC_LENGTH}, getMAC(paddedMacData, keyMAC));
+        return concatenate(new byte[] {DO8E, MAC_LENGTH}, getMAC(paddedMacData, keyMAC));
     }
 
     /**
@@ -623,10 +623,10 @@ class IdemiaWithPace extends Idemia implements TokenWithPace, ApduEncryptor {
             paddedData = pad(data, BLOCK_SIZE);
             byte[] dataEncrypted = encryptData(paddedData);
             if (ins % 2 == 0) {
-                do8587 = concat(new byte[]{DO87, (byte) (dataEncrypted.length + 1), 0x01},
+                do8587 = concatenate(new byte[]{DO87, (byte) (dataEncrypted.length + 1), 0x01},
                         dataEncrypted);
             } else {
-                do8587 = concat(new byte[]{DO85, (byte) dataEncrypted.length}, dataEncrypted);
+                do8587 = concatenate(new byte[]{DO85, (byte) dataEncrypted.length}, dataEncrypted);
             }
         }
         return do8587;
@@ -706,7 +706,7 @@ class IdemiaWithPace extends Idemia implements TokenWithPace, ApduEncryptor {
         currentByte += MAC_LENGTH;
 
         byte[] rdata = Arrays.copyOfRange(response, 0, macStart);
-        byte[] macData = pad(concat(ssc, rdata), BLOCK_SIZE);
+        byte[] macData = pad(concatenate(ssc, rdata), BLOCK_SIZE);
         byte[] ourMac = getMAC(macData, keyMAC);
         LoggingUtil.Companion.debugLog(TAG, String.format("Card MAC: %s, our MAC: %s",
                 Hex.toHexString(cardMac), Hex.toHexString(ourMac)), null);

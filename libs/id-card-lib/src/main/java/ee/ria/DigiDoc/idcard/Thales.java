@@ -19,7 +19,7 @@
 
 package ee.ria.DigiDoc.idcard;
 
-import static com.google.common.primitives.Bytes.concat;
+import static org.bouncycastle.util.Arrays.concatenate;
 import static ee.ria.DigiDoc.idcard.TLV.parseTLVRecursive;
 
 import android.util.SparseArray;
@@ -147,7 +147,7 @@ class Thales implements Token {
             throw new SmartCardReaderException("Cannot change PUK code");
         }
         try {
-            reader.transmit(0x00, 0x24, 0x00, Objects.requireNonNull(VERIFY_PIN_MAP.get(type)), concat(code(currentCode), code(newCode)), null);
+            reader.transmit(0x00, 0x24, 0x00, Objects.requireNonNull(VERIFY_PIN_MAP.get(type)), concatenate(code(currentCode), code(newCode)), null);
         } catch (ApduResponseException e) {
             handleApduResponseException(type, e);
         }
@@ -159,7 +159,7 @@ class Thales implements Token {
             throw new SmartCardReaderException("Cannot unblock and change PUK code");
         }
         try {
-            reader.transmit(0x00, 0x2C, pukCode == null ? 0x02 : 0x00, Objects.requireNonNull(VERIFY_PIN_MAP.get(type)), concat(code(pukCode), code(newCode)), null);
+            reader.transmit(0x00, 0x2C, pukCode == null ? 0x02 : 0x00, Objects.requireNonNull(VERIFY_PIN_MAP.get(type)), concatenate(code(pukCode), code(newCode)), null);
         } catch (ApduResponseException e) {
             handleApduResponseException(CodeType.PUK, e);
         }
@@ -167,7 +167,7 @@ class Thales implements Token {
 
     private void setSecEnv(byte mode, byte[] algo, byte keyRef) throws SmartCardReaderException {
         byte[] data = algo != null ? TLV.encodeTLV(0x80, algo) : new byte[] {};
-        reader.transmit(0x00, 0x22, 0x41, mode, concat(data, TLV.encodeTLV(0x84, new byte[] {keyRef})), null);
+        reader.transmit(0x00, 0x22, 0x41, mode, concatenate(data, TLV.encodeTLV(0x84, new byte[] {keyRef})), null);
     }
 
     private byte[] sign(CodeType type, byte[] pin, byte keyRef, byte[] hash) throws SmartCardReaderException {
@@ -196,7 +196,7 @@ class Thales implements Token {
         verifyCode(CodeType.PIN1, pin1);
         setSecEnv((byte) 0xB8, null, (byte) 0x01);
         byte[] prefix = new byte[] {0x00};
-        return reader.transmit(0x00, 0x2A, 0x80, 0x86, concat(prefix, data), 0x00);
+        return reader.transmit(0x00, 0x2A, 0x80, 0x86, concatenate(prefix, data), 0x00);
     }
 
     private void verifyCode(CodeType type, byte[] code) throws SmartCardReaderException {
