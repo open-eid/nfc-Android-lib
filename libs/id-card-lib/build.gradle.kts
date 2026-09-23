@@ -36,4 +36,8 @@ dependencies {
 
     implementation(project(":libs:smart-card-reader-lib"))
     implementation(project(":libs:card-utils-lib"))
+
+    testImplementation(libs.junit)
+    testImplementation(libs.mockito.core)
+    testImplementation(libs.truth)
 }

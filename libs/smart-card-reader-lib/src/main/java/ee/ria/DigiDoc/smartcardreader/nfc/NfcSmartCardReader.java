@@ -6,6 +6,7 @@ package ee.ria.DigiDoc.smartcardreader.nfc;
 import static java.util.Arrays.copyOfRange;
 
 import android.nfc.Tag;
+import android.nfc.TagLostException;
 import android.nfc.tech.IsoDep;
 
 import androidx.annotation.NonNull;
@@ -14,9 +15,9 @@ import org.bouncycastle.util.encoders.Hex;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
-import java.util.Objects;
 
 import ee.ria.DigiDoc.smartcardreader.ApduResponseException;
+import ee.ria.DigiDoc.smartcardreader.CardConnectionLostException;
 import ee.ria.DigiDoc.smartcardreader.SmartCardReader;
 import ee.ria.DigiDoc.smartcardreader.SmartCardReaderException;
 import ee.ria.DigiDoc.utilsLib.logging.LoggingUtil;
@@ -59,7 +60,7 @@ public class NfcSmartCardReader extends SmartCardReader {
         try {
             card.connect();
         } catch (IOException ex) {
-            throw new SmartCardReaderException(ex);
+            throw readerException(ex);
         }
     }
 
@@ -71,7 +72,7 @@ public class NfcSmartCardReader extends SmartCardReader {
         try {
             card.close();
         } catch (IOException ex) {
-            LoggingUtil.Companion.errorLog(TAG, Objects.requireNonNull(ex.getMessage()), ex);
+            LoggingUtil.Companion.errorLog(TAG, String.valueOf(ex), ex);
         }
     }
 
@@ -113,7 +114,7 @@ public class NfcSmartCardReader extends SmartCardReader {
             LoggingUtil.Companion.debugLog(TAG, Hex.toHexString(apdu), null);
             return card.transceive(apdu);
         } catch (IOException ex) {
-            throw new SmartCardReaderException(ex);
+            throw readerException(ex);
         }
     }
 
@@ -193,5 +194,12 @@ public class NfcSmartCardReader extends SmartCardReader {
         // Insert status bytes from original R-APDU
         System.arraycopy(response, response.length - 2, ret, cursor, 2);
         return ret;
+    }
+
+    private static SmartCardReaderException readerException(IOException ex) {
+        if (ex instanceof TagLostException) {
+            return new CardConnectionLostException(ex);
+        }
+        return new SmartCardReaderException(ex);
     }
 }
