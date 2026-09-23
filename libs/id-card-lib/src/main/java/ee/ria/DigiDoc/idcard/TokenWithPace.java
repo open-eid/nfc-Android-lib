@@ -17,6 +17,8 @@ import ee.ria.DigiDoc.utilsLib.logging.LoggingUtil;
 public interface TokenWithPace extends Token {
     String TAG = TokenWithPace.class.getName();
 
+    int CAN_LENGTH = 6;
+
     /**
      * Method to execute the PACE key-exchange, to allow for encrypted
      * communication between card and the application

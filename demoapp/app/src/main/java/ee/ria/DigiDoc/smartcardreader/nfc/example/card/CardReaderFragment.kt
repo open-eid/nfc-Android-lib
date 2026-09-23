@@ -8,7 +8,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.nfc.NfcAdapter
-import android.nfc.TagLostException
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -27,6 +26,7 @@ import ee.ria.DigiDoc.idcard.CodeVerificationException
 import ee.ria.DigiDoc.idcard.PaceTunnelException
 import ee.ria.DigiDoc.idcard.TokenWithPace
 import ee.ria.DigiDoc.smartcardreader.ApduResponseException
+import ee.ria.DigiDoc.smartcardreader.CardConnectionLostException
 import ee.ria.DigiDoc.smartcardreader.SmartCardReaderException
 import ee.ria.DigiDoc.smartcardreader.nfc.NfcSmartCardReaderManager
 import ee.ria.DigiDoc.smartcardreader.nfc.NfcSmartCardReaderManager.NfcStatus
@@ -303,7 +303,7 @@ class CardReaderFragment : Fragment() {
             Toast.makeText(requireContext(), "Error communicating with card", Toast.LENGTH_SHORT).show()
         }
         else {
-            if (ex.cause is TagLostException) {
+            if (ex is CardConnectionLostException) {
                 Toast.makeText(requireContext(), "Tag was lost", Toast.LENGTH_SHORT).show()
             } else {
                 Toast.makeText(requireContext(), ex.message!!, Toast.LENGTH_SHORT).show()

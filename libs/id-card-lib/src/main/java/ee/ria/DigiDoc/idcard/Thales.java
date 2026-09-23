@@ -23,6 +23,10 @@ import ee.ria.DigiDoc.smartcardreader.SmartCardReaderException;
 
 class Thales implements Token {
 
+    private static final int TAG_VALUE_ABSENT = -1;
+    private static final int TAG_PIN_CHANGED = 0xDF2F;
+    private static final int TAG_RETRY_COUNTER = 0xDF21;
+
     private static final Map<CertificateType, byte[]> CERT_MAP = new HashMap<>();
     static {
         CERT_MAP.put(CertificateType.AUTHENTICATION, new byte[] {(byte) 0xAD, (byte) 0xF1, 0x34, 0x11});
@@ -96,7 +100,7 @@ class Thales implements Token {
         return stream.toByteArray();
     }
 
-    private static int extractTagValue(byte[] data, int tag) {
+    private static int findTagValue(byte[] data, int tag) {
         TLV info = TLV.from(data);
         if (info != null && (info.getTag() & 0xFF) == 0xA0) {
             List<TLV> records = parseTLVRecursive(data);
@@ -106,19 +110,24 @@ class Thales implements Token {
                 }
             }
         }
-        return 0;
+        return TAG_VALUE_ABSENT;
+    }
+
+    private static int extractTagValue(byte[] data, int tag) {
+        int value = findTagValue(data, tag);
+        return value == TAG_VALUE_ABSENT ? 0 : value;
     }
 
     @Override
     public int pinChangedFlag(CodeType type) throws SmartCardReaderException {
         byte[] data = getData(type);
-        return extractTagValue(data, 0xDF2F);
+        return extractTagValue(data, TAG_PIN_CHANGED);
     }
 
     @Override
     public int codeRetryCounter(CodeType type) throws SmartCardReaderException {
         byte[] data = getData(type);
-        return extractTagValue(data, 0xDF21);
+        return extractTagValue(data, TAG_RETRY_COUNTER);
     }
 
     private byte[] getData(CodeType type) throws SmartCardReaderException {
@@ -164,8 +173,13 @@ class Thales implements Token {
 
     @Override
     public byte[] calculateSignature(byte[] pin2, byte[] hash, boolean ecc) throws SmartCardReaderException {
-        if (pinChangedFlag(CodeType.PIN2) == 0) {
-            throw new SmartCardReaderException("PIN2 has not been changed, operation not allowed");
+        int changedFlag = findTagValue(getData(CodeType.PIN2), TAG_PIN_CHANGED);
+        if (changedFlag == TAG_VALUE_ABSENT) {
+            throw new SmartCardReaderException(
+                    "Could not read the PIN2 changed flag, cannot determine whether signing is allowed");
+        }
+        if (changedFlag == 0) {
+            throw new CodeNotActivatedException(CodeType.PIN2);
         }
         return sign(CodeType.PIN2, pin2, (byte) 0x05, hash);
     }
