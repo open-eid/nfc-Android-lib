@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- SPDX-FileCopyrightText: Estonian Information System Authority -->
 <!-- SPDX-License-Identifier: LGPL-2.1-or-later -->
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.NFC" />
@@ -16,8 +15,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.NFCApp"
-        android:enableOnBackInvokedCallback="true"
-        tools:targetApi="31">
+        android:enableOnBackInvokedCallback="true">
         <activity
             android:name="ee.ria.DigiDoc.smartcardreader.nfc.example.MainActivity"
             android:exported="true">
