@@ -4,31 +4,29 @@
 package ee.ria.DigiDoc.smartcardreader;
 
 import static com.google.common.truth.Truth.assertThat;
-import static org.hamcrest.CoreMatchers.equalTo;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
 
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
-import org.mockito.Mock;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.MockMakers;
 
 @SuppressWarnings("ResultOfMethodCallIgnored")
 public final class SmartCardReaderTest {
 
-    @Rule public final ExpectedException exception = ExpectedException.none();
-
-    @Mock(mockMaker = MockMakers.SUBCLASS)
     private SmartCardReader smartCardReader;
 
-    @Before
+    @BeforeEach
     public void before() throws Exception {
-        smartCardReader = mock(SmartCardReader.class, withSettings().mockMaker(MockMakers.SUBCLASS));
+        smartCardReader = mock(SmartCardReader.class, withSettings()
+                .mockMaker(MockMakers.SUBCLASS)
+                .defaultAnswer(CALLS_REAL_METHODS));
         when(smartCardReader.transmit(any()))
                 .thenReturn(new byte[] {(byte) 0x90, 0x00});
     }
@@ -734,8 +732,10 @@ public final class SmartCardReaderTest {
         when(smartCardReader.transmit(any()))
                 .thenReturn(new byte[] {0x67, 0x69});
 
-        exception.expect(equalTo(new ApduResponseException((byte) 0x67, (byte) 0x69)));
+        ApduResponseException thrown = assertThrows(
+                ApduResponseException.class,
+                () -> smartCardReader.transmit(0x00, 0x00, 0x00, 0x00, null, null));
 
-        smartCardReader.transmit(0x00, 0x00, 0x00, 0x00, null, null);
+        assertEquals(new ApduResponseException((byte) 0x67, (byte) 0x69), thrown);
     }
 }

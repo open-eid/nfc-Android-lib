@@ -136,9 +136,7 @@ public class NfcSmartCardReader extends SmartCardReader {
         try {
             // Encryption of the C-APDU
             byte[] response;
-            if (data == null || data.length == 0) {
-                response = transmit(apduEncryptor.encryptAndMac(cla, ins, p1, p2, data, le));
-            } else if (data.length < 256) {
+            if (data == null || data.length < 256) {
                 response = transmit(apduEncryptor.encryptAndMac(cla, ins, p1, p2, data, le));
             } else {
                 int remaining = data.length;

@@ -109,8 +109,9 @@ public final class NfcSmartCardReaderManager implements NfcAdapter.ReaderCallbac
             clientCallback.onNfcReader(reader, ex);
         }
 
-        assert reader != null;
-        reader.close();
+        if (reader != null) {
+            reader.close();
+        }
         disableNfcReaderMode();
     }
 

@@ -5,17 +5,16 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.jetbrains.kotlin.android)
 }
 
 android {
     namespace = "ee.ria.DigiDoc.smartcardreader.nfc.example"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "ee.ria.DigiDoc.smartcardreader.nfc.example"
-        minSdk = 26
-        targetSdk = 36
+        minSdk = 34
+        targetSdk = 37
         versionCode = 3
         versionName = "1.0.1"
 
@@ -32,22 +31,22 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
-    kotlin {
-        compilerOptions {
-            jvmTarget = JvmTarget.JVM_17
-        }
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
     }
     buildFeatures {
         viewBinding = true
     }
 }
 
+kotlin {
+    compilerOptions {
+        jvmTarget = JvmTarget.JVM_21
+    }
+}
+
 dependencies {
     implementation(libs.androidx.activity)
-    implementation(libs.androidx.annotation)
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.constraintlayout)
     implementation(libs.androidx.core)
@@ -56,7 +55,6 @@ dependencies {
     implementation(libs.androidx.navigation.runtime)
     implementation(libs.bcprov.jdk18on)
     implementation(libs.fragment.ktx)
-    implementation(libs.guava)
     implementation(libs.material)
     implementation(libs.navigation.fragment.ktx)
     implementation(libs.recyclerview)
