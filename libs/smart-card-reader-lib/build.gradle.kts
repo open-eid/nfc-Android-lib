@@ -28,7 +28,8 @@ dependencies {
     implementation(libs.bcprov.jdk18on)
     implementation(libs.guava)
 
-    implementation(project(":libs:card-utils-lib"))
+    // Provided at runtime by the consuming app (RIA DigiDoc utils-lib)
+    compileOnly(project(":libs:card-utils-lib"))
 
     testImplementation(libs.hamcrest)
     testImplementation(libs.junit)

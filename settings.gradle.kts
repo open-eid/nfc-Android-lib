@@ -24,9 +24,13 @@ dependencyResolutionManagement {
 
 rootProject.name = "NFC-Android library and demo app"
 
-include(":demoapp")
-include(":demoapp:app")
-include(":demoapp:libdigidocpp")
+// Demo app is only needed when building this repository directly, not when
+// the libraries are consumed as a Gradle source dependency
+if (gradle.parent == null) {
+    include(":demoapp")
+    include(":demoapp:app")
+    include(":demoapp:libdigidocpp")
+}
 include(":libs")
 include(":libs:card-utils-lib")
 include(":libs:id-card-lib")

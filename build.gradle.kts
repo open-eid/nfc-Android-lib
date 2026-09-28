@@ -10,3 +10,7 @@ plugins {
     alias(libs.plugins.ksp) apply false
     alias(libs.plugins.google.dagger) apply false
 }
+
+subprojects {
+    group = "ee.ria.DigiDoc"
+}
