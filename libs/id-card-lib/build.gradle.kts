@@ -28,7 +28,8 @@ dependencies {
     implementation(libs.bcprov.jdk18on)
 
     implementation(project(":libs:smart-card-reader-lib"))
-    implementation(project(":libs:card-utils-lib"))
+    // Provided at runtime by the consuming app (RIA DigiDoc utils-lib)
+    compileOnly(project(":libs:card-utils-lib"))
 
     testImplementation(libs.junit)
     testImplementation(libs.mockito.core)
