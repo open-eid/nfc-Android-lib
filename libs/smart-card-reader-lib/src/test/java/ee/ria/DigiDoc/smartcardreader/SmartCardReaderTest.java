@@ -6,6 +6,7 @@ package ee.ria.DigiDoc.smartcardreader;
 import static com.google.common.truth.Truth.assertThat;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -28,7 +29,9 @@ public final class SmartCardReaderTest {
 
     @Before
     public void before() throws Exception {
-        smartCardReader = mock(SmartCardReader.class, withSettings().mockMaker(MockMakers.SUBCLASS));
+        smartCardReader = mock(SmartCardReader.class, withSettings()
+                .mockMaker(MockMakers.SUBCLASS)
+                .defaultAnswer(CALLS_REAL_METHODS));
         when(smartCardReader.transmit(any()))
                 .thenReturn(new byte[] {(byte) 0x90, 0x00});
     }
