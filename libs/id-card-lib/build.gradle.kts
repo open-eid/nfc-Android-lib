@@ -35,5 +35,6 @@ dependencies {
     compileOnly(libs.auto.value.annotations)
 
     implementation(project(":libs:smart-card-reader-lib"))
-    implementation(project(":libs:card-utils-lib"))
+    // Provided at runtime by the consuming app (RIA DigiDoc utils-lib)
+    compileOnly(project(":libs:card-utils-lib"))
 }
