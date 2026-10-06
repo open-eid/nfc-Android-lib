@@ -69,6 +69,11 @@ The demo application (`demoapp/app`) provides a complete reference implementatio
 
 #### Building the AAR
 
+Requirements:
+
+* JDK 21 or newer — the libraries are compiled to Java 21 bytecode, both for building the AARs and for compiling an application against them.
+* Application `minSdk` 34 or higher
+
 ```shell
 ./gradlew -p libs assemble
 ```
