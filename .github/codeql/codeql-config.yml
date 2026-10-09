@@ -1,0 +1,10 @@
+# SPDX-FileCopyrightText: Estonian Information System Authority
+# SPDX-License-Identifier: LGPL-2.1-or-later
+
+name: "NFC-Android library CodeQL config"
+
+paths-ignore:
+  - "**/build/**"
+  - "**/src/test/**"
+  - "**/src/androidTest/**"
+  - "demoapp/libdigidocpp/include/**"
