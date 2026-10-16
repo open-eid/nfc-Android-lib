@@ -99,8 +99,6 @@ class LatviaIdemiaWithPace extends IdemiaWithPace {
             len--;
         }
         String personalCode = new String(record, 0, len, StandardCharsets.UTF_8).trim();
-        LoggingUtil.Companion.debugLog(TAG,
-            "EF 0x5001 personal code: " + personalCode, null);
 
         // Parse auth certificate for remaining fields
         try {
@@ -111,8 +109,6 @@ class LatviaIdemiaWithPace extends IdemiaWithPace {
 
             X500Name subject = X500Name.getInstance(
                 x509.getSubjectX500Principal().getEncoded());
-            LoggingUtil.Companion.debugLog(TAG,
-                "Auth cert subject: " + subject.toString(), null);
 
             String surname = rdnString(subject, BCStyle.SURNAME);
             String givenName = rdnString(subject, BCStyle.GIVENNAME);
@@ -127,10 +123,7 @@ class LatviaIdemiaWithPace extends IdemiaWithPace {
                 .atZone(ZoneOffset.UTC).toLocalDate();
 
             LocalDate dateOfBirth = LatviaPersonalDataParser.parseDateOfBirth(personalCode);
-            LoggingUtil.Companion.debugLog(TAG,
-                "Parsed: surname=" + surname + ", givenName=" + givenName
-                    + ", issuingCountry=" + issuingCountry + ", documentNumber=" + serialNumber
-                    + ", certExpiryDate=" + certExpiryDate + ", dateOfBirth=" + dateOfBirth, null);
+            LoggingUtil.Companion.debugLog(TAG, "Latvian personal data parsed", null);
 
             return PersonalData.create(surname, givenName, "", issuingCountry, dateOfBirth,
                 personalCode, serialNumber, null, certExpiryDate, CardType.LATVIA_IDEMIA);
