@@ -3,7 +3,7 @@
 package ee.ria.DigiDoc.idcard;
 
 import static com.google.common.truth.Truth.assertThat;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
@@ -16,8 +16,8 @@ import static org.mockito.Mockito.withSettings;
 import ee.ria.DigiDoc.smartcardreader.SmartCardReader;
 import ee.ria.DigiDoc.smartcardreader.SmartCardReaderException;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.MockMakers;
 
 public final class ThalesTest {
@@ -25,7 +25,7 @@ public final class ThalesTest {
     private SmartCardReader reader;
     private Thales thales;
 
-    @Before
+    @BeforeEach
     public void before() {
         reader = mock(SmartCardReader.class, withSettings().mockMaker(MockMakers.SUBCLASS));
         thales = new Thales(reader);
