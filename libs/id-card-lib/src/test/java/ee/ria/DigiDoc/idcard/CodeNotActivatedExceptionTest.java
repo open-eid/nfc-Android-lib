@@ -7,7 +7,7 @@ import static com.google.common.truth.Truth.assertThat;
 
 import ee.ria.DigiDoc.smartcardreader.SmartCardReaderException;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public final class CodeNotActivatedExceptionTest {
 

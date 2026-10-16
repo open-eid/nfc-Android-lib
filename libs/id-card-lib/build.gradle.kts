@@ -13,6 +13,12 @@ android {
         minSdk = 34
     }
 
+    testOptions {
+        unitTests.all {
+            it.useJUnitPlatform()
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_21
         targetCompatibility = JavaVersion.VERSION_21
@@ -30,8 +36,13 @@ dependencies {
     implementation(project(":libs:smart-card-reader-lib"))
     // Provided at runtime by the consuming app (RIA DigiDoc utils-lib)
     compileOnly(project(":libs:card-utils-lib"))
+    testImplementation(project(":libs:card-utils-lib"))
 
-    testImplementation(libs.junit)
+    testImplementation(platform(libs.junit.bom))
+    testImplementation(libs.junit.jupiter)
+    testRuntimeOnly(libs.junit.platform.launcher)
     testImplementation(libs.mockito.core)
-    testImplementation(libs.truth)
+    testImplementation(libs.truth) {
+        exclude(group = "junit", module = "junit")
+    }
 }

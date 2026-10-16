@@ -31,6 +31,7 @@ dependencies {
 
     // Provided at runtime by the consuming app (RIA DigiDoc utils-lib)
     compileOnly(project(":libs:card-utils-lib"))
+    testImplementation(project(":libs:card-utils-lib"))
 
     testImplementation(platform(libs.junit.bom))
     testImplementation(libs.junit.jupiter)
