@@ -27,6 +27,12 @@ public interface TokenWithPace extends Token {
      */
     void tunnel(String can) throws SmartCardReaderException;
 
+    static TokenWithPace create(NfcSmartCardReader reader) throws SmartCardReaderException {
+        return create(reader, new TokenWithPaceConfig.Builder()
+                .allow(CardType.ID1, CardType.THALES)
+                .build());
+    }
+
     /**
      * Detect the card by ATS historical bytes and return the matching
      * implementation. The method is named {@code atr()} on the reader
