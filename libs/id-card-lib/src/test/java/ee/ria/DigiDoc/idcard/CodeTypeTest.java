@@ -5,7 +5,7 @@ package ee.ria.DigiDoc.idcard;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public final class CodeTypeTest {
 
