@@ -1,3 +1,6 @@
+<!-- SPDX-FileCopyrightText: 2026 Stagnation OÜ -->
+<!-- SPDX-License-Identifier: LGPL-2.1-or-later -->
+
 # Latvian eID — IDEMIA card protocol specification
 
 A self-contained, platform-neutral specification of the Latvian eID card
