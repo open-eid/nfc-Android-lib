@@ -24,6 +24,7 @@ import androidx.navigation.fragment.findNavController
 import ee.ria.DigiDoc.idcard.CertificateType
 import ee.ria.DigiDoc.idcard.CodeType
 import ee.ria.DigiDoc.idcard.CodeVerificationException
+import ee.ria.DigiDoc.idcard.NotSupportedException
 import ee.ria.DigiDoc.idcard.PaceTunnelException
 import ee.ria.DigiDoc.idcard.TokenWithPace
 import ee.ria.DigiDoc.idcard.TokenWithPaceConfig
@@ -319,6 +320,8 @@ class CardReaderFragment : Fragment() {
             Toast.makeText(requireContext(), ex.message!!, Toast.LENGTH_SHORT).show()
         } else if (ex is PaceTunnelException) {
             Toast.makeText(requireContext(), "Wrong CAN", Toast.LENGTH_SHORT).show()
+        } else if (ex is NotSupportedException) {
+            Toast.makeText(requireContext(), "Card not supported", Toast.LENGTH_SHORT).show()
         } else if (ex is ApduResponseException) {
             Toast.makeText(requireContext(), "Error communicating with card", Toast.LENGTH_SHORT).show()
         }
