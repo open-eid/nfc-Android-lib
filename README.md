@@ -9,7 +9,7 @@
     - [Building the AAR](#building-the-aar) 
     - [Overriding the AAR Filename](#overriding-the-aar-filename) 
     - [Integrator Dependencies](#integrator-dependencies) 
-    - [Minimum SDK and Core Library Desugaring](#minimum-sdk-and-core-library-desugaring) 
+    - [Minimum SDK](#minimum-sdk) 
 - [Overview](#overview) 
 - [NFC Interface](#nfc-interface) 
   - [General Communication Scheme](#general-communication-scheme) 
@@ -134,10 +134,6 @@ dependencies {
     implementation("com.google.dagger:hilt-core:2.57.2")
     // Only if the integrator also wants Hilt injection for LoggingUtil:
     // implementation("com.google.dagger:hilt-android:2.57.2")
-
-    // Required for id-card-lib's java.time.* usage when minSdk < 26
-    // (see next section)
-    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
 }
 ```
 
@@ -146,35 +142,10 @@ dependencies {
 > ship inside the AARs, so consumers do not need to add `auto-value`,
 > `auto-value-annotations`, or `hilt-android-compiler`.
 
-#### Minimum SDK and Core Library Desugaring
+#### Minimum SDK
 
-The libraries target **`minSdk = 24`** (Android 7.0).
-
-Because `id-card-lib` uses `java.time.*` APIs (`LocalDate`, `Instant`,
-`ZoneOffset`, etc.) which are not part of the Android platform until
-API 26 (Android 8.0), the integrator app must enable **core library
-desugaring** when its `minSdk` is below 26.
-
-```kotlin
-android {
-    compileSdk = 36
-    defaultConfig {
-        minSdk = 24
-    }
-    compileOptions {
-        isCoreLibraryDesugaringEnabled = true
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
-}
-
-dependencies {
-    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
-}
-```
-
-For an app whose `minSdk` is already 26 or higher, the desugaring block can
-be omitted — the platform provides `java.time.*` directly.
+The libraries target **`minSdk = 26`** (Android 8.0). `id-card-lib` uses `java.time.*` APIs,
+which the platform provides from API 26 onwards, so integrators do not need core library desugaring.
 
 ## Overview
 
@@ -239,6 +210,8 @@ The implementation of the `NfcSmartCardReaderCallback` interface is responsible 
 ```java
 public interface TokenWithPace extends Token {
     void tunnel(String can) throws SmartCardReaderException;
+    static TokenWithPace create(NfcSmartCardReader reader) throws SmartCardReaderException {
+    }
     static TokenWithPace create(NfcSmartCardReader reader, TokenWithPaceConfig config) throws SmartCardReaderException {
     }
 }
@@ -257,6 +230,9 @@ Three NFC-enabled ID card types are currently supported:
 
 If the card's ATS does not match any of these, `create` throws a `NotSupportedException`
 (see [Exception Handling](#exception-handling)).
+
+`create(reader)` without a `TokenWithPaceConfig` accepts only the Estonian cards (`ID1` and `THALES`),
+as in earlier versions of the library.
 
 After creating the instance, establish the communication channel using the card’s `CAN` code and the `tunnel` method.
 
@@ -304,7 +280,7 @@ private fun readCardData() {
 }
 ```
 
-* **Lines 1–3:** Configure which card types the app accepts. The `TokenWithPaceConfig` is **required**; passing only the card types you actually support is recommended so that a future library release that adds another country/variant cannot silently widen the set of cards your app reads. To opt in to every supported type explicitly, use `TokenWithPaceConfig.allowAll()`.
+* **Lines 1–3:** Configure which card types the app accepts. Passing a `TokenWithPaceConfig` with only the card types you actually support is recommended so that a future library release that adds another country/variant cannot silently widen the set of cards your app reads. To opt in to every supported type explicitly, use `TokenWithPaceConfig.allowAll()`.
 * **Line 6:** Uses the `startDiscovery` method, which internally uses `android.nfc.NfcAdapter.enableReaderMode` to detect NFC tags. The returned `NfcStatus` value is processed.
 * **Line 7:** The `startDiscovery` method relies on the `NfcSmartCardReaderCallback` interface; if no exception is present and an `NfcSmartCardReader` instance exists, processing continues.
 * **Line 9:** Creates an instance implementing the `TokenWithPace` interface. The card's ATS historical bytes are matched against the library's supported set; if the detected `CardType` is not in `tokenConfig.allowedCardTypes()`, a `NotSupportedException` is thrown immediately (no PACE handshake is attempted).
