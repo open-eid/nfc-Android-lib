@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Stagnation OÜ
+// SPDX-License-Identifier: LGPL-2.1-or-later
+
 package ee.ria.DigiDoc.idcard;
 
 import static ee.ria.DigiDoc.idcard.ApduReplayReader.bytes;

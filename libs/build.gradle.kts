@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Stagnation OÜ
+// SPDX-License-Identifier: LGPL-2.1-or-later
+
 import java.util.Properties
 
 val envFile: File? = rootProject.file("environment.properties")

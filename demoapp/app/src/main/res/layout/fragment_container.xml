@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- SPDX-FileCopyrightText: Estonian Information System Authority -->
+<!-- SPDX-FileCopyrightText: 2026 Stagnation OÜ -->
 <!-- SPDX-License-Identifier: LGPL-2.1-or-later -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
