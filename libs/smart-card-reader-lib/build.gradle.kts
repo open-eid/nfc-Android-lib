@@ -41,15 +41,9 @@ dependencies {
     testImplementation(libs.truth) {
         exclude(group = "junit", module = "junit")
     }
-    testImplementation(libs.hamcrest)
-    testImplementation(libs.junit.jupiter.api)
-    testImplementation(libs.junit.jupiter.params)
-    testRuntimeOnly(libs.junit.jupiter.engine)
-    testImplementation(libs.mockito.junit.jupiter)
 }
 
 tasks.withType<Test>().configureEach {
-    useJUnitPlatform()
     extensions.configure(JacocoTaskExtension::class) {
         isIncludeNoLocationClasses = true
         excludes = listOf("jdk.internal.*")
