@@ -811,7 +811,7 @@ class IdemiaWithPace extends Idemia implements TokenWithPace, ApduEncryptor {
         verifyCode(CodeType.PIN1, pin1);
         byte keyRef = getAuthKeyRef();
         byte[] template = authMseTemplate();
-        byte[] body = concat(template, new byte[] {(byte) 0x84, 0x01, keyRef});
+        byte[] body = concatenate(template, new byte[] {(byte) 0x84, 0x01, keyRef});
 
         LoggingUtil.Companion.debugLog(TAG,
             String.format("MSE SET auth: template=%s, keyRef=0x%02x",
@@ -829,7 +829,7 @@ class IdemiaWithPace extends Idemia implements TokenWithPace, ApduEncryptor {
         verifyCode(CodeType.PIN2, pin2);
         byte keyRef = getSignKeyRef();
         byte[] template = signMseTemplate();
-        byte[] body = concat(template, new byte[] {(byte) 0x84, 0x01, keyRef});
+        byte[] body = concatenate(template, new byte[] {(byte) 0x84, 0x01, keyRef});
 
         LoggingUtil.Companion.debugLog(TAG,
             String.format("MSE SET sign: template=%s, keyRef=0x%02x",
@@ -847,7 +847,7 @@ class IdemiaWithPace extends Idemia implements TokenWithPace, ApduEncryptor {
         verifyCode(CodeType.PIN1, pin1);
         byte keyRef = getAuthKeyRef();
         byte[] template = decryptMseTemplate();
-        byte[] body = concat(template, new byte[] {(byte) 0x84, 0x01, keyRef});
+        byte[] body = concatenate(template, new byte[] {(byte) 0x84, 0x01, keyRef});
 
         LoggingUtil.Companion.debugLog(TAG,
             String.format("MSE SET decrypt: template=%s, keyRef=0x%02x",
@@ -856,7 +856,7 @@ class IdemiaWithPace extends Idemia implements TokenWithPace, ApduEncryptor {
         );
 
         reader.transmit(0x00, 0x22, 0x41, 0xB8, body, null);
-        return reader.transmit(0x00, 0x2A, 0x80, 0x86, concat(new byte[] {0x00}, data), 0x00);
+        return reader.transmit(0x00, 0x2A, 0x80, 0x86, concatenate(new byte[] {0x00}, data), 0x00);
     }
 
     /**

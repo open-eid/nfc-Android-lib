@@ -3,9 +3,9 @@
 
 package ee.ria.DigiDoc.smartcardreader;
 
-import static com.google.common.primitives.Bytes.concat;
 import static com.google.common.truth.Truth.assertThat;
 import static java.util.Arrays.copyOfRange;
+import static org.bouncycastle.util.Arrays.concatenate;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -66,7 +66,7 @@ public final class SmartCardReaderTest {
 
         assertThat(reader.requests).hasSize(1);
         assertThat(reader.requests.get(0))
-                .isEqualTo(concat(new byte[]{CLA, INS, P1, P2, (byte) 0xFF}, data));
+                .isEqualTo(concatenate(new byte[]{CLA, INS, P1, P2, (byte) 0xFF}, data));
     }
 
     @Test
@@ -76,7 +76,7 @@ public final class SmartCardReaderTest {
 
         assertThat(reader.requests).hasSize(1);
         assertThat(reader.requests.get(0))
-                .isEqualTo(concat(new byte[]{CLA, INS, P1, P2, (byte) 0xFF}, data, new byte[]{0x00}));
+                .isEqualTo(concatenate(new byte[]{CLA, INS, P1, P2, (byte) 0xFF}, data, new byte[]{0x00}));
     }
 
     @Test
@@ -87,9 +87,9 @@ public final class SmartCardReaderTest {
         // 510 = 255 chained + 255 final.
         assertThat(reader.requests).hasSize(2);
         assertThat(reader.requests.get(0)).isEqualTo(
-                concat(new byte[]{0x10, INS, P1, P2, (byte) 0xFF}, copyOfRange(data, 0, 255)));
+                concatenate(new byte[]{0x10, INS, P1, P2, (byte) 0xFF}, copyOfRange(data, 0, 255)));
         assertThat(reader.requests.get(1)).isEqualTo(
-                concat(new byte[]{CLA, INS, P1, P2, (byte) 0xFF}, copyOfRange(data, 255, 510)));
+                concatenate(new byte[]{CLA, INS, P1, P2, (byte) 0xFF}, copyOfRange(data, 255, 510)));
     }
 
     @Test
@@ -99,9 +99,9 @@ public final class SmartCardReaderTest {
 
         // Le is appended to every chunk, including the chained ones.
         assertThat(reader.requests).hasSize(2);
-        assertThat(reader.requests.get(0)).isEqualTo(concat(
+        assertThat(reader.requests.get(0)).isEqualTo(concatenate(
                 new byte[]{0x10, INS, P1, P2, (byte) 0xFF}, copyOfRange(data, 0, 255), new byte[]{0x01}));
-        assertThat(reader.requests.get(1)).isEqualTo(concat(
+        assertThat(reader.requests.get(1)).isEqualTo(concatenate(
                 new byte[]{CLA, INS, P1, P2, (byte) 0xFF}, copyOfRange(data, 255, 510), new byte[]{0x01}));
     }
 
@@ -113,11 +113,11 @@ public final class SmartCardReaderTest {
         // 700 = 255 chained + 255 chained + 190 final (0xBE).
         assertThat(reader.requests).hasSize(3);
         assertThat(reader.requests.get(0)).isEqualTo(
-                concat(new byte[]{0x10, INS, P1, P2, (byte) 0xFF}, copyOfRange(data, 0, 255)));
+                concatenate(new byte[]{0x10, INS, P1, P2, (byte) 0xFF}, copyOfRange(data, 0, 255)));
         assertThat(reader.requests.get(1)).isEqualTo(
-                concat(new byte[]{0x10, INS, P1, P2, (byte) 0xFF}, copyOfRange(data, 255, 510)));
+                concatenate(new byte[]{0x10, INS, P1, P2, (byte) 0xFF}, copyOfRange(data, 255, 510)));
         assertThat(reader.requests.get(2)).isEqualTo(
-                concat(new byte[]{CLA, INS, P1, P2, (byte) 0xBE}, copyOfRange(data, 510, 700)));
+                concatenate(new byte[]{CLA, INS, P1, P2, (byte) 0xBE}, copyOfRange(data, 510, 700)));
     }
 
     @Test
@@ -126,11 +126,11 @@ public final class SmartCardReaderTest {
         reader.transmit(CLA, INS, P1, P2, data, 0x03);
 
         assertThat(reader.requests).hasSize(3);
-        assertThat(reader.requests.get(0)).isEqualTo(concat(
+        assertThat(reader.requests.get(0)).isEqualTo(concatenate(
                 new byte[]{0x10, INS, P1, P2, (byte) 0xFF}, copyOfRange(data, 0, 255), new byte[]{0x03}));
-        assertThat(reader.requests.get(1)).isEqualTo(concat(
+        assertThat(reader.requests.get(1)).isEqualTo(concatenate(
                 new byte[]{0x10, INS, P1, P2, (byte) 0xFF}, copyOfRange(data, 255, 510), new byte[]{0x03}));
-        assertThat(reader.requests.get(2)).isEqualTo(concat(
+        assertThat(reader.requests.get(2)).isEqualTo(concatenate(
                 new byte[]{CLA, INS, P1, P2, (byte) 0xBE}, copyOfRange(data, 510, 700), new byte[]{0x03}));
     }
 
