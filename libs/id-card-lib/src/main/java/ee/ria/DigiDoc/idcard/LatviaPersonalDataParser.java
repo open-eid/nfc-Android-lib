@@ -31,7 +31,8 @@ class LatviaPersonalDataParser {
             return parseDateOfBirthFromOldCode(codeDigits);
         } catch (Exception e) {
             LoggingUtil.Companion.errorLog(TAG,
-                "Could not parse DOB from personal code " + personalCode, e);
+                "Could not parse date of birth from personal code: "
+                    + e.getClass().getSimpleName(), null);
             return null;
         }
     }
