@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- SPDX-FileCopyrightText: Estonian Information System Authority -->
+<!-- SPDX-FileCopyrightText: 2026 Stagnation OÜ -->
 <!-- SPDX-License-Identifier: LGPL-2.1-or-later -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
@@ -77,6 +78,16 @@
                 android:textColor="@color/white"
                 android:textSize="14sp"
                 android:textStyle="bold" />
+
+            <CheckBox
+                android:id="@+id/checkBox_extendSignature"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:checked="true"
+                android:text="@string/extend_signature"
+                android:textColor="@color/text_primary"
+                android:textSize="12sp" />
 
             <Button
                 android:id="@+id/button_get_sign_cert"

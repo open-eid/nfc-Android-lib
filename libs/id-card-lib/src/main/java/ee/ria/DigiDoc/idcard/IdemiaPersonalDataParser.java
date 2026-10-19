@@ -1,4 +1,5 @@
 // SPDX-FileCopyrightText: Estonian Information System Authority
+// SPDX-FileCopyrightText: 2026 Stagnation OÜ
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
 package ee.ria.DigiDoc.idcard;
@@ -54,8 +55,8 @@ class IdemiaPersonalDataParser {
 
         LocalDate expiryDate = parseExpiryDate(expiryDateString);
 
-        return PersonalData.create(surname, givenNames, citizenship, dateOfBirth,
-                personalCode, documentNumber, expiryDate, CardType.ID1);
+        return PersonalData.create(surname, givenNames, citizenship, null, dateOfBirth,
+                personalCode, documentNumber, expiryDate, null, CardType.ID1);
     }
 
     private static LocalDate parseExpiryDate(String expiryDateString) {

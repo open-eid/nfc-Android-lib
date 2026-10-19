@@ -1,4 +1,5 @@
 // SPDX-FileCopyrightText: Estonian Information System Authority
+// SPDX-FileCopyrightText: 2026 Stagnation OÜ
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
 package ee.ria.DigiDoc.smartcardreader.nfc.example.util
@@ -26,6 +27,15 @@ object Utils {
     lateinit var container: Container
     lateinit var signature: Signature
     var signatureProfile = "time-stamp"
+
+    /**
+     * When true, [Signature.extendSignatureProfile] is called after the card
+     * signs — adds the XAdES-T timestamp + OCSP, requiring network access to
+     * the CA endpoints (e.g. dd-at.ria.ee). When false, the signature is left
+     * at the BES baseline (no network needed). Toggled from the container UI.
+     */
+    var extendSignature = true
+
     var signatureIsAdded = false
 
     fun addFileContent(

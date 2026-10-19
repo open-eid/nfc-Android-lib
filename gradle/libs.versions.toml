@@ -1,4 +1,5 @@
 # SPDX-FileCopyrightText: Estonian Information System Authority
+# SPDX-FileCopyrightText: 2026 Stagnation OÜ
 # SPDX-License-Identifier: LGPL-2.1-or-later
 
 [versions]
@@ -28,6 +29,7 @@ androidx-core = { module = "androidx.core:core", version.ref = "core" }
 androidx-lifecycle-common = { module = "androidx.lifecycle:lifecycle-common", version.ref = "lifecycleViewmodel" }
 androidx-lifecycle-viewmodel = { module = "androidx.lifecycle:lifecycle-viewmodel", version.ref = "lifecycleViewmodel" }
 androidx-navigation-runtime = { module = "androidx.navigation:navigation-runtime", version.ref = "navigationFragmentKtx" }
+bcpkix-jdk18on = { module = "org.bouncycastle:bcpkix-jdk18on", version.ref = "bouncyCastle" }
 bcprov-jdk18on = { module = "org.bouncycastle:bcprov-jdk18on", version.ref = "bouncyCastle" }
 fragment-ktx = { module = "androidx.fragment:fragment-ktx", version.ref = "fragmentKtx" }
 junit-bom = { module = "org.junit:junit-bom", version.ref = "junitBom" }

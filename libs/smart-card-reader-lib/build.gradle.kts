@@ -1,8 +1,10 @@
 // SPDX-FileCopyrightText: Estonian Information System Authority
+// SPDX-FileCopyrightText: 2026 Stagnation OÜ
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
 plugins {
     alias(libs.plugins.android.library)
+    jacoco
 }
 
 android {
@@ -31,6 +33,7 @@ dependencies {
 
     // Provided at runtime by the consuming app (RIA DigiDoc utils-lib)
     compileOnly(project(":libs:card-utils-lib"))
+    testImplementation(project(":libs:card-utils-lib"))
 
     testImplementation(platform(libs.junit.bom))
     testImplementation(libs.junit.jupiter)
@@ -38,5 +41,30 @@ dependencies {
     testImplementation(libs.mockito.core)
     testImplementation(libs.truth) {
         exclude(group = "junit", module = "junit")
+    }
+}
+
+tasks.withType<Test>().configureEach {
+    extensions.configure(JacocoTaskExtension::class) {
+        isIncludeNoLocationClasses = true
+        excludes = listOf("jdk.internal.*")
+    }
+}
+
+tasks.register<JacocoReport>("jacocoTestReport") {
+    dependsOn("testDebugUnitTest")
+    classDirectories.setFrom(
+        fileTree("${layout.buildDirectory.get()}/intermediates/javac/debug/compileDebugJavaWithJavac/classes") {
+            exclude("**/R.class", "**/R\$*.class", "**/BuildConfig.*",
+                    "**/Manifest*.*", "**/*Test*.*", "android/**/*.*")
+        }
+    )
+    sourceDirectories.setFrom(files("src/main/java"))
+    executionData.setFrom(
+        fileTree(layout.buildDirectory.get()) { include("**/testDebugUnitTest.exec") }
+    )
+    reports {
+        html.required.set(true)
+        xml.required.set(true)
     }
 }

@@ -1,4 +1,5 @@
 <!-- SPDX-FileCopyrightText: Estonian Information System Authority -->
+<!-- SPDX-FileCopyrightText: 2026 Stagnation OÜ -->
 <!-- SPDX-License-Identifier: LGPL-2.1-or-later -->
 <resources>
     <string name="app_name">NFC app</string>
@@ -11,7 +12,10 @@
     <string name="last_name">Last name: %1$s</string>
     <string name="personal_code">Personal code: %1$s</string>
     <string name="citizenship">Citizenship: %1$s</string>
+    <string name="issuing_country">Issuing country: %1$s</string>
     <string name="expiration">Date of expiry: %1$s</string>
+    <string name="document_expiry">Document expiry: %1$s</string>
+    <string name="cert_expiry">Cert expiry: %1$s</string>
     <string name="cancel">Cancel</string>
     <string name="next">Next</string>
     <string name="back">Back</string>
@@ -23,6 +27,7 @@
     <string name="container_name">Container name</string>
     <string name="container_files">Container files</string>
     <string name="add_file">Add file</string>
+    <string name="extend_signature">Extend signature (timestamp + OCSP — requires network)</string>
     <string name="get_signer_cert">Get signer cert</string>
     <string name="get_signature">Get signature</string>
     <string name="share">Share container</string>

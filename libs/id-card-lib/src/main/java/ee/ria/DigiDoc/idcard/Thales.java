@@ -1,4 +1,5 @@
 // SPDX-FileCopyrightText: Estonian Information System Authority
+// SPDX-FileCopyrightText: 2026 Stagnation OÜ
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
 package ee.ria.DigiDoc.idcard;
@@ -44,6 +45,11 @@ class Thales implements Token {
 
     Thales(SmartCardReader reader) {
         this.reader = reader;
+    }
+
+    @Override
+    public CardType cardType() {
+        return CardType.THALES;
     }
 
     @Override

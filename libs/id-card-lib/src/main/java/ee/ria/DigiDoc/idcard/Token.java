@@ -1,4 +1,5 @@
 // SPDX-FileCopyrightText: Estonian Information System Authority
+// SPDX-FileCopyrightText: 2026 Stagnation OÜ
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
 package ee.ria.DigiDoc.idcard;
@@ -9,6 +10,18 @@ import ee.ria.DigiDoc.smartcardreader.SmartCardReaderException;
  * EstEID token interface.
  */
 public interface Token {
+
+    /**
+     * Identify which card model this token speaks to.
+     * <p>
+     * Compile-time constant per implementation — no card I/O is performed.
+     * Useful for callers that need to branch behavior (e.g. UI labels,
+     * country-specific certificate handling) without having to call
+     * {@link #personalData()} first or inspect {@link PersonalData#cardType()}.
+     *
+     * @return Card model.
+     */
+    CardType cardType();
 
     /**
      * Read personal information of the cardholder.

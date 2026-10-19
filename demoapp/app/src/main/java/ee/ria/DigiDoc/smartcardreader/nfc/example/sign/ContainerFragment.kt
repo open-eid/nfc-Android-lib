@@ -1,4 +1,5 @@
 // SPDX-FileCopyrightText: Estonian Information System Authority
+// SPDX-FileCopyrightText: 2026 Stagnation OÜ
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
 package ee.ria.DigiDoc.smartcardreader.nfc.example.sign
@@ -102,6 +103,11 @@ class ContainerFragment : Fragment() {
             containerLayout,
             addSignatureButton
         )
+
+        binding.checkBoxExtendSignature.isChecked = Utils.extendSignature
+        binding.checkBoxExtendSignature.setOnCheckedChangeListener { _, isChecked ->
+            Utils.extendSignature = isChecked
+        }
 
         backButton.setOnClickListener {
             clearData()

@@ -1,8 +1,10 @@
 // SPDX-FileCopyrightText: Estonian Information System Authority
+// SPDX-FileCopyrightText: 2026 Stagnation OÜ
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
 plugins {
     alias(libs.plugins.android.library)
+    jacoco
 }
 
 android {
@@ -11,6 +13,12 @@ android {
 
     defaultConfig {
         minSdk = 34
+    }
+
+    testOptions {
+        unitTests.all {
+            it.useJUnitPlatform()
+        }
     }
 
     compileOptions {
@@ -30,8 +38,46 @@ dependencies {
     implementation(project(":libs:smart-card-reader-lib"))
     // Provided at runtime by the consuming app (RIA DigiDoc utils-lib)
     compileOnly(project(":libs:card-utils-lib"))
+    testImplementation(project(":libs:card-utils-lib"))
 
-    testImplementation(libs.junit)
+    testImplementation(platform(libs.junit.bom))
+    testImplementation(libs.junit.jupiter)
+    testRuntimeOnly(libs.junit.platform.launcher)
     testImplementation(libs.mockito.core)
-    testImplementation(libs.truth)
+    testImplementation(libs.truth) {
+        exclude(group = "junit", module = "junit")
+    }
+    // PKIX module for building synthetic X.509 fixtures in tests
+    // (LatviaIdemiaPersonalDataTest). Not used by production code; tracks
+    // the same `bouncyCastle` version as bcprov to avoid divergence.
+    testImplementation(libs.bcpkix.jdk18on)
+}
+
+tasks.withType<Test>().configureEach {
+    testLogging {
+        events("passed", "skipped", "failed")
+        showStandardStreams = false
+    }
+    extensions.configure(JacocoTaskExtension::class) {
+        isIncludeNoLocationClasses = true
+        excludes = listOf("jdk.internal.*")
+    }
+}
+
+tasks.register<JacocoReport>("jacocoTestReport") {
+    dependsOn("testDebugUnitTest")
+    classDirectories.setFrom(
+        fileTree("${layout.buildDirectory.get()}/intermediates/javac/debug/compileDebugJavaWithJavac/classes") {
+            exclude("**/R.class", "**/R\$*.class", "**/BuildConfig.*",
+                    "**/Manifest*.*", "**/*Test*.*", "android/**/*.*")
+        }
+    )
+    sourceDirectories.setFrom(files("src/main/java"))
+    executionData.setFrom(
+        fileTree(layout.buildDirectory.get()) { include("**/testDebugUnitTest.exec") }
+    )
+    reports {
+        html.required.set(true)
+        xml.required.set(true)
+    }
 }

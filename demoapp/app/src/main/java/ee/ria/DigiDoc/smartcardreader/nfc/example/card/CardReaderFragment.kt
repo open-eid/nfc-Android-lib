@@ -1,4 +1,5 @@
 // SPDX-FileCopyrightText: Estonian Information System Authority
+// SPDX-FileCopyrightText: 2026 Stagnation OÜ
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
 package ee.ria.DigiDoc.smartcardreader.nfc.example.card
@@ -25,6 +26,7 @@ import ee.ria.DigiDoc.idcard.CodeType
 import ee.ria.DigiDoc.idcard.CodeVerificationException
 import ee.ria.DigiDoc.idcard.PaceTunnelException
 import ee.ria.DigiDoc.idcard.TokenWithPace
+import ee.ria.DigiDoc.idcard.TokenWithPaceConfig
 import ee.ria.DigiDoc.smartcardreader.ApduResponseException
 import ee.ria.DigiDoc.smartcardreader.CardConnectionLostException
 import ee.ria.DigiDoc.smartcardreader.SmartCardReaderException
@@ -127,7 +129,7 @@ class CardReaderFragment : Fragment() {
             if ((nfcReader != null) && (exc == null)) {
                 try {
                     // Create card session over NFC
-                    val card = TokenWithPace.create(nfcReader)
+                    val card = TokenWithPace.create(nfcReader, TokenWithPaceConfig.allowAll())
                     // Establish PACE tunnel with previously captured CAN
                     card.tunnel(dataViewModel.getCan())
                     // Get auth certificate
@@ -200,7 +202,7 @@ class CardReaderFragment : Fragment() {
 
             if ((nfcReader != null) && (exc == null)) {
                 try {
-                    val card = TokenWithPace.create(nfcReader)
+                    val card = TokenWithPace.create(nfcReader, TokenWithPaceConfig.allowAll())
                     card.tunnel(dataViewModel.getCan())
                     val signerCert = card.certificate(CertificateType.SIGNING)
                     debugLog(logTag, Base64.toBase64String(signerCert))
@@ -218,6 +220,17 @@ class CardReaderFragment : Fragment() {
                     }
                     val message =  ex.message ?: "Error communicating with card"
                     errorLog(logTag, message, ex)
+                } catch (ex: Exception) {
+                    // libdigidocpp throws plain RuntimeException for TSA/OCSP
+                    // network failures inside extendSignatureProfile; without
+                    // this catch the exception escapes the binder thread and
+                    // the UI hangs on the spinner. Surface it as an error.
+                    setReaderResult(R.drawable.error)
+                    val message = ex.message ?: "Signature extension failed"
+                    requireActivity().runOnUiThread {
+                        Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show()
+                    }
+                    errorLog(logTag, message, ex)
                 } finally {
                     nfcSmartCardReaderManager.disableNfcReaderMode()
                 }
@@ -230,7 +243,14 @@ class CardReaderFragment : Fragment() {
 
     private fun addSignature(signatureArray: ByteArray) {
         signature.setSignatureValue(signatureArray)
-        signature.extendSignatureProfile(Utils.signatureProfile)
+        if (Utils.extendSignature) {
+            // Adds XAdES-T timestamp + OCSP. Requires network access to the
+            // CA endpoints (e.g. dd-at.ria.ee) — toggled off in the container
+            // UI when offline or when testing card flow without TSA/OCSP.
+            signature.extendSignatureProfile(Utils.signatureProfile)
+        } else {
+            debugLog(logTag, "Skipping signature extension (BES baseline only)")
+        }
         container.save()
         signatureIsAdded = true
     }
@@ -246,7 +266,7 @@ class CardReaderFragment : Fragment() {
             }
             if ((nfcReader != null) && (exc == null)) {
                 try {
-                    val card = TokenWithPace.create(nfcReader)
+                    val card = TokenWithPace.create(nfcReader, TokenWithPaceConfig.allowAll())
                     card.tunnel(dataViewModel.getCan())
                     val cardData = card.personalData()
                     debugLog(logTag, cardData.toString())

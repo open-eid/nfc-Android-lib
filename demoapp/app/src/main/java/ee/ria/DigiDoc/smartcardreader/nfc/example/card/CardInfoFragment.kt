@@ -1,4 +1,5 @@
 // SPDX-FileCopyrightText: Estonian Information System Authority
+// SPDX-FileCopyrightText: 2026 Stagnation OÜ
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
 package ee.ria.DigiDoc.smartcardreader.nfc.example.card
@@ -68,9 +69,20 @@ class CardInfoFragment : Fragment() {
         surnameTextView.text = getString(R.string.last_name, dataViewModel.getSurname())
         personalCodeTextView.text =
             getString(R.string.personal_code, dataViewModel.getPersonalCode())
-        citizenshipTextView.text = getString(R.string.citizenship, dataViewModel.getCitizenship())
-        dateOfExpiryTextView.text =
-            getString(R.string.expiration, dataViewModel.getExpiryDate())
+        val citizenship = dataViewModel.getCitizenship()
+        val issuingCountry = dataViewModel.getIssuingCountry()
+        citizenshipTextView.text = when {
+            citizenship.isNotEmpty() -> getString(R.string.citizenship, citizenship)
+            !issuingCountry.isNullOrEmpty() -> getString(R.string.issuing_country, issuingCountry)
+            else -> getString(R.string.citizenship, "-")
+        }
+        val docExpiry = dataViewModel.getDocumentExpiryDate()
+        val certExpiry = dataViewModel.getCertExpiryDate()
+        dateOfExpiryTextView.text = when {
+            docExpiry != null -> getString(R.string.document_expiry, docExpiry)
+            certExpiry != null -> getString(R.string.cert_expiry, certExpiry)
+            else -> getString(R.string.expiration, "-")
+        }
 
         pin1TextView.text = getString(R.string.pin1_counter, dataViewModel.getPin1Counter())
         pin2TextView.text = getString(R.string.pin2_counter, dataViewModel.getPin2Counter())
