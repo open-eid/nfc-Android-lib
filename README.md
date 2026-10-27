@@ -115,6 +115,8 @@ Integrating ID card support into an Android application proceeds as follows:
 
 An example of using the NFC interface can be found in the demo application: `CardReaderFragment.kt`. The example is written in Kotlin, but the library can also be used in Java applications. The sample app additionally depends on the `libdigidocpp` library, which enables the creation of signed ASiC-E containers; however, this dependency is not required for using the ID card via NFC. 
 
+Currently supports Estonian eID cards. Please submit an issue if you want to request support for your country's eID card.
+
 ## NFC Interface
 
 ### General Communication Scheme
