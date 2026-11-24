@@ -20,6 +20,7 @@ import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
 import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
 import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
+import org.bouncycastle.util.encoders.Hex;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockMakers;
 
@@ -186,8 +187,8 @@ public final class LatviaIdemiaPersonalDataTest {
 
     /**
      * Stub a reader that responds to the small set of APDUs personalData()
-     * issues. Tracks selected EF to disambiguate the two READ BINARY contexts
-     * (personal-code file vs auth certificate).
+     * issues. Tracks selected EF to disambiguate the three READ BINARY contexts
+     * (personal-code file, PKCS#15 directory, auth certificate).
      */
     private static NfcSmartCardReader stubReaderForRawBytes(byte[] efPayload, byte[] certDer) {
         NfcSmartCardReader reader = mock(NfcSmartCardReader.class,
@@ -195,6 +196,8 @@ public final class LatviaIdemiaPersonalDataTest {
 
         final boolean[] inCertContext = {false};
         final int[] certReadCallNo = {0};
+        final boolean[] inPkcs15Context = {false};
+        final byte[][] pkcs15Payload = {null};
 
         try {
             when(reader.transmit(anyInt(), anyInt(), anyInt(), anyInt(), any(), any()))
@@ -210,10 +213,20 @@ public final class LatviaIdemiaPersonalDataTest {
                         if (cla == 0x00 && ins == 0xA4) {
                             // P1 = 0x09 path is how certificate() locates the auth cert.
                             inCertContext[0] = (p1 == 0x09);
+                            pkcs15Payload[0] = p1 == 0x02 ? pkcs15Directory(data) : null;
+                            inPkcs15Context[0] = pkcs15Payload[0] != null;
                             return new byte[0];
                         }
                         // READ BINARY: branch on which file we last selected.
                         if (cla == 0x00 && ins == 0xB0) {
+                            if (inPkcs15Context[0]) {
+                                byte[] payload = pkcs15Payload[0];
+                                if (payload == null) {
+                                    throw new ApduResponseException((byte) 0x6B, (byte) 0x00);
+                                }
+                                pkcs15Payload[0] = null;
+                                return payload;
+                            }
                             if (inCertContext[0]) {
                                 certReadCallNo[0]++;
                                 if (certReadCallNo[0] == 1) {
@@ -231,5 +244,18 @@ public final class LatviaIdemiaPersonalDataTest {
             throw new AssertionError(e);
         }
         return reader;
+    }
+
+    private static byte[] pkcs15Directory(byte[] fileId) {
+        if (fileId == null || fileId.length != 2) {
+            return null;
+        }
+        String id = Hex.toHexString(fileId);
+        return switch (id) {
+            case "5031" -> Hex.decode(TestPkcs15.EF_OD);
+            case "4003" -> Hex.decode(TestPkcs15.efCd("3401"));
+            case "4001" -> Hex.decode(TestPkcs15.efPrKd("82"));
+            default -> null;
+        };
     }
 }

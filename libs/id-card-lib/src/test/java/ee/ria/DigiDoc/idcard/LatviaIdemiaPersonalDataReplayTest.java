@@ -85,6 +85,8 @@ public final class LatviaIdemiaPersonalDataReplayTest {
         // READ BINARY EF 0x5001 — Latvian personal code "326305-17052" UTF-8
         r.expect("00b0000000", okPadded("3332363330352d313730353280000000"));
 
+        TestPkcs15.loadDescriptorTranscript(r, CertificateType.AUTHENTICATION, "3401", "82");
+
         // certificate(AUTHENTICATION) — selectMainAid() again
         r.expect("00a4040c10a000000077010800070000fe00000100", okPadded(""));
         // SELECT EF.AACE (auth cert) via P1=0x09, data=AD F1 34 01

@@ -68,8 +68,9 @@ class Idemia implements Token {
 
     @Override
     public byte[] certificate(CertificateType type) throws SmartCardReaderException {
+        byte[] file = certificateFile(type);
         selectMainAid();
-        reader.transmit(0x00, 0xA4, 0x09, 0x0C, CERT_MAP.get(type), null);
+        reader.transmit(0x00, 0xA4, 0x09, 0x0C, file, null);
 
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
         while (true) {
@@ -149,6 +150,10 @@ class Idemia implements Token {
     @Override
     public byte[] decrypt(byte[] pin1, byte[] data, boolean ecc) throws SmartCardReaderException {
         throw new SmartCardReaderException("Decryption not supported on this card");
+    }
+
+    protected byte[] certificateFile(CertificateType type) throws SmartCardReaderException {
+        return CERT_MAP.get(type);
     }
 
     protected void verifyCode(CodeType type, byte[] code) throws SmartCardReaderException {

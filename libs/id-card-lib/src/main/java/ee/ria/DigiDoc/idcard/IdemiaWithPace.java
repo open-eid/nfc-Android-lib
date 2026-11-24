@@ -128,8 +128,8 @@ class IdemiaWithPace extends Idemia implements TokenWithPace, ApduEncryptor {
      */
     private final NfcSmartCardReader nfcReader;
 
-    protected Byte authKeyRef = (byte) 0x81;
-    protected Byte signKeyRef = (byte) 0x9F;
+    protected byte authKeyRef = (byte) 0x81;
+    protected byte signKeyRef = (byte) 0x9F;
 
     protected String paceEcSpec;
     protected byte paceDomainParam;
@@ -808,9 +808,9 @@ class IdemiaWithPace extends Idemia implements TokenWithPace, ApduEncryptor {
 
     @Override
     public byte[] authenticate(byte[] pin1, byte[] token) throws SmartCardReaderException {
+        byte keyRef = getAuthKeyRef();
         selectOberthurAid();
         verifyCode(CodeType.PIN1, pin1);
-        byte keyRef = getAuthKeyRef();
         byte[] template = authMseTemplate();
         byte[] body = concatenate(template, new byte[] {(byte) 0x84, 0x01, keyRef});
 
@@ -826,9 +826,9 @@ class IdemiaWithPace extends Idemia implements TokenWithPace, ApduEncryptor {
 
     @Override
     public byte[] calculateSignature(byte[] pin2, byte[] hash, boolean ecc) throws SmartCardReaderException {
+        byte keyRef = getSignKeyRef();
         selectQSCDAid();
         verifyCode(CodeType.PIN2, pin2);
-        byte keyRef = getSignKeyRef();
         byte[] template = signMseTemplate();
         byte[] body = concatenate(template, new byte[] {(byte) 0x84, 0x01, keyRef});
 
@@ -844,9 +844,9 @@ class IdemiaWithPace extends Idemia implements TokenWithPace, ApduEncryptor {
 
     @Override
     public byte[] decrypt(byte[] pin1, byte[] data, boolean ecc) throws SmartCardReaderException {
+        byte keyRef = getAuthKeyRef();
         selectOberthurAid();
         verifyCode(CodeType.PIN1, pin1);
-        byte keyRef = getAuthKeyRef();
         byte[] template = decryptMseTemplate();
         byte[] body = concatenate(template, new byte[] {(byte) 0x84, 0x01, keyRef});
 
@@ -860,132 +860,12 @@ class IdemiaWithPace extends Idemia implements TokenWithPace, ApduEncryptor {
         return reader.transmit(0x00, 0x2A, 0x80, 0x86, concatenate(new byte[] {0x00}, data), 0x00);
     }
 
-    /**
-     * Get the authentication key reference. If null, attempts dynamic discovery from PrKDF.
-     * Cached after first read.
-     */
     protected byte getAuthKeyRef() throws SmartCardReaderException {
-        if (authKeyRef == null) {
-            byte ref = readKeyRefFromCurrentContext();
-            if (ref != 0) {
-                authKeyRef = ref;
-                LoggingUtil.Companion.debugLog(TAG,
-                    String.format("PrKDF auth key ref discovered: 0x%02x", authKeyRef & 0xFF),
-                    null
-                );
-            } else {
-                throw new SmartCardReaderException("Auth key reference not found in PrKDF");
-            }
-        }
-
         return authKeyRef;
     }
 
-    /**
-     * Get the signing key reference. If null, attempts dynamic discovery from PrKDF.
-     * Cached after first read.
-     */
     protected byte getSignKeyRef() throws SmartCardReaderException {
-        if (signKeyRef == null) {
-            byte ref = readKeyRefFromCurrentContext();
-            if (ref != 0) {
-                signKeyRef = ref;
-                LoggingUtil.Companion.debugLog(TAG,
-                    String.format("PrKDF sign key ref discovered: 0x%02x", signKeyRef & 0xFF),
-                    null
-                );
-            } else {
-                throw new SmartCardReaderException("Sign key reference not found in PrKDF");
-            }
-        }
-
         return signKeyRef;
-    }
-
-    /**
-     * Read the first private key reference from the PrKDF in the currently selected AID context.
-     *
-     * Flow (matching Web eID libelectronic-id):
-     * 1. Select and read EF_OD (0x5031) — Object Directory File
-     * 2. Find tag 0xA0 (private key dir ref) → extract PrKDF file ID
-     * 3. Read PrKDF file
-     * 4. Return first keyReference INTEGER found
-     *
-     * @return key reference byte, or 0 if not found
-     */
-    private byte readKeyRefFromCurrentContext() throws SmartCardReaderException {
-        // Read EF_OD (Object Directory File at 0x5031)
-        reader.transmit(0x00, 0xA4, 0x02, 0x0C, new byte[] {0x50, 0x31}, null);
-        byte[] efOd = readBinaryFile();
-
-        // Find tag 0xA0 (private key directory reference)
-        List<TLV> odEntries = TLV.parseAll(efOd);
-        TLV privKeyDir = TLV.findByTag(odEntries, 0xA0);
-        if (privKeyDir == null || privKeyDir.children == null) {
-            return 0;
-        }
-
-        // Navigate: A0 → 30 → 04 to get PrKDF file ID
-        TLV seq = privKeyDir.findByTag(0x30);
-        if (seq == null) {
-            return 0;
-        }
-        TLV fileIdTlv = seq.findByTag(0x04);
-        if (fileIdTlv == null || fileIdTlv.getValue().length != 2) {
-            return 0;
-        }
-
-        // Select and read PrKDF
-        byte[] fileId = fileIdTlv.getValue();
-        reader.transmit(0x00, 0xA4, 0x02, 0x0C, fileId, null);
-        byte[] prKdfData = readBinaryFile();
-
-        // Parse PrKDF entries and return first key reference found
-        List<TLV> keyEntries = TLV.parseAll(prKdfData);
-        for (TLV entry : keyEntries) {
-            if (entry.children == null || entry.children.size() < 2) {
-                continue;
-            }
-            byte keyRef = extractKeyReference(entry);
-            if (keyRef != 0) {
-                return keyRef;
-            }
-        }
-        return 0;
-    }
-
-    /**
-     * Extract key reference from a PKCS#15 PrivateKeyType entry.
-     *
-     * Structure: SEQUENCE { CommonObjectAttributes, CommonKeyAttributes, TypeAttributes }
-     * CommonKeyAttributes contains: iD, usage, ..., keyReference (INTEGER)
-     *
-     * In DER, key refs >= 0x80 are encoded as 2-byte INTEGERs (e.g., 02 02 00 82).
-     */
-    protected static byte extractKeyReference(TLV entry) {
-        if (entry.children == null || entry.children.size() < 2) {
-            return 0;
-        }
-
-        // Second child SEQUENCE = CommonKeyAttributes
-        TLV commonKeyAttrs = entry.children.get(1);
-        if (commonKeyAttrs.children == null) {
-            return 0;
-        }
-
-        // Find INTEGER (tag 0x02) — this is the keyReference
-        for (TLV child : commonKeyAttrs.children) {
-            if (child.getTag() == 0x02) {
-                byte[] val = child.getValue();
-                if (val.length == 2) {
-                    // 2-byte DER INTEGER (e.g., 00 82 → key ref 0x82)
-                    return val[1];
-                } else if (val.length == 1) {
-                    return val[0];
-                }
-            }
-        }
-        return 0;
     }
 
     /**

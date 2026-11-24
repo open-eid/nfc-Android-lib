@@ -79,7 +79,9 @@ class Thales implements Token {
             int tag = record.getTag();
             if (tag == 0x80 || tag == 0x81) {
                 byte[] value = record.getValue();
-                if (value != null && value.length >= 2) {
+                if (value != null && value.length == 1) {
+                    size = value[0] & 0xFF;
+                } else if (value != null && value.length >= 2) {
                     size = ((value[0] & 0xFF) << 8) | (value[1] & 0xFF);
                 }
             }

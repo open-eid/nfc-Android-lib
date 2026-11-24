@@ -243,6 +243,22 @@ public final class ThalesCodeManagementTest {
     }
 
     @Test
+    public void certificate_singleByteSizeDo_readsExactlyThatManyBytes() throws Exception {
+        byte[] fci = Hex.decode("6203800105");
+        byte[] certBody = new byte[] {0x30, 0x03, 0x01, 0x02, 0x03};
+        CommandStubReader stub = new CommandStubReader()
+                .respondTo(0x00, 0xA4, fci)
+                .respondTo(0x00, 0xB0, certBody);
+        ThalesWithPace token = new ThalesWithPace(stub.build());
+
+        byte[] cert = token.certificate(CertificateType.AUTHENTICATION);
+
+        assertThat(cert).isEqualTo(certBody);
+        assertThat(stub.captured).hasSize(2);
+        CommandStubReader.assertHeader(stub.captured.get(1), 0x00, 0xB0, 0x00, 0x00);
+    }
+
+    @Test
     public void certificate_signing_routesToSigningCertEf() throws Exception {
         byte[] fci = Hex.decode("620480020003");
         byte[] certBody = new byte[] {0x01, 0x02, 0x03};
