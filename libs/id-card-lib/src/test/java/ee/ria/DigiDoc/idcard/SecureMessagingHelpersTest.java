@@ -19,11 +19,11 @@ import java.lang.reflect.Method;
 import java.math.BigInteger;
 
 /**
- * Golden-vector tests for the IDEMIA secure-messaging / PACE helpers that
+ * Golden-vector tests for the shared secure-messaging / PACE helpers that
  * are pure functions or work off only fields without reaching the
  * card. The whole point of these tests is to be brittle in the right way:
  * any refactor that moves these helpers (e.g. into a shared
- * AbstractPaceWithSecureMessaging) MUST produce byte-identical output for
+ * PaceTunnel) MUST produce byte-identical output for
  * the same inputs, otherwise the wire-level conversation with the chip
  * changes and PACE breaks.
  *
@@ -35,12 +35,13 @@ import java.math.BigInteger;
  */
 public final class SecureMessagingHelpersTest {
 
-    private IdemiaWithPace token;
+    private PaceTunnel token;
 
     @BeforeEach
     public void setUp() {
         // Helpers tested here do not touch the reader.
-        token = new IdemiaWithPace(mock(NfcSmartCardReader.class));
+        token = new PaceTunnel(mock(NfcSmartCardReader.class),
+                new PaceTunnel.Profile("brainpoolP256r1", 32, 0x00, new byte[0]));
     }
 
     // -------- incrementSSC --------
@@ -261,7 +262,7 @@ public final class SecureMessagingHelpersTest {
 
     private Object invoke(String name, Class<?>[] paramTypes, Object... args) {
         try {
-            Method m = IdemiaWithPace.class.getDeclaredMethod(name, paramTypes);
+            Method m = PaceTunnel.class.getDeclaredMethod(name, paramTypes);
             m.setAccessible(true);
             return m.invoke(token, args);
         } catch (InvocationTargetException e) {
@@ -275,7 +276,7 @@ public final class SecureMessagingHelpersTest {
 
     private void invokeStaticVoid(String name, Class<?>[] paramTypes, Object... args) {
         try {
-            Method m = IdemiaWithPace.class.getDeclaredMethod(name, paramTypes);
+            Method m = PaceTunnel.class.getDeclaredMethod(name, paramTypes);
             m.setAccessible(true);
             m.invoke(null, args);
         } catch (InvocationTargetException e) {
@@ -288,7 +289,7 @@ public final class SecureMessagingHelpersTest {
 
     private static BigInteger invokeGenerateRandomPrivateKey(ECNamedCurveParameterSpec spec) {
         try {
-            Method m = IdemiaWithPace.class.getDeclaredMethod(
+            Method m = PaceTunnel.class.getDeclaredMethod(
                     "generateRandomPrivateKey", ECNamedCurveParameterSpec.class);
             m.setAccessible(true);
             return (BigInteger) m.invoke(null, spec);
