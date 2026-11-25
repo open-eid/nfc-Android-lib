@@ -25,24 +25,35 @@ final class TestPkcs15 {
         return "a00d" + "30020500" + "3007" + "040101" + "0202" + "00" + keyReference;
     }
 
-    static void loadDescriptorTranscript(ApduReplayReader r, CertificateType type,
-                                         String certificateFileId, String keyReference) {
-        loadRawDescriptorTranscript(r, type, efCd(certificateFileId), efPrKd(keyReference));
+    static void loadCertificateDirectory(ApduReplayReader r, CertificateType type,
+                                         String certificateFileId) {
+        loadRawCertificateDirectory(r, type, efCd(certificateFileId));
     }
 
-    static void loadRawDescriptorTranscript(ApduReplayReader r, CertificateType type,
-                                            String efCd, String efPrKd) {
-        r.expect(type == CertificateType.SIGNING
-                ? TestApdus.SEL_QSCD_AID : TestApdus.SEL_OBERTHUR_AID, ok());
-
-        r.expect(SEL_EF_OD, ok());
-        loadFileRead(r, EF_OD);
-
+    static void loadRawCertificateDirectory(ApduReplayReader r, CertificateType type,
+                                            String efCd) {
+        loadObjectDirectory(r, type);
         r.expect(SEL_EF_CD, ok());
         loadFileRead(r, efCd);
+    }
 
+    static void loadPrivateKeyDirectory(ApduReplayReader r, CertificateType type,
+                                        String keyReference) {
+        loadRawPrivateKeyDirectory(r, type, efPrKd(keyReference));
+    }
+
+    static void loadRawPrivateKeyDirectory(ApduReplayReader r, CertificateType type,
+                                           String efPrKd) {
+        loadObjectDirectory(r, type);
         r.expect(SEL_EF_PRKD, ok());
         loadFileRead(r, efPrKd);
+    }
+
+    static void loadObjectDirectory(ApduReplayReader r, CertificateType type) {
+        r.expect(type == CertificateType.SIGNING
+                ? TestApdus.SEL_QSCD_AID : TestApdus.SEL_OBERTHUR_AID, ok());
+        r.expect(SEL_EF_OD, ok());
+        loadFileRead(r, EF_OD);
     }
 
     static void loadFileRead(ApduReplayReader r, String payload) {

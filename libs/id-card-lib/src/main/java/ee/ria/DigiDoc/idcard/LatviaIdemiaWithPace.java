@@ -49,10 +49,10 @@ class LatviaIdemiaWithPace extends IdemiaWithPace {
     private static final byte[] ADF1 = {(byte) 0xAD, (byte) 0xF1};
     private static final byte[] ADF2 = {(byte) 0xAD, (byte) 0xF2};
 
-    private final Map<CertificateType, KeyDescriptor> descriptors =
+    private final Map<CertificateType, byte[]> certificateFiles =
             new EnumMap<>(CertificateType.class);
-
-    private record KeyDescriptor(byte[] certificateFile, byte keyReference) {}
+    private final Map<CertificateType, Byte> keyReferences =
+            new EnumMap<>(CertificateType.class);
 
     LatviaIdemiaWithPace(NfcSmartCardReader reader) {
         super(reader);
@@ -175,60 +175,73 @@ class LatviaIdemiaWithPace extends IdemiaWithPace {
 
     @Override
     protected byte[] certificateFile(CertificateType type) throws SmartCardReaderException {
-        return descriptor(type).certificateFile();
-    }
-
-    @Override
-    protected byte getAuthKeyRef() throws SmartCardReaderException {
-        return descriptor(CertificateType.AUTHENTICATION).keyReference();
-    }
-
-    @Override
-    protected byte getSignKeyRef() throws SmartCardReaderException {
-        return descriptor(CertificateType.SIGNING).keyReference();
-    }
-
-    private KeyDescriptor descriptor(CertificateType type) throws SmartCardReaderException {
-        KeyDescriptor cached = descriptors.get(type);
+        byte[] cached = certificateFiles.get(type);
         if (cached != null) {
             return cached;
         }
 
+        byte[] certificateDirectory = readDirectory(type, TAG_CERTIFICATE_DIRECTORY, "EF.CD");
+        byte[] file = descriptorValue(certificateDirectory,
+                new int[] {0x30, 0xA1, 0x30, 0x30, 0x04}, "EF.CD");
+        if (file.length != 2) {
+            String message = "EF.CD: certificate reference is "
+                    + file.length + " bytes, expected 2";
+            LoggingUtil.Companion.errorLog(TAG, message, null);
+            throw new SmartCardReaderException(message);
+        }
+
+        byte[] path = concatenate(type == CertificateType.SIGNING ? ADF2 : ADF1, file);
+        certificateFiles.put(type, path);
+        return path;
+    }
+
+    @Override
+    protected byte getAuthKeyRef() throws SmartCardReaderException {
+        return keyReference(CertificateType.AUTHENTICATION);
+    }
+
+    @Override
+    protected byte getSignKeyRef() throws SmartCardReaderException {
+        return keyReference(CertificateType.SIGNING);
+    }
+
+    private byte keyReference(CertificateType type) throws SmartCardReaderException {
+        Byte cached = keyReferences.get(type);
+        if (cached != null) {
+            return cached;
+        }
+
+        byte[] privateKeyDirectory = readDirectory(type, TAG_PRIVATE_KEY_DIRECTORY, "EF.PrKD");
+        List<TLV> keys = TLV.parseAll(privateKeyDirectory);
+        if (keys.isEmpty()) {
+            String message = "EF.PrKD: no private key record";
+            LoggingUtil.Companion.errorLog(TAG, message, null);
+            throw new SmartCardReaderException(message);
+        }
+        TLV key = keys.get(0);
+        if (key.getTag() != TAG_PRIVATE_EC_KEY) {
+            String message = "EF.PrKD: private key is not an EC key";
+            LoggingUtil.Companion.errorLog(TAG, message, null);
+            throw new NotSupportedException(message);
+        }
+
+        byte reference = extractKeyReference(key);
+        if (reference == 0) {
+            reference = defaultKeyReference(type);
+        }
+        keyReferences.put(type, reference);
+        return reference;
+    }
+
+    private byte[] readDirectory(CertificateType type, int tag, String file)
+            throws SmartCardReaderException {
         if (type == CertificateType.SIGNING) {
             selectQSCDAid();
         } else {
             selectOberthurAid();
         }
         byte[] objects = readEf(EF_OD);
-
-        byte[] certificateDirectory =
-                readEf(directoryReference(objects, TAG_CERTIFICATE_DIRECTORY, "EF.CD"));
-        byte[] certificateFile = descriptorValue(certificateDirectory,
-                new int[] {0x30, 0xA1, 0x30, 0x30, 0x04}, "EF.CD");
-        if (certificateFile.length != 2) {
-            throw new SmartCardReaderException("EF.CD: certificate reference is "
-                    + certificateFile.length + " bytes, expected 2");
-        }
-
-        byte[] privateKeyDirectory =
-                readEf(directoryReference(objects, TAG_PRIVATE_KEY_DIRECTORY, "EF.PrKD"));
-        List<TLV> keys = TLV.parseAll(privateKeyDirectory);
-        if (keys.isEmpty()) {
-            throw new SmartCardReaderException("EF.PrKD: no private key record");
-        }
-        TLV key = keys.get(0);
-        if (key.getTag() != TAG_PRIVATE_EC_KEY) {
-            throw new NotSupportedException("EF.PrKD: private key is not an EC key");
-        }
-
-        byte keyReference = extractKeyReference(key);
-        KeyDescriptor descriptor = new KeyDescriptor(
-                concatenate(type == CertificateType.SIGNING ? ADF2 : ADF1, certificateFile),
-                keyReference != 0 ? keyReference : defaultKeyReference(type));
-        LoggingUtil.Companion.debugLog(TAG,
-                String.format("PKCS#15 descriptor read for %s", type), null);
-        descriptors.put(type, descriptor);
-        return descriptor;
+        return readEf(directoryReference(objects, tag, file));
     }
 
     private static byte defaultKeyReference(CertificateType type) {
@@ -239,8 +252,10 @@ class LatviaIdemiaWithPace extends IdemiaWithPace {
             throws SmartCardReaderException {
         byte[] reference = descriptorValue(objectDirectory, new int[] {tag, 0x30, 0x04}, "EF.OD");
         if (reference.length != 2) {
-            throw new SmartCardReaderException("EF.OD: " + file + " reference is "
-                    + reference.length + " bytes, expected 2");
+            String message = "EF.OD: " + file + " reference is "
+                    + reference.length + " bytes, expected 2";
+            LoggingUtil.Companion.errorLog(TAG, message, null);
+            throw new SmartCardReaderException(message);
         }
         return reference;
     }
@@ -257,8 +272,9 @@ class LatviaIdemiaWithPace extends IdemiaWithPace {
         for (int tag : path) {
             record = record == null ? TLV.findByTag(records, tag) : record.findByTag(tag);
             if (record == null) {
-                throw new SmartCardReaderException(
-                        String.format("%s: missing PKCS#15 tag 0x%02X", file, tag));
+                String message = String.format("%s: missing PKCS#15 tag 0x%02X", file, tag);
+                LoggingUtil.Companion.errorLog(TAG, message, null);
+                throw new SmartCardReaderException(message);
             }
         }
         return record.getValue();

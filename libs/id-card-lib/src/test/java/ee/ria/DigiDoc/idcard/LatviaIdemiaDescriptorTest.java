@@ -26,8 +26,8 @@ public final class LatviaIdemiaDescriptorTest {
     public void certificate_usesTheFileIdFromEfCd() throws Exception {
         var fixture = ReplayFixture.lv()
                 .with(r -> {
-                    TestPkcs15.loadDescriptorTranscript(
-                            r, CertificateType.AUTHENTICATION, "3402", "82");
+                    TestPkcs15.loadCertificateDirectory(
+                            r, CertificateType.AUTHENTICATION, "3402");
                     r.expect(SEL_MAIN_AID, ok());
                     r.expect("00a4090c04adf13402", ok());
                     TestPkcs15.loadFileRead(r, CERT);
@@ -44,8 +44,8 @@ public final class LatviaIdemiaDescriptorTest {
     public void authenticate_usesTheKeyReferenceFromEfPrKd() throws Exception {
         var fixture = ReplayFixture.lv()
                 .with(r -> {
-                    TestPkcs15.loadDescriptorTranscript(
-                            r, CertificateType.AUTHENTICATION, "3401", "81");
+                    TestPkcs15.loadPrivateKeyDirectory(
+                            r, CertificateType.AUTHENTICATION, "81");
                     r.expect(TestApdus.SEL_OBERTHUR_AID, ok());
                     r.expect("00200001" + "0c" + TestPins.PIN1_PADDED_FF, ok());
                     r.expect("002241a4" + "06" + "800104" + "840181", ok());
@@ -67,8 +67,8 @@ public final class LatviaIdemiaDescriptorTest {
 
         var fixture = ReplayFixture.lv()
                 .with(r -> {
-                    TestPkcs15.loadRawDescriptorTranscript(r, CertificateType.AUTHENTICATION,
-                            TestPkcs15.efCd("3401"), efPrKdWithoutKeyRef);
+                    TestPkcs15.loadRawPrivateKeyDirectory(
+                            r, CertificateType.AUTHENTICATION, efPrKdWithoutKeyRef);
                     r.expect(TestApdus.SEL_OBERTHUR_AID, ok());
                     r.expect("00200001" + "0c" + TestPins.PIN1_PADDED_FF, ok());
                     r.expect("002241a4" + "06" + "800104" + "840182", ok());
@@ -89,13 +89,30 @@ public final class LatviaIdemiaDescriptorTest {
         String efPrKdNonEc = "300d" + "30020500" + "3007" + "040101" + "0202" + "0082";
 
         var fixture = ReplayFixture.lv()
-                .with(r -> TestPkcs15.loadRawDescriptorTranscript(
-                        r, CertificateType.AUTHENTICATION,
-                        TestPkcs15.efCd("3401"), efPrKdNonEc))
+                .with(r -> TestPkcs15.loadRawPrivateKeyDirectory(
+                        r, CertificateType.AUTHENTICATION, efPrKdNonEc))
                 .tunnel();
 
         assertThrows(NotSupportedException.class, () -> fixture.token.authenticate(
                 TestPins.PIN1, Hex.decode(TestApdus.CAPTURED_AUTH_HASH)));
+        fixture.assertAllConsumed();
+    }
+
+    @Test
+    public void certificate_doesNotReadThePrivateKeyDirectory() throws Exception {
+        var fixture = ReplayFixture.lv()
+                .with(r -> {
+                    TestPkcs15.loadCertificateDirectory(
+                            r, CertificateType.AUTHENTICATION, "3401");
+                    r.expect(SEL_MAIN_AID, ok());
+                    r.expect("00a4090c04adf13401", ok());
+                    TestPkcs15.loadFileRead(r, CERT);
+                })
+                .tunnel();
+
+        byte[] certificate = fixture.token.certificate(CertificateType.AUTHENTICATION);
+
+        assertThat(Hex.toHexString(certificate)).isEqualTo(CERT);
         fixture.assertAllConsumed();
     }
 
@@ -117,11 +134,11 @@ public final class LatviaIdemiaDescriptorTest {
     }
 
     @Test
-    public void descriptor_isReadOncePerCertificateType() throws Exception {
+    public void certificateFile_isReadOncePerCertificateType() throws Exception {
         var fixture = ReplayFixture.lv()
                 .with(r -> {
-                    TestPkcs15.loadDescriptorTranscript(
-                            r, CertificateType.AUTHENTICATION, "3401", "82");
+                    TestPkcs15.loadCertificateDirectory(
+                            r, CertificateType.AUTHENTICATION, "3401");
                     for (int i = 0; i < 2; i++) {
                         r.expect(SEL_MAIN_AID, ok());
                         r.expect("00a4090c04adf13401", ok());

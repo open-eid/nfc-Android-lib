@@ -38,8 +38,8 @@ public final class LatviaIdemiaPinRetryReplayTest {
             int sw1, int sw2, int expectedRetries) throws Exception {
         var fixture = ReplayFixture.lv()
                 .with(r -> {
-                    TestPkcs15.loadDescriptorTranscript(
-                            r, CertificateType.AUTHENTICATION, "3401", "82");
+                    TestPkcs15.loadPrivateKeyDirectory(
+                            r, CertificateType.AUTHENTICATION, "82");
                     r.expect(SEL_OBERTHUR_AID, ok());
                     r.expect("00200001" + "0c" + TestPins.WRONG_PIN1_PADDED_FF,
                             err(sw1, sw2));
