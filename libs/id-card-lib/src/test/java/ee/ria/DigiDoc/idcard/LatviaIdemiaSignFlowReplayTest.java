@@ -46,6 +46,8 @@ public final class LatviaIdemiaSignFlowReplayTest {
     public void authenticate_replaysLvAuthSignFlow_returnsCapturedSignature() throws Exception {
         var fixture = ReplayFixture.lv()
                 .with(r -> {
+                    TestPkcs15.loadPrivateKeyDirectory(
+                            r, CertificateType.AUTHENTICATION, "82");
                     r.expect(TestApdus.SEL_OBERTHUR_AID, ok());
                     r.expect("00200001" + "0c" + TestPins.PIN1_PADDED_FF, ok());
                     // MSE SET AT (P2=0xA4) — LV 3-byte template + auth key 0x82.
@@ -67,6 +69,8 @@ public final class LatviaIdemiaSignFlowReplayTest {
     public void calculateSignature_replaysLvDocumentSignFlow_returnsCapturedSignature() throws Exception {
         var fixture = ReplayFixture.lv()
                 .with(r -> {
+                    TestPkcs15.loadPrivateKeyDirectory(
+                            r, CertificateType.SIGNING, "9e");
                     r.expect(TestApdus.SEL_QSCD_AID, ok());
                     r.expect("00200085" + "0c" + TestPins.PIN2_PADDED_FF, ok());
                     // MSE SET DST (P2=0xB6) — sign template + sign key 0x9E.

@@ -4,6 +4,8 @@
 
 package ee.ria.DigiDoc.idcard;
 
+import static org.bouncycastle.util.Arrays.concatenate;
+
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.bouncycastle.asn1.x500.RDN;
 import org.bouncycastle.asn1.x500.X500Name;
@@ -17,6 +19,9 @@ import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.util.EnumMap;
+import java.util.List;
+import java.util.Map;
 
 import ee.ria.DigiDoc.smartcardreader.SmartCardReaderException;
 import ee.ria.DigiDoc.smartcardreader.nfc.NfcSmartCardReader;
@@ -36,10 +41,21 @@ import ee.ria.DigiDoc.utilsLib.logging.LoggingUtil;
 class LatviaIdemiaWithPace extends IdemiaWithPace {
     private static final String TAG = LatviaIdemiaWithPace.class.getName();
 
+    private static final byte[] EF_OD = {0x50, 0x31};
+    private static final int TAG_CERTIFICATE_DIRECTORY = 0xA4;
+    private static final int TAG_PRIVATE_KEY_DIRECTORY = 0xA0;
+    private static final int TAG_PRIVATE_EC_KEY = 0xA0;
+
+    private static final byte[] ADF1 = {(byte) 0xAD, (byte) 0xF1};
+    private static final byte[] ADF2 = {(byte) 0xAD, (byte) 0xF2};
+
+    private final Map<CertificateType, byte[]> certificateFiles =
+            new EnumMap<>(CertificateType.class);
+    private final Map<CertificateType, Byte> keyReferences =
+            new EnumMap<>(CertificateType.class);
+
     LatviaIdemiaWithPace(NfcSmartCardReader reader) {
         super(reader);
-        authKeyRef = (byte) 0x82;
-        signKeyRef = (byte) 0x9E;
     }
 
     @Override
@@ -157,4 +173,133 @@ class LatviaIdemiaWithPace extends IdemiaWithPace {
         return IETFUtils.valueToString(rdns[0].getFirst().getValue());
     }
 
+    @Override
+    protected byte[] certificateFile(CertificateType type) throws SmartCardReaderException {
+        byte[] cached = certificateFiles.get(type);
+        if (cached != null) {
+            return cached;
+        }
+
+        byte[] certificateDirectory = readDirectory(type, TAG_CERTIFICATE_DIRECTORY, "EF.CD");
+        byte[] file = descriptorValue(certificateDirectory,
+                new int[] {0x30, 0xA1, 0x30, 0x30, 0x04}, "EF.CD");
+        if (file.length != 2) {
+            String message = "EF.CD: certificate reference is "
+                    + file.length + " bytes, expected 2";
+            LoggingUtil.Companion.errorLog(TAG, message, null);
+            throw new SmartCardReaderException(message);
+        }
+
+        byte[] path = concatenate(type == CertificateType.SIGNING ? ADF2 : ADF1, file);
+        certificateFiles.put(type, path);
+        return path;
+    }
+
+    @Override
+    protected byte getAuthKeyRef() throws SmartCardReaderException {
+        return keyReference(CertificateType.AUTHENTICATION);
+    }
+
+    @Override
+    protected byte getSignKeyRef() throws SmartCardReaderException {
+        return keyReference(CertificateType.SIGNING);
+    }
+
+    private byte keyReference(CertificateType type) throws SmartCardReaderException {
+        Byte cached = keyReferences.get(type);
+        if (cached != null) {
+            return cached;
+        }
+
+        byte[] privateKeyDirectory = readDirectory(type, TAG_PRIVATE_KEY_DIRECTORY, "EF.PrKD");
+        List<TLV> keys = TLV.parseAll(privateKeyDirectory);
+        if (keys.isEmpty()) {
+            String message = "EF.PrKD: no private key record";
+            LoggingUtil.Companion.errorLog(TAG, message, null);
+            throw new SmartCardReaderException(message);
+        }
+        TLV key = keys.get(0);
+        if (key.getTag() != TAG_PRIVATE_EC_KEY) {
+            String message = "EF.PrKD: private key is not an EC key";
+            LoggingUtil.Companion.errorLog(TAG, message, null);
+            throw new NotSupportedException(message);
+        }
+
+        byte reference = extractKeyReference(key);
+        if (reference == 0) {
+            reference = defaultKeyReference(type);
+        }
+        keyReferences.put(type, reference);
+        return reference;
+    }
+
+    private byte[] readDirectory(CertificateType type, int tag, String file)
+            throws SmartCardReaderException {
+        if (type == CertificateType.SIGNING) {
+            selectQSCDAid();
+        } else {
+            selectOberthurAid();
+        }
+        byte[] objects = readEf(EF_OD);
+        return readEf(directoryReference(objects, tag, file));
+    }
+
+    private static byte defaultKeyReference(CertificateType type) {
+        return type == CertificateType.SIGNING ? (byte) 0x9E : (byte) 0x82;
+    }
+
+    private static byte[] directoryReference(byte[] objectDirectory, int tag, String file)
+            throws SmartCardReaderException {
+        byte[] reference = descriptorValue(objectDirectory, new int[] {tag, 0x30, 0x04}, "EF.OD");
+        if (reference.length != 2) {
+            String message = "EF.OD: " + file + " reference is "
+                    + reference.length + " bytes, expected 2";
+            LoggingUtil.Companion.errorLog(TAG, message, null);
+            throw new SmartCardReaderException(message);
+        }
+        return reference;
+    }
+
+    private byte[] readEf(byte[] fileId) throws SmartCardReaderException {
+        reader.transmit(0x00, 0xA4, 0x02, 0x0C, fileId, null);
+        return readBinaryFile();
+    }
+
+    private static byte[] descriptorValue(byte[] data, int[] path, String file)
+            throws SmartCardReaderException {
+        List<TLV> records = TLV.parseAll(data);
+        TLV record = null;
+        for (int tag : path) {
+            record = record == null ? TLV.findByTag(records, tag) : record.findByTag(tag);
+            if (record == null) {
+                String message = String.format("%s: missing PKCS#15 tag 0x%02X", file, tag);
+                LoggingUtil.Companion.errorLog(TAG, message, null);
+                throw new SmartCardReaderException(message);
+            }
+        }
+        return record.getValue();
+    }
+
+    private static byte extractKeyReference(TLV entry) {
+        if (entry.children == null || entry.children.size() < 2) {
+            return 0;
+        }
+
+        TLV commonKeyAttributes = entry.children.get(1);
+        if (commonKeyAttributes.children == null) {
+            return 0;
+        }
+
+        for (TLV child : commonKeyAttributes.children) {
+            if (child.getTag() == 0x02) {
+                byte[] value = child.getValue();
+                if (value.length == 2) {
+                    return value[1];
+                } else if (value.length == 1) {
+                    return value[0];
+                }
+            }
+        }
+        return 0;
+    }
 }
